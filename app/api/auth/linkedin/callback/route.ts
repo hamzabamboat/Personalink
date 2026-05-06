@@ -1,0 +1,139 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { sendWelcomeEmail } from '@/lib/email'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const code = searchParams.get('code')
+  const state = searchParams.get('state')
+  const error = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
+
+  if (error) {
+    console.error('LinkedIn OAuth error:', error, errorDescription)
+    // error=access_denied usually means missing OIDC product in LinkedIn app
+    const reason = error === 'access_denied' ? 'scope_denied' : 'linkedin_denied'
+    return NextResponse.redirect(`${APP_URL}/?error=${reason}`)
+  }
+
+  // Verify state to prevent CSRF
+  const storedState = request.cookies.get('linkedin_oauth_state')?.value
+  if (!state || !storedState || state !== storedState) {
+    console.error('LinkedIn OAuth state mismatch')
+    return NextResponse.redirect(`${APP_URL}/?error=state_mismatch`)
+  }
+
+  if (!code) {
+    return NextResponse.redirect(`${APP_URL}/?error=no_code`)
+  }
+
+  try {
+    const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: `${APP_URL}/api/auth/linkedin/callback`,
+        client_id: process.env.LINKEDIN_CLIENT_ID!,
+        client_secret: process.env.LINKEDIN_CLIENT_SECRET!,
+      }),
+    })
+
+    const tokenData = await tokenResponse.json()
+    if (!tokenData.access_token) {
+      console.error('LinkedIn token error:', tokenData)
+      throw new Error('No access token returned')
+    }
+
+    const accessToken = tokenData.access_token
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+
+    const profileResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+
+    if (!profileResponse.ok) {
+      throw new Error(`Profile fetch failed: ${profileResponse.status}`)
+    }
+
+    const profile = await profileResponse.json()
+
+    const isNew = !(await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('linkedin_id', profile.sub)
+      .maybeSingle()
+      .then(r => r.data))
+
+    const { data: user, error: dbError } = await supabaseAdmin
+      .from('users')
+      .upsert(
+        {
+          linkedin_id: profile.sub,
+          linkedin_name: profile.name,
+          email: profile.email,
+          linkedin_picture: profile.picture,
+          linkedin_access_token: accessToken,
+          linkedin_token_expires_at: expiresAt.toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'linkedin_id' }
+      )
+      .select()
+      .single()
+
+    if (dbError) throw dbError
+
+    if (isNew && user.email) {
+      sendWelcomeEmail({ to: user.email, userName: user.linkedin_name || 'there' }).catch(
+        console.error
+      )
+    }
+
+    // Check existing subscription to pre-populate the sub_status cookie
+    const { data: sub } = await supabaseAdmin
+      .from('subscriptions')
+      .select('status')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    // Check if user has completed onboarding
+    const { data: existingProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('onboarding_completed_at')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const redirectTo = isNew || !existingProfile?.onboarding_completed_at
+      ? `${APP_URL}/onboarding`
+      : `${APP_URL}/dashboard`
+
+    const response = NextResponse.redirect(redirectTo)
+    response.cookies.set('session_user_id', user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+      path: '/',
+    })
+    const cookieOpts = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+    }
+    if (sub?.status === 'active') {
+      response.cookies.set('sub_status', 'active', { ...cookieOpts, maxAge: 60 * 60 })
+    } else if (sub?.status === 'trial') {
+      response.cookies.set('sub_status', 'trial', { ...cookieOpts, maxAge: 60 * 60 * 24 * 8 })
+    }
+    response.cookies.delete('linkedin_oauth_state')
+    return response
+  } catch (err) {
+    console.error('LinkedIn OAuth callback error:', err)
+    return NextResponse.redirect(`${APP_URL}/?error=oauth_failed`)
+  }
+}
