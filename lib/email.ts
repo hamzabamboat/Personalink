@@ -1,6 +1,10 @@
 import { Resend } from 'resend'
 
-export const resend = new Resend(process.env.RESEND_API_KEY!)
+let _resend: Resend | null = null
+const resend = () => {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!)
+  return _resend
+}
 
 const FROM_EMAIL = 'PersonaLink <noreply@personalink.ai>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
@@ -19,7 +23,7 @@ export async function sendApprovalEmail({
   const approveUrl = `${APP_URL}/approve/${approvalToken}?action=approve`
   const rejectUrl = `${APP_URL}/approve/${approvalToken}?action=reject`
 
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Your LinkedIn post is ready for approval`,
@@ -102,7 +106,7 @@ export async function sendWeeklyDigestEmail({
         </div>`
       : ''
 
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Your LinkedIn content ideas for this week, ${firstName}`,
@@ -171,7 +175,7 @@ export async function sendImageBriefEmail({
     </div>`)
     .join('')
 
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Your LinkedIn photo brief for ${month}, ${firstName}`,
@@ -216,7 +220,7 @@ export async function sendWelcomeEmail({
   to: string
   userName: string
 }) {
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Welcome to PersonaLink, ${userName.split(' ')[0]}!`,
@@ -259,7 +263,7 @@ export async function sendTrialStartedEmail({
   const amount = planAmounts[plan] || '₹999'
   const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
 
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Your 7-day free trial has started, ${firstName}!`,
