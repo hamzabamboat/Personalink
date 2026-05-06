@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { razorpay, PLAN_IDS, PLAN_AMOUNTS, TRIAL_DAYS } from '@/lib/razorpay'
+import { getRazorpay, PLAN_IDS, PLAN_AMOUNTS, TRIAL_DAYS } from '@/lib/razorpay'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
 
   // Create subscription with 7-day free trial
   // trial_period is valid Razorpay API field but missing from their TS typings
-  type RazorpaySubscriptionWithTrial = Parameters<typeof razorpay.subscriptions.create>[0] & { trial_period?: number }
+  const rzp = getRazorpay()
+  type RazorpaySubscriptionWithTrial = Parameters<typeof rzp.subscriptions.create>[0] & { trial_period?: number }
   const subscriptionBody: RazorpaySubscriptionWithTrial = {
     plan_id: razorpayPlanId,
     customer_notify: 1,
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     trial_period: TRIAL_DAYS,
     notes: { user_id: user.id, plan: planId },
   }
-  const subscription = await razorpay.subscriptions.create(subscriptionBody as Parameters<typeof razorpay.subscriptions.create>[0])
+  const subscription = await rzp.subscriptions.create(subscriptionBody as Parameters<typeof rzp.subscriptions.create>[0])
 
   await supabaseAdmin.from('subscriptions').upsert(
     {

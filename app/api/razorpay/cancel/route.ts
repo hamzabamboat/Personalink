@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { razorpay } from '@/lib/razorpay'
+import { getRazorpay } from '@/lib/razorpay'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
   // cancel_at_cycle_end: 0 = cancel now, 1 = cancel at end of current billing period
   // 0 = cancel immediately, 1 = cancel at end of current billing cycle
-  await razorpay.subscriptions.cancel(sub.razorpay_subscription_id as string, 0)
+  await getRazorpay().subscriptions.cancel(sub.razorpay_subscription_id as string, 0)
 
   const now = new Date().toISOString()
   await Promise.all([

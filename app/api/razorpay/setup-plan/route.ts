@@ -3,7 +3,7 @@
 // Copy that plan_id into .env.local as RAZORPAY_PLAN_ID, then never call this again.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { razorpay, PLAN_AMOUNTS, PLAN_CURRENCY } from '@/lib/razorpay'
+import { getRazorpay, PLAN_AMOUNTS, PLAN_CURRENCY } from '@/lib/razorpay'
 
 export async function POST(request: NextRequest) {
   const auth = request.headers.get('authorization')
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const plan = await razorpay.plans.create({
+  const plan = await getRazorpay().plans.create({
     period: 'monthly',
     interval: 1,
     item: {
