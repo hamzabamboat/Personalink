@@ -97,7 +97,7 @@ Write 3 different LinkedIn post options with different angles/hooks. Format:
 [post content]`
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-4-5',
     max_tokens: 2500,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
@@ -114,7 +114,7 @@ Write 3 different LinkedIn post options with different angles/hooks. Format:
 
 export async function analyzeVoiceFingerprint(writingSample: string): Promise<string> {
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-haiku-4-5',
     max_tokens: 600,
     messages: [{
       role: 'user',
@@ -138,7 +138,7 @@ Write the fingerprint in 150 words max. Be specific and actionable for a ghostwr
 
 export async function generateImageBriefPrompts(profile: UserProfile): Promise<string[]> {
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-haiku-4-5',
     max_tokens: 800,
     messages: [{
       role: 'user',
@@ -164,7 +164,7 @@ export async function repurposePost(postContent: string, profile: UserProfile): 
   const voiceContext = buildVoiceContext(profile)
 
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-4-5',
     max_tokens: 2000,
     messages: [{
       role: 'user',
@@ -203,7 +203,7 @@ export async function analyzeLinkedInProfile(profileData: {
   writingSample?: string
 }): Promise<{ score: number; breakdown: Record<string, { score: number; max: number; tip: string }>; improvements: string[] }> {
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-haiku-4-5',
     max_tokens: 1200,
     messages: [{
       role: 'user',
@@ -249,7 +249,7 @@ Respond ONLY with a valid JSON object exactly like this:
 
 export async function generateImageSuggestions(postContent: string, industry: string): Promise<Array<{ icon: string; suggestion: string; why: string }>> {
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-haiku-4-5',
     max_tokens: 600,
     messages: [{
       role: 'user',
@@ -283,7 +283,7 @@ export async function generateSuggestionsForUser(
   recentPosts: string[],
 ): Promise<Array<{ suggestion_text: string; angle: string; hashtags: string[]; why_it_works: string; source: string }>> {
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-4-5',
     max_tokens: 2000,
     messages: [{
       role: 'user',

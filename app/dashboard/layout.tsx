@@ -292,6 +292,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }).catch(() => router.push('/'))
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
   async function handleMobileLogout() {
