@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'PersonaLink — Your LinkedIn on Autopilot',
     description: 'AI-powered LinkedIn content manager',
-    images: ['/logo.png'],
+    images: ['/logo-full.png'],
   },
 }
 

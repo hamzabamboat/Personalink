@@ -31,7 +31,9 @@ export default function AdminLoginPage() {
       <div className="bg-slate-800 rounded-2xl p-8 w-full max-w-sm shadow-2xl">
         <div className="mb-6 text-center">
           <div className="flex justify-center mb-3">
-            <img src="/logo-icon.png" alt="PersonaLink" className="h-16 w-16 mx-auto rounded-xl" />
+            <div className="bg-white rounded-xl px-4 py-2">
+              <img src="/logo-text.png" alt="PersonaLink" className="h-8 w-auto" />
+            </div>
           </div>
           <h1 className="text-white font-bold text-xl">Admin Access</h1>
           <p className="text-slate-400 text-sm mt-1">PersonaLink internal dashboard</p>

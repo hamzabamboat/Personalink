@@ -169,7 +169,7 @@ function SidebarContent({ user, profile, plan, planColor, pathname }: {
       {/* Logo */}
       <div className="px-5 pt-5 pb-4 border-b border-slate-100">
         <Link href="/dashboard" className="flex items-center group">
-          <img src="/logo.png" alt="PersonaLink" className="h-7 w-auto" />
+          <img src="/logo-icon.png" alt="PersonaLink" className="h-9 w-9" />
         </Link>
       </div>
 
@@ -328,7 +328,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Mobile top bar */}
         <div className="hide-desktop bg-white border-b border-slate-100 h-[54px] flex items-center justify-between px-4 shadow-sm">
           <Link href="/dashboard" className="flex items-center">
-            <img src="/logo.png" alt="PersonaLink" className="h-7 w-auto" />
+            <img src="/logo-icon.png" alt="PersonaLink" className="h-8 w-8" />
           </Link>
           <div className="flex items-center gap-2">
             {user && (
@@ -362,6 +362,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {BOTTOM_NAV_ITEMS.map(item => {
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
             const Icon = item.icon
+            const isHome = item.href === '/dashboard' && item.exact
             return (
               <Link
                 key={item.href}
@@ -370,7 +371,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   active ? 'text-[#0B458B]' : 'text-slate-400'
                 }`}
               >
-                <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />
+                {isHome ? (
+                  <img src="/logo-icon.png" alt="Home" className={`w-7 h-7 rounded-md ${active ? 'ring-1 ring-[#0B458B]/30' : 'opacity-60'}`} />
+                ) : (
+                  <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />
+                )}
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             )

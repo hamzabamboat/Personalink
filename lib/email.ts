@@ -35,9 +35,10 @@ export async function sendApprovalEmail({
   <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 
     <div style="background:#0A66C2;padding:28px 32px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:36px;height:36px;background:white;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A66C2;font-size:16px;">P</div>
-        <span style="color:white;font-weight:600;font-size:18px;">PersonaLink</span>
+      <div>
+        <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
+          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+        </div>
       </div>
     </div>
 
@@ -118,9 +119,10 @@ export async function sendWeeklyDigestEmail({
   <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 
     <div style="background:#0A66C2;padding:28px 32px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:36px;height:36px;background:white;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A66C2;font-size:16px;">P</div>
-        <span style="color:white;font-weight:600;font-size:18px;">PersonaLink</span>
+      <div>
+        <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
+          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+        </div>
       </div>
       <p style="margin:16px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Your weekly content briefing</p>
     </div>
@@ -186,9 +188,10 @@ export async function sendImageBriefEmail({
 <body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,sans-serif;">
   <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
     <div style="background:#0A66C2;padding:28px 32px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:36px;height:36px;background:white;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A66C2;font-size:16px;">P</div>
-        <span style="color:white;font-weight:600;font-size:18px;">PersonaLink</span>
+      <div>
+        <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
+          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+        </div>
       </div>
     </div>
     <div style="padding:32px;">
@@ -275,9 +278,10 @@ export async function sendTrialStartedEmail({
   <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 
     <div style="background:#0A66C2;padding:28px 32px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:36px;height:36px;background:white;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A66C2;font-size:16px;">P</div>
-        <span style="color:white;font-weight:600;font-size:18px;">PersonaLink</span>
+      <div>
+        <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
+          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+        </div>
       </div>
     </div>
 

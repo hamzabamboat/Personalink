@@ -269,7 +269,7 @@ function HomeContent() {
       <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src="/logo.png" alt="PersonaLink" className="h-8 w-auto" />
+            <img src="/logo-text.png" alt="PersonaLink" className="h-8 w-auto" />
           </div>
           {/* Desktop nav links */}
           <div className="hidden md:flex gap-2 items-center">
@@ -320,7 +320,10 @@ function HomeContent() {
 
       {/* ── Hero ── */}
       <section className="hero-bg max-w-full">
-        <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-12 md:py-24 md:pb-20 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-6 pt-10 md:pt-16 flex justify-center">
+          <img src="/logo-full.png" alt="PersonaLink" className="h-24 w-auto mx-auto" />
+        </div>
+        <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-8 md:py-14 md:pb-20 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
           <motion.div
             initial="hidden"
             animate="show"
@@ -572,7 +575,9 @@ function HomeContent() {
       {/* Footer */}
       <footer className="bg-slate-900 py-10 px-6 text-center">
         <div className="flex items-center justify-center mb-4">
-          <img src="/logo-dark.png" alt="PersonaLink" className="h-10 w-auto" />
+          <div className="bg-white rounded-lg px-3 py-1.5">
+            <img src="/logo-text.png" alt="PersonaLink" className="h-6 w-auto" />
+          </div>
         </div>
         <p className="text-slate-500 text-[13px]">© 2025 PersonaLink. Your LinkedIn, on autopilot.</p>
       </footer>
