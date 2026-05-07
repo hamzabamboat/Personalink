@@ -26,7 +26,12 @@ import {
   ImageIcon,
   CheckCircle,
   AlertCircle,
+  BarChart2,
 } from 'lucide-react'
+import { showUpgradeModal } from '@/components/upgrade-limit-modal'
+import type { FeatureKey } from '@/lib/usage-limits'
+
+type UsageSummary = Record<FeatureKey, { used: number; limit: number; remaining: number; percentage: number }>
 
 type ProfileAnalysis = {
   score: number
@@ -387,6 +392,7 @@ function DashboardContent() {
   const [profileAnalysis, setProfileAnalysis] = useState<ProfileAnalysis | null>(null)
   const [reanalysing, setReanalysing] = useState(false)
   const [analyseError, setAnalyseError] = useState('')
+  const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null)
 
   useEffect(() => {
     if (upgraded) toast.success('Subscription activated! Welcome to the plan.')
@@ -399,16 +405,18 @@ function DashboardContent() {
       const { user: u, profile: p } = await meRes.json()
       setUser(u); setProfile(p)
 
-      const [postsRes, scoreRes, suggestionsRes, analysisRes] = await Promise.all([
+      const [postsRes, scoreRes, suggestionsRes, analysisRes, usageRes] = await Promise.all([
         supabase.from('posts').select('*').eq('user_id', u.id).order('created_at', { ascending: false }).limit(10),
         supabase.from('linkedin_scores').select('*').eq('user_id', u.id).order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('post_suggestions').select('*').eq('user_id', u.id).eq('status', 'pending').order('created_at', { ascending: false }).limit(3),
         supabase.from('profile_analyses').select('*').eq('user_id', u.id).order('analysed_at', { ascending: false }).limit(1).maybeSingle(),
+        fetch('/api/usage').then(r => r.ok ? r.json() : null).catch(() => null),
       ])
       setPosts(postsRes.data || [])
       setScore(scoreRes.data)
       setSuggestions(suggestionsRes.data || [])
       setProfileAnalysis(analysisRes.data || null)
+      if (usageRes?.usage) setUsageSummary(usageRes.usage)
       setLoading(false)
     }
     load()
@@ -442,6 +450,10 @@ function DashboardContent() {
     try {
       const res = await fetch('/api/profile/analyse', { method: 'POST' })
       const data = await res.json()
+      if (res.status === 429 && data.feature) {
+        showUpgradeModal({ feature: data.feature, plan: data.plan, used: data.used, limit: data.limit })
+        setReanalysing(false); return
+      }
       if (data.error) {
         setAnalyseError(data.error)
         toast.error('Analysis failed: ' + data.error)
@@ -509,7 +521,7 @@ function DashboardContent() {
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
               <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${usagePct}%`, background: postsUsed >= postsLimit ? '#ef4444' : '#0A66C2' }} />
+                style={{ width: `${usagePct}%`, background: postsUsed >= postsLimit ? '#ef4444' : '#0B458B' }} />
             </div>
             <div className="text-[11px] text-slate-400">{planLabel} · {postsLimit - postsUsed} remaining</div>
           </CardContent>
@@ -565,6 +577,48 @@ function DashboardContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Usage this month */}
+      {usageSummary && (
+        <Card className="border-slate-100 shadow-sm mb-5">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart2 className="w-4 h-4 text-slate-400" strokeWidth={1.75} />
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Usage This Month</div>
+              <Link href="/dashboard/upgrade" className="ml-auto text-[11px] text-brand font-semibold hover:underline">Upgrade plan →</Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-3.5">
+              {([
+                ['posts_generated', 'Posts'],
+                ['image_uploads', 'Images'],
+                ['profile_analyses', 'Analyses'],
+                ['trend_refreshes', 'Trend Refreshes'],
+                ['voice_transcriptions', 'Voice Notes'],
+              ] as [FeatureKey, string][]).map(([key, label]) => {
+                const u = usageSummary[key]
+                if (!u) return null
+                const isNA = u.limit === 0
+                const pct = isNA ? 100 : Math.min(100, Math.round((u.used / u.limit) * 100))
+                const color = isNA ? '#e2e8f0' : pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#0B458B'
+                return (
+                  <div key={key}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[11px] font-medium text-slate-500">{label}</span>
+                      <span className="text-[11px] font-semibold text-slate-600">
+                        {isNA ? 'N/A' : `${u.used}/${u.limit}`}
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-4 md:gap-5 mb-5">
         {/* Recent posts */}

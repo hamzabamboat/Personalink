@@ -3,13 +3,34 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateSuggestionsForUser } from '@/lib/anthropic'
 import { getTrendsForProfile } from '@/lib/trends'
+import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabaseAdmin.from('user_profiles').select('*').eq('user_id', user.id).maybeSingle()
+  const { data: profile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 400 })
+
+  const plan = profile.plan || 'starter'
+
+  // Check trend_refreshes limit before calling Claude
+  const refreshCheck = await checkLimit(user.id, plan, 'trend_refreshes')
+  if (!refreshCheck.allowed) {
+    await logViolation(user.id, 'trend_refreshes', plan)
+    return NextResponse.json({
+      error: `You've used all ${refreshCheck.limit} trend refreshes this month.`,
+      feature: 'trend_refreshes',
+      used: refreshCheck.used,
+      limit: refreshCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
 
   // Get trending news
   let trendingNews: string[] = []
@@ -19,7 +40,7 @@ export async function POST(request: NextRequest) {
       ...trends.trendingTopics.slice(0, 3),
       ...trends.newsArticles.slice(0, 3).map((a: { title: string }) => a.title),
     ]
-  } catch {}
+  } catch { /* non-fatal */ }
 
   // Get recent post topics
   const { data: recentPosts } = await supabaseAdmin
@@ -28,15 +49,20 @@ export async function POST(request: NextRequest) {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(5)
-  const recentTopics = (recentPosts || []).map(p => p.generation_prompt || p.content?.slice(0, 80)).filter(Boolean) as string[]
+  const recentTopics = (recentPosts || [])
+    .map(p => p.generation_prompt || p.content?.slice(0, 80))
+    .filter(Boolean) as string[]
 
-  // Generate suggestions
+  // Call Claude to generate suggestions — increment only on success
   const suggestions = await generateSuggestionsForUser(profile, trendingNews, recentTopics)
 
   if (suggestions.length > 0) {
-    // Dismiss old pending
-    await supabaseAdmin.from('post_suggestions').update({ status: 'dismissed' }).eq('user_id', user.id).eq('status', 'pending')
-    // Insert new
+    await supabaseAdmin
+      .from('post_suggestions')
+      .update({ status: 'dismissed' })
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+
     await supabaseAdmin.from('post_suggestions').insert(
       suggestions.map(s => ({
         user_id: user.id,
@@ -48,6 +74,8 @@ export async function POST(request: NextRequest) {
         status: 'pending',
       }))
     )
+
+    await incrementUsage(user.id, 'trend_refreshes')
   }
 
   return NextResponse.json({ count: suggestions.length })

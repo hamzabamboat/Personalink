@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
+import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
@@ -9,23 +10,75 @@ export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { data: profile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('plan')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const plan = profile?.plan || 'starter'
+
+  // Starter plan cannot use voice notes
+  if (plan === 'starter') {
+    return NextResponse.json({
+      error: 'Voice notes are not available on the Starter plan. Upgrade to Standard.',
+      feature: 'voice_transcriptions',
+      used: 0,
+      limit: 0,
+      plan,
+    }, { status: 403 })
+  }
+
+  // Check voice_transcriptions limit
+  const transcriptCheck = await checkLimit(user.id, plan, 'voice_transcriptions')
+  if (!transcriptCheck.allowed) {
+    await logViolation(user.id, 'voice_transcriptions', plan)
+    return NextResponse.json({
+      error: `You've used all ${transcriptCheck.limit} voice note transcriptions this month.`,
+      feature: 'voice_transcriptions',
+      used: transcriptCheck.used,
+      limit: transcriptCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
+
+  // Check voice_minutes limit
+  const minutesCheck = await checkLimit(user.id, plan, 'voice_minutes')
+  if (!minutesCheck.allowed) {
+    return NextResponse.json({
+      error: `You've used all ${minutesCheck.limit} voice minutes this month.`,
+      feature: 'voice_minutes',
+      used: minutesCheck.used,
+      limit: minutesCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
+
   const formData = await request.formData()
   const file = formData.get('audio') as File | null
 
   if (!file) return NextResponse.json({ error: 'No audio file provided' }, { status: 400 })
 
-  const MAX_SIZE = 25 * 1024 * 1024 // 25MB Whisper limit
+  const MAX_SIZE = 25 * 1024 * 1024
   if (file.size > MAX_SIZE) {
     return NextResponse.json({ error: 'File too large (max 25MB)' }, { status: 400 })
   }
 
+  // Estimate duration from file size (rough: ~1MB per minute for typical voice recordings)
+  const estimatedMinutes = Math.ceil(file.size / (1024 * 1024))
+  if (minutesCheck.remaining < estimatedMinutes) {
+    return NextResponse.json({
+      error: `Not enough voice minutes remaining. You have ${minutesCheck.remaining} minute${minutesCheck.remaining !== 1 ? 's' : ''} left this month.`,
+      feature: 'voice_minutes',
+      used: minutesCheck.used,
+      limit: minutesCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
+
   const { data: voiceNote, error: insertError } = await supabaseAdmin
     .from('voice_notes')
-    .insert({
-      user_id: user.id,
-      file_name: file.name,
-      status: 'pending',
-    })
+    .insert({ user_id: user.id, file_name: file.name, status: 'pending' })
     .select()
     .single()
 
@@ -43,16 +96,15 @@ export async function POST(request: NextRequest) {
       .update({ transcript: transcription.text, status: 'transcribed' })
       .eq('id', voiceNote.id)
 
-    return NextResponse.json({
-      voiceNoteId: voiceNote.id,
-      transcript: transcription.text,
-    })
-  } catch (err) {
-    await supabaseAdmin
-      .from('voice_notes')
-      .update({ status: 'failed' })
-      .eq('id', voiceNote.id)
+    // Increment usage after successful transcription
+    await Promise.all([
+      incrementUsage(user.id, 'voice_transcriptions'),
+      incrementUsage(user.id, 'voice_minutes', estimatedMinutes),
+    ])
 
+    return NextResponse.json({ voiceNoteId: voiceNote.id, transcript: transcription.text })
+  } catch (err) {
+    await supabaseAdmin.from('voice_notes').update({ status: 'failed' }).eq('id', voiceNote.id)
     console.error('Whisper transcription error:', err)
     return NextResponse.json({ error: 'Transcription failed' }, { status: 500 })
   }

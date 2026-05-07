@@ -330,3 +330,15 @@ export async function sendTrialStartedEmail({
     text: `Your 7-day free trial has started!\n\nPlan: ${planLabel}\nTrial ends: ${endsDate}\nFirst charge: ${amount}/mo on ${endsDate}\n\nYou have full access for 7 days. No charge until ${endsDate}.\n\nGo to dashboard: ${APP_URL}/dashboard`,
   })
 }
+
+
+export async function sendAdminAlert({ subject, body }: { subject: string; body: string }) {
+  const adminEmail = process.env.ADMIN_EMAIL || 'hamzabamboat@gmail.com'
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to: adminEmail,
+    subject,
+    html: `<div style="font-family:monospace;white-space:pre-wrap;padding:24px;background:#f8fafc;border-radius:8px;">${body}</div>`,
+    text: body,
+  })
+}

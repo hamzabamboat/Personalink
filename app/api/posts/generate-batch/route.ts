@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { anthropic } from '@/lib/anthropic'
+import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 
 export const maxDuration = 300
 
@@ -9,7 +10,6 @@ async function generateBatch(
   count: number,
   profile: Record<string, unknown>,
   pillars: string[],
-  batchIndex: number,
 ): Promise<Array<{ content: string; content_pillar: string; format: string }>> {
   const voiceCtx = [
     profile.voice_fingerprint ? `Voice fingerprint:\n${profile.voice_fingerprint}` : '',
@@ -17,7 +17,7 @@ async function generateBatch(
   ].filter(Boolean).join('\n\n')
 
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-4-5',
     max_tokens: 8000,
     messages: [{
       role: 'user',
@@ -52,19 +52,10 @@ Generate all ${count} posts now.`,
   const text = msg.content[0].type === 'text' ? msg.content[0].text : '[]'
   const match = text.match(/\[[\s\S]*\]/)
   if (!match) return []
-  try {
-    return JSON.parse(match[0])
-  } catch {
-    return []
-  }
+  try { return JSON.parse(match[0]) } catch { return [] }
 }
 
-function buildScheduleSlots(
-  now: Date,
-  count: number,
-  preferredHour: number,
-  preferredDays: string[],
-): Date[] {
+function buildScheduleSlots(now: Date, count: number, preferredHour: number, preferredDays: string[]): Date[] {
   const slots: Date[] = []
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const startDay = now.getDate() + 1
@@ -77,13 +68,10 @@ function buildScheduleSlots(
     }
   }
 
-  // If we don't have enough slots from preferred days, fill remaining from any day
   if (slots.length < count) {
     for (let day = startDay; day <= daysInMonth && slots.length < count; day++) {
       const d = new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0)
-      if (!slots.some(s => s.getDate() === d.getDate())) {
-        slots.push(d)
-      }
+      if (!slots.some(s => s.getDate() === d.getDate())) slots.push(d)
     }
   }
 
@@ -91,8 +79,6 @@ function buildScheduleSlots(
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[generate-batch] Starting batch generation')
-
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -103,11 +89,37 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (!profile) {
-    console.error('[generate-batch] Profile not found for user', user.id)
     return NextResponse.json({ error: 'Complete your profile first before generating posts.' }, { status: 404 })
   }
 
-  const postsLimit: number = profile.posts_limit || 12
+  const plan = profile.plan || 'starter'
+
+  // Check batch_runs limit
+  const batchCheck = await checkLimit(user.id, plan, 'batch_runs')
+  if (!batchCheck.allowed) {
+    await logViolation(user.id, 'batch_runs', plan)
+    return NextResponse.json({
+      error: `You've used all ${batchCheck.limit} batch generation run${batchCheck.limit !== 1 ? 's' : ''} this month. Upgrade to get more.`,
+      feature: 'batch_runs',
+      used: batchCheck.used,
+      limit: batchCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
+
+  // Check how many posts are remaining this month
+  const postsCheck = await checkLimit(user.id, plan, 'posts_generated')
+  if (postsCheck.remaining === 0) {
+    return NextResponse.json({
+      error: `You've used all ${postsCheck.limit} post generations this month.`,
+      feature: 'posts_generated',
+      used: postsCheck.used,
+      limit: postsCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
+
+  const postsToGenerate = postsCheck.remaining
   const pillars: string[] = (profile.content_pillars as string[]) || ['Professional Insights', 'Industry Trends', 'Personal Growth']
   const controlPreference: string = (profile.control_preference as string) || 'approve'
   const preferredHour: number = (profile.preferred_post_hour as number) || 9
@@ -116,42 +128,30 @@ export async function POST(request: NextRequest) {
   const now = new Date()
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
-  console.log(`[generate-batch] Generating ${postsLimit} posts for user ${user.id}, plan ${profile.plan}, pillars:`, pillars)
-
   // Generate in batches of 10 to stay within token limits
   const BATCH_SIZE = 10
   const allPosts: Array<{ content: string; content_pillar: string; format: string }> = []
-
   let batchIdx = 0
-  while (allPosts.length < postsLimit) {
-    const remaining = postsLimit - allPosts.length
-    const batchCount = Math.min(remaining, BATCH_SIZE)
-    console.log(`[generate-batch] Batch ${batchIdx + 1}: generating ${batchCount} posts`)
 
-    const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars, batchIdx)
-    console.log(`[generate-batch] Batch ${batchIdx + 1}: got ${batch.length} posts from Claude`)
+  while (allPosts.length < postsToGenerate) {
+    const remaining = postsToGenerate - allPosts.length
+    const batchCount = Math.min(remaining, BATCH_SIZE)
+    const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars)
     allPosts.push(...batch)
     batchIdx++
-
-    if (batch.length === 0) {
-      console.error('[generate-batch] Claude returned empty batch, stopping')
-      break
-    }
+    if (batch.length === 0) break
   }
 
   if (allPosts.length === 0) {
     return NextResponse.json({ error: 'Failed to generate posts. Please try again.' }, { status: 500 })
   }
 
-  // Build schedule slots
   const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays)
-  console.log(`[generate-batch] Built ${slots.length} schedule slots`)
 
   const postStatus = controlPreference === 'autopilot' ? 'scheduled'
     : controlPreference === 'suggest' ? 'draft'
     : 'pending_approval'
 
-  // Insert all posts
   const insertPayloads = allPosts.map((post, i) => ({
     user_id: user.id,
     content: post.content,
@@ -167,11 +167,17 @@ export async function POST(request: NextRequest) {
     .select()
 
   if (insertError) {
-    console.error('[generate-batch] Insert error:', insertError)
     return NextResponse.json({ error: 'Failed to save posts: ' + insertError.message }, { status: 500 })
   }
 
-  console.log(`[generate-batch] Inserted ${insertedPosts?.length} posts with status "${postStatus}"`)
+  // Increment usage: one batch_run + all posts_generated
+  await Promise.all([
+    incrementUsage(user.id, 'batch_runs'),
+    incrementUsage(user.id, 'posts_generated', allPosts.length),
+    supabaseAdmin.from('user_profiles').update({
+      posts_used_this_month: (profile.posts_used_this_month || 0) + allPosts.length,
+    }).eq('user_id', user.id),
+  ])
 
   const nextScheduled = (insertedPosts || [])
     .filter(p => p.scheduled_at)

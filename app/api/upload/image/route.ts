@@ -1,15 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 
 export const maxDuration = 30
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
+const MAX_SIZE = 5 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('plan')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const plan = profile?.plan || 'starter'
+
+  // Check image_uploads limit
+  const uploadCheck = await checkLimit(user.id, plan, 'image_uploads')
+  if (!uploadCheck.allowed) {
+    await logViolation(user.id, 'image_uploads', plan)
+    return NextResponse.json({
+      error: `You've reached your image upload limit (${uploadCheck.limit}/month). Upgrade to upload more.`,
+      feature: 'image_uploads',
+      used: uploadCheck.used,
+      limit: uploadCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
 
   let formData: FormData
   try {
@@ -30,7 +52,6 @@ export async function POST(request: NextRequest) {
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
   const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
   const buffer = Buffer.from(await file.arrayBuffer())
 
   const { error: uploadError } = await supabaseAdmin.storage
@@ -42,7 +63,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Upload failed: ' + uploadError.message }, { status: 500 })
   }
 
-  const { data: { publicUrl } } = supabaseAdmin.storage.from('post-images').getPublicUrl(fileName)
+  await incrementUsage(user.id, 'image_uploads')
 
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('post-images').getPublicUrl(fileName)
   return NextResponse.json({ url: publicUrl, path: fileName })
 }

@@ -5,12 +5,12 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateLinkedInPosts } from '@/lib/anthropic'
 import { getTrendsForProfile } from '@/lib/trends'
+import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Fetch profile
   const { data: profile } = await supabaseAdmin
     .from('user_profiles')
     .select('*')
@@ -19,32 +19,70 @@ export async function POST(request: NextRequest) {
 
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 400 })
 
-  // Check post limit
-  const postsUsed = profile.posts_used_this_month || 0
-  const postsLimit = profile.posts_limit || 12
-  const { data: sub } = await supabaseAdmin.from('subscriptions').select('status').eq('user_id', user.id).maybeSingle()
-  const hasActiveSub = sub?.status === 'active'
+  const plan = profile.plan || 'starter'
 
+  // Trial guard (3 free posts before subscription)
+  const { data: sub } = await supabaseAdmin
+    .from('subscriptions')
+    .select('status')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const hasActiveSub = sub?.status === 'active'
+  const postsUsed = profile.posts_used_this_month || 0
   if (!hasActiveSub && postsUsed >= 3) {
     return NextResponse.json({ error: 'trial_exhausted' }, { status: 402 })
-  }
-  if (hasActiveSub && postsUsed >= postsLimit) {
-    return NextResponse.json({ error: 'monthly_limit_reached', limit: postsLimit }, { status: 402 })
   }
 
   const { topic, voiceNoteId, storyBankId, additionalContext } = await request.json()
 
+  // Check posts_generated limit
+  const postsCheck = await checkLimit(user.id, plan, 'posts_generated')
+  if (!postsCheck.allowed) {
+    await logViolation(user.id, 'posts_generated', plan)
+    return NextResponse.json({
+      error: `You've used all ${postsCheck.limit} post generations this month. Upgrade to ${plan === 'starter' ? 'Standard for 20' : 'Pro for 30'} posts.`,
+      feature: 'posts_generated',
+      used: postsCheck.used,
+      limit: postsCheck.limit,
+      plan,
+    }, { status: 429 })
+  }
+
+  // If story conversion, check story_conversions limit too
+  if (storyBankId) {
+    const storyCheck = await checkLimit(user.id, plan, 'story_conversions')
+    if (!storyCheck.allowed) {
+      return NextResponse.json({
+        error: `You've used all ${storyCheck.limit} story conversions this month.`,
+        feature: 'story_conversions',
+        used: storyCheck.used,
+        limit: storyCheck.limit,
+        plan,
+      }, { status: 429 })
+    }
+  }
+
   // Resolve voice note transcript
   let transcript: string | undefined
   if (voiceNoteId) {
-    const { data: note } = await supabaseAdmin.from('voice_notes').select('transcript').eq('id', voiceNoteId).eq('user_id', user.id).single()
+    const { data: note } = await supabaseAdmin
+      .from('voice_notes')
+      .select('transcript')
+      .eq('id', voiceNoteId)
+      .eq('user_id', user.id)
+      .single()
     transcript = note?.transcript ?? undefined
   }
 
   // Resolve story bank text
   let storyText: string | undefined
   if (storyBankId) {
-    const { data: story } = await supabaseAdmin.from('story_bank').select('raw_text').eq('id', storyBankId).eq('user_id', user.id).single()
+    const { data: story } = await supabaseAdmin
+      .from('story_bank')
+      .select('raw_text')
+      .eq('id', storyBankId)
+      .eq('user_id', user.id)
+      .single()
     storyText = story?.raw_text ?? undefined
   }
 
@@ -66,9 +104,11 @@ export async function POST(request: NextRequest) {
       const topNews = trends.newsArticles.slice(0, 3).map((a: { title: string }) => a.title).join('; ')
       trendingContext = [topTopics && `Trending: ${topTopics}`, topNews && `News: ${topNews}`].filter(Boolean).join(' | ')
     }
-  } catch {}
+  } catch { /* non-fatal */ }
 
-  const posts = await generateLinkedInPosts({ profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics })
+  const posts = await generateLinkedInPosts({
+    profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics,
+  })
 
   // Save drafts
   const insertedPosts = await Promise.all(
@@ -90,10 +130,17 @@ export async function POST(request: NextRequest) {
     )
   )
 
-  // Increment counter
-  await supabaseAdmin.from('user_profiles').update({ posts_used_this_month: postsUsed + 1 }).eq('user_id', user.id)
+  // Increment usage tracking
+  await Promise.all([
+    incrementUsage(user.id, 'posts_generated'),
+    storyBankId ? incrementUsage(user.id, 'story_conversions') : Promise.resolve(),
+    // Keep posts_used_this_month in sync for the existing dashboard counter
+    supabaseAdmin
+      .from('user_profiles')
+      .update({ posts_used_this_month: postsUsed + 1 })
+      .eq('user_id', user.id),
+  ])
 
-  // Mark story as converted
   if (storyBankId) {
     await supabaseAdmin.from('story_bank').update({ status: 'converted' }).eq('id', storyBankId)
   }

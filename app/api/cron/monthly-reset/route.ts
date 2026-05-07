@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const month = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
-  // 1. Reset monthly post counter for all profiles
+  // 1. Reset monthly post counter for all profiles (backward compat counter)
   const { error: resetError } = await supabaseAdmin
     .from('user_profiles')
     .update({ posts_used_this_month: 0 })
@@ -24,6 +24,16 @@ export async function GET(request: NextRequest) {
     console.error('Monthly reset error:', resetError)
     return NextResponse.json({ error: resetError.message }, { status: 500 })
   }
+
+  // 2. Delete previous month's usage_tracking rows (new rows auto-created with current month's reset_at)
+  const prevMonthStart = new Date()
+  prevMonthStart.setUTCDate(1)
+  prevMonthStart.setUTCHours(0, 0, 0, 0)
+  prevMonthStart.setUTCMonth(prevMonthStart.getUTCMonth() - 1)
+  await supabaseAdmin
+    .from('usage_tracking')
+    .delete()
+    .lt('reset_at', prevMonthStart.toISOString())
 
   // 2. Get all users for scoring + image briefs
   const { data: users } = await supabaseAdmin
