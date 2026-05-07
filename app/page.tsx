@@ -82,8 +82,8 @@ const FAQS = [
 
 const PLANS = [
   { id: 'starter', label: 'Starter', price: 999, posts: 12, features: ['AI generation', 'Scheduling', 'Story bank', 'Trends & suggestions', 'Image posts', 'LinkedIn Score'], color: '#64748b' },
-  { id: 'standard', label: 'Standard', price: 2500, posts: 20, features: ['Everything in Starter', 'Voice notes', 'Analytics dashboard', 'Monthly image brief'], color: '#0A66C2', popular: true },
-  { id: 'pro', label: 'Pro', price: 5000, posts: 30, features: ['Everything in Standard', 'Repurpose engine', 'Competitor tracking', 'Bulk generate 30 days', 'Team mode (3 profiles)', 'Priority AI generation'], color: '#7c3aed' },
+  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: ['Everything in Starter', 'Voice notes', 'Analytics dashboard', 'Monthly image brief'], color: '#0A66C2', popular: true },
+  { id: 'pro', label: 'Pro', price: 4999, posts: 30, features: ['Everything in Standard', 'Repurpose engine', 'Competitor tracking', 'Bulk generate 30 days', 'Team mode (3 profiles)', 'Priority AI generation'], color: '#7c3aed' },
 ]
 
 const ease = [0.22, 1, 0.36, 1] as const

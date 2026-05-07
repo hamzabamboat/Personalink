@@ -158,8 +158,8 @@ export const supabase = createClient(
 
 export const PLAN_LIMITS: Record<string, { posts: number; price: number; label: string }> = {
   starter: { posts: 12, price: 999, label: 'Starter' },
-  standard: { posts: 20, price: 2500, label: 'Standard' },
-  pro: { posts: 30, price: 5000, label: 'Pro' },
+  standard: { posts: 20, price: 2499, label: 'Standard' },
+  pro: { posts: 30, price: 4999, label: 'Pro' },
 }
 
 export const PLAN_FEATURES = {

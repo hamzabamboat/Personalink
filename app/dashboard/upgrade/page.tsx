@@ -18,8 +18,8 @@ const FEATURE_MAP: Record<string, { title: string; desc: string; icon: React.Ele
 }
 
 const PLANS = [
-  { id: 'standard', label: 'Standard', price: 2500, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2' },
-  { id: 'pro', label: 'Pro', price: 5000, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
+  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2' },
+  { id: 'pro', label: 'Pro', price: 4999, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
 ]
 
 function UpgradeContent() {

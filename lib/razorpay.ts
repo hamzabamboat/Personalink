@@ -20,8 +20,8 @@ export const PLAN_ID = process.env.RAZORPAY_PLAN_ID!
 
 export const PLAN_AMOUNTS: Record<string, number> = {
   starter: 99900,    // ₹999 × 100
-  standard: 250000,  // ₹2,500 × 100
-  pro: 500000,       // ₹5,000 × 100
+  standard: 249900,  // ₹2,499 × 100
+  pro: 499900,       // ₹4,999 × 100
 }
 
 export const PLAN_CURRENCY = 'INR'

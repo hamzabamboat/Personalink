@@ -4,7 +4,7 @@ import { google, sheets_v4 } from 'googleapis'
 
 export const maxDuration = 60
 
-const PLAN_PRICE: Record<string, number> = { starter: 999, standard: 2500, pro: 5000 }
+const PLAN_PRICE: Record<string, number> = { starter: 999, standard: 2499, pro: 4999 }
 const HEADER_BG = { red: 11 / 255, green: 69 / 255, blue: 139 / 255 } // #0B458B
 
 function adminAuth(request: NextRequest) {

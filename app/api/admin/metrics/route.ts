@@ -7,7 +7,7 @@ function adminAuth(request: NextRequest) {
   return cookie === process.env.ADMIN_SECRET || header === process.env.ADMIN_SECRET
 }
 
-const PLAN_PRICE: Record<string, number> = { starter: 999, standard: 2500, pro: 5000 }
+const PLAN_PRICE: Record<string, number> = { starter: 999, standard: 2499, pro: 4999 }
 
 export async function GET(request: NextRequest) {
   if (!adminAuth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
