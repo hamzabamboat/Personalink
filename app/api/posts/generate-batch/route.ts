@@ -12,7 +12,7 @@ async function generateBatch(
   count: number,
   profile: Record<string, unknown>,
   pillars: string[],
-): Promise<Array<{ content: string; content_pillar: string; format: string }>> {
+): Promise<Array<{ content: string; content_pillars: string; format: string }>> {
   const voiceCtx = [
     profile.voice_fingerprint ? `Voice fingerprint:\n${profile.voice_fingerprint}` : '',
     profile.writing_sample ? `Writing sample:\n${String(profile.writing_sample).slice(0, 400)}` : '',
@@ -42,7 +42,7 @@ Respond with ONLY a valid JSON array (no markdown, no explanation):
 [
   {
     "content": "<full post text with hashtags>",
-    "content_pillar": "<pillar name>",
+    "content_pillars": "<pillar name>",
     "format": "<story|tips|insight|contrarian|behind_the_scenes|lesson|question>"
   }
 ]
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
   }
 
   const postsToGenerate = postsCheck.remaining
-  const pillars: string[] = (profile.content_pillars as string[]) || ['Professional Insights', 'Industry Trends', 'Personal Growth']
+  const pillars: string[] = (profile.content_pillarss as string[]) || ['Professional Insights', 'Industry Trends', 'Personal Growth']
   const controlPreference: string = (profile.control_preference as string) || 'approve'
   const preferredHour: number = (profile.preferred_post_hour as number) || 9
   const preferredDays: string[] = (profile.preferred_days as string[]) || ['Monday', 'Wednesday', 'Friday']
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
 
   // Generate in batches of 10 to stay within token limits
   const BATCH_SIZE = 10
-  const allPosts: Array<{ content: string; content_pillar: string; format: string }> = []
+  const allPosts: Array<{ content: string; content_pillars: string; format: string }> = []
   let batchIdx = 0
 
   while (allPosts.length < postsToGenerate) {
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
   const insertPayloads = allPosts.map((post, i) => ({
     user_id: user.id,
     content: post.content,
-    content_pillar: post.content_pillar || pillars[i % pillars.length],
+    content_pillars: post.content_pillars || pillars[i % pillars.length],
     source: 'ai_generated',
     status: postStatus,
     scheduled_at: slots[i]?.toISOString() ?? null,

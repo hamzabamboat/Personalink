@@ -50,22 +50,35 @@ const BATCH_MESSAGES = [
   'Almost done — finalising your calendar...',
 ]
 
+const BATCH_STEPS = [
+  'Analysing your profile and content pillars',
+  'Researching trending topics in your industry',
+  'Writing posts 1-10...',
+  'Writing posts 11-20...',
+  'Writing posts 21-30...',
+  'Adding hashtags and optimising reach',
+  'Scheduling across the month',
+  'Done!',
+]
+
 type Tab = 'ai' | 'voice' | 'story'
 
 function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; postsLimit: number; monthName: string }) {
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [msgIdx, setMsgIdx] = useState(0)
+  const [currentStep, setCurrentStep] = useState(0)
   const [result, setResult] = useState<{ postsGenerated: number; nextPostDate: string | null } | null>(null)
   const [error, setError] = useState('')
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   async function handleBatchGenerate() {
     setShowConfirm(false)
-    setLoading(true); setError(''); setResult(null); setMsgIdx(0)
+    setLoading(true); setError(''); setResult(null); setMsgIdx(0); setCurrentStep(0)
     intervalRef.current = setInterval(() => {
       setMsgIdx(i => (i + 1) % BATCH_MESSAGES.length)
-    }, 3000)
+      setCurrentStep(s => Math.min(s + 1, BATCH_STEPS.length - 2))
+    }, 4000)
     try {
       const res = await fetch('/api/posts/generate-batch', { method: 'POST' })
       const data = await res.json()
@@ -146,12 +159,7 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
             {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
           </div>
           <div className="shrink-0">
-            {loading ? (
-              <div className="flex flex-col items-center gap-2 min-w-[200px]">
-                <Loader2 className="w-6 h-6 animate-spin text-[#0B458B]" />
-                <div className="text-[12px] text-slate-500 text-center">{BATCH_MESSAGES[msgIdx]}</div>
-              </div>
-            ) : (
+            {!loading && (
               <Button onClick={() => setShowConfirm(true)} className="gap-2 whitespace-nowrap shadow-sm hover:shadow-md transition-shadow">
                 <Sparkles className="w-4 h-4" />
                 Generate my {postsLimit} posts for {monthName} →
@@ -161,16 +169,26 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
         </div>
 
         {loading && (
-          <div className="mt-4 space-y-2">
-            {BATCH_MESSAGES.slice(0, msgIdx + 1).map((msg, i) => (
-              <div key={i} className="flex items-center gap-2 text-[12px] text-slate-500">
-                {i < msgIdx
-                  ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  : <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0B458B] shrink-0" />
-                }
-                {msg}
-              </div>
-            ))}
+          <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6">
+            <div className="bg-white rounded-xl p-2 shadow-sm mb-6 border border-slate-100">
+              <img src="/logo-icon.png" className="h-12 w-12" alt="PersonaLink" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Generating your posts for {monthName}...</h2>
+            <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
+              <div
+                className="h-full bg-brand rounded-full transition-all duration-1000"
+                style={{ width: `${((currentStep + 1) / BATCH_STEPS.length) * 100}%` }}
+              />
+            </div>
+            <p className="text-slate-500 text-sm mb-6">{BATCH_STEPS[currentStep]}</p>
+            <div className="space-y-2 text-left w-full max-w-xs">
+              {BATCH_STEPS.map((step, i) => (
+                <div key={i} className={`flex items-center gap-2 text-sm transition-colors ${i < currentStep ? 'text-emerald-600' : i === currentStep ? 'text-brand font-medium' : 'text-slate-300'}`}>
+                  <span className="text-xs w-4 shrink-0">{i < currentStep ? '✓' : i === currentStep ? '▶' : '○'}</span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
@@ -335,7 +353,24 @@ function GenerateContent() {
       const recorder = new MediaRecorder(stream)
       chunksRef.current = []
       recorder.ondataavailable = e => chunksRef.current.push(e.data)
-      recorder.onstop = () => { setAudioBlob(new Blob(chunksRef.current, { type: 'audio/webm' })); stream.getTracks().forEach(t => t.stop()) }
+      recorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(blob)
+        stream.getTracks().forEach(t => t.stop())
+        setTranscribing(true)
+        const form = new FormData()
+        form.append('audio', blob, 'recording.webm')
+        try {
+          const res = await fetch('/api/transcribe', { method: 'POST', body: form })
+          const data = await res.json()
+          if (data.transcript) setTranscript(data.transcript)
+          if (data.voiceNoteId) setVoiceNoteId(data.voiceNoteId)
+        } catch (e) {
+          console.error('Transcription failed', e)
+        } finally {
+          setTranscribing(false)
+        }
+      }
       recorder.start()
       mediaRef.current = recorder
       setRecording(true)
@@ -529,10 +564,11 @@ function GenerateContent() {
                       <span className="text-sm font-semibold text-red-600">Recording in progress...</span>
                     </div>
                   )}
-                  {audioBlob && !voiceNoteId && (
-                    <Button onClick={() => transcribeAudio(audioBlob)} disabled={transcribing} className="bg-pro hover:bg-pro/90 w-fit gap-2">
-                      {transcribing ? <><Loader2 className="size-4 animate-spin" /> Transcribing...</> : <><Sparkles className="size-4" /> Transcribe</>}
-                    </Button>
+                  {transcribing && (
+                    <div className="flex items-center gap-2.5 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+                      <Loader2 className="w-4 h-4 animate-spin text-violet-600 shrink-0" />
+                      <span className="text-sm font-semibold text-violet-600">Transcribing...</span>
+                    </div>
                   )}
                   {transcript && (
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">

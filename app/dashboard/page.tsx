@@ -476,6 +476,8 @@ function DashboardContent() {
   const planLabel = profile?.plan ? profile.plan.charAt(0).toUpperCase() + profile.plan.slice(1) : 'Starter'
   const firstName = user.linkedin_name?.split(' ')[0] || 'there'
   const usagePct = Math.min((postsUsed / postsLimit) * 100, 100)
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night'
 
   return (
     <div className="flex xl:gap-0">
@@ -484,7 +486,7 @@ function DashboardContent() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6 md:mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">
-            Good morning, {firstName}
+            {greeting}, {firstName}
           </h1>
           <p className="text-sm text-slate-400 font-medium">
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}

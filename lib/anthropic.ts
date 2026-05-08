@@ -283,7 +283,7 @@ export async function generateSuggestionsForUser(
   recentPosts: string[],
 ): Promise<Array<{ suggestion_text: string; angle: string; hashtags: string[]; why_it_works: string; source: string }>> {
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-haiku-4-5',
     max_tokens: 2000,
     messages: [{
       role: 'user',

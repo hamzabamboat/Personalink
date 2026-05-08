@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { Analytics } from '@vercel/analytics/next'
+import { ThemeProvider } from '@/components/theme-provider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -32,11 +33,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="overflow-x-hidden">
-        {children}
-        <Toaster richColors position="top-center" />
-        <Analytics />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {children}
+          <Toaster richColors position="top-center" />
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -7,9 +7,22 @@ const BOT_UA_PATTERNS = [
   /python-requests\/[0-9]/i, /go-http-client\/[0-9]/i,
 ]
 
+const PUBLIC_API_PATHS = [
+  '/api/auth/linkedin',
+  '/api/auth/linkedin/callback',
+  '/api/auth/google',
+  '/api/auth/callback',
+  '/api/auth/logout',
+]
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const userId = request.cookies.get('session_user_id')?.value
+
+  // Always allow public auth API paths
+  if (PUBLIC_API_PATHS.some(p => pathname.startsWith(p))) {
+    return NextResponse.next()
+  }
 
   // Block known malicious bots on API routes
   if (pathname.startsWith('/api/')) {
@@ -28,17 +41,31 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  const country = request.headers.get('x-vercel-ip-country') ?? 'IN'
+
   // Only protect dashboard and onboarding
   const isDashboard = pathname.startsWith('/dashboard')
   const isOnboarding = pathname === '/onboarding'
 
-  if (!isDashboard && !isOnboarding) return NextResponse.next()
+  if (!isDashboard && !isOnboarding) {
+    const res = NextResponse.next()
+    if (!request.cookies.get('user_country')) {
+      res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
+    }
+    return res
+  }
 
   // Must be logged in for both
   if (!userId) return NextResponse.redirect(new URL('/', request.url))
 
   // Onboarding just needs a logged-in user
-  if (isOnboarding) return NextResponse.next()
+  if (isOnboarding) {
+    const res = NextResponse.next()
+    if (!request.cookies.get('user_country')) {
+      res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
+    }
+    return res
+  }
 
   // Dashboard: check sub, trial, or access_code
   const cachedStatus = request.cookies.get('sub_status')?.value

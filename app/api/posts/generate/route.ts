@@ -120,9 +120,14 @@ export async function POST(request: NextRequest) {
     profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics,
   })
 
+  const validPosts = posts.filter(p => p && p.trim().length >= 50)
+  if (validPosts.length === 0) {
+    return NextResponse.json({ error: 'Generation failed — response too short. Please try again.' }, { status: 500 })
+  }
+
   // Save drafts
   const insertedPosts = await Promise.all(
-    posts.map(content =>
+    validPosts.map(content =>
       supabaseAdmin
         .from('posts')
         .insert({

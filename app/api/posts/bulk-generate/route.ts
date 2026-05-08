@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
           content,
           status: 'scheduled',
           source: 'ai_generated',
-          content_pillar: pillar,
+          content_pillars: pillar,
           scheduled_at: scheduledAt.toISOString(),
           generation_prompt: `Bulk: ${pillar}`,
         }).select().single()

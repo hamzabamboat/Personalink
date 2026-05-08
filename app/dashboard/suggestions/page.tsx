@@ -90,9 +90,13 @@ export default function SuggestionsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="skeleton h-8 w-56 mb-6 rounded" />
-        {[...Array(3)].map((_, i) => <div key={i} className="skeleton h-36 rounded-xl mb-3" />)}
+      <div className="p-4 md:p-8">
+        <div className="h-8 w-56 bg-slate-200 rounded-lg animate-pulse mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-48 bg-slate-200 rounded-xl animate-pulse" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -106,7 +110,7 @@ export default function SuggestionsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-7">
         <div>
           <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Post Ideas</h1>
@@ -114,7 +118,7 @@ export default function SuggestionsPage() {
         </div>
         <Button variant="outline" onClick={refreshSuggestions} disabled={generating} size="sm" className="gap-1.5 border-slate-200 w-full sm:w-auto">
           <RefreshCw className={`size-3.5 ${generating ? 'animate-spin' : ''}`} />
-          {generating ? 'Refreshing...' : 'Refresh Ideas'}
+          {generating ? 'Generating...' : 'Refresh Ideas'}
         </Button>
       </div>
 
@@ -138,6 +142,14 @@ export default function SuggestionsPage() {
             {plan === 'starter' && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-brand-light text-brand ml-0.5">PRO</Badge>}
           </TabsTrigger>
         </TabsList>
+
+        {generating && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-48 bg-slate-200 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        )}
 
         {(['trending', 'history', 'stories'] as SuggestionTab[]).map(tabId => (
           <TabsContent key={tabId} value={tabId}>
@@ -165,37 +177,40 @@ export default function SuggestionsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
                 {currentSuggestions.map(s => (
-                  <Card key={s.id} className="border-slate-100 shadow-sm card-hover">
-                    <CardContent className="pt-5 pb-5">
-                      <div className="flex gap-2 mb-3 flex-wrap items-center">
-                        <Badge variant="secondary" className="text-[11px] font-medium capitalize">{s.source}</Badge>
-                        {s.hashtags?.slice(0, 3).map(h => (
-                          <Badge key={h} variant="outline" className="text-[11px] text-brand border-brand/20 bg-brand-light">#{h}</Badge>
+                  <div key={s.id} className="border border-slate-200 rounded-xl p-4 hover:border-brand hover:shadow-md transition-all cursor-pointer bg-white flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-brand bg-brand-light px-2 py-1 rounded-full capitalize">
+                        {s.source || 'General'}
+                      </span>
+                      <button
+                        onClick={() => dismissSuggestion(s.id)}
+                        className="text-slate-300 hover:text-slate-500 transition-colors"
+                        title="Dismiss"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <p className="font-semibold text-slate-900 mb-2 text-sm leading-snug flex-1">{s.suggestion_text}</p>
+                    {s.why_it_works && (
+                      <p className="text-slate-500 text-xs mb-3 leading-relaxed line-clamp-2">{s.why_it_works}</p>
+                    )}
+                    {s.hashtags && s.hashtags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {s.hashtags.slice(0, 3).map(h => (
+                          <span key={h} className="text-[11px] text-brand bg-brand-light px-1.5 py-0.5 rounded">#{h}</span>
                         ))}
                       </div>
-                      <p className="text-sm text-slate-700 leading-relaxed font-medium mb-3">{s.suggestion_text}</p>
-                      {s.why_it_works && (
-                        <details className="mb-4 group">
-                          <summary className="text-xs text-slate-400 cursor-pointer font-semibold hover:text-slate-600 transition-colors list-none flex items-center gap-1">
-                            <span className="group-open:rotate-90 transition-transform inline-block">›</span>
-                            Why this works
-                          </summary>
-                          <p className="mt-2 text-xs text-slate-400 leading-relaxed pl-3 border-l-2 border-slate-100">{s.why_it_works}</p>
-                        </details>
-                      )}
-                      <div className="flex gap-2">
-                        <Button render={<Link href={`/dashboard/generate?idea=${encodeURIComponent(s.suggestion_text)}`} />} size="sm" className="gap-1.5">
-                          Generate Post <ArrowRight className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => dismissSuggestion(s.id)} className="border-slate-200 gap-1.5 text-slate-500 hover:text-slate-700">
-                          <X className="w-3.5 h-3.5" />
-                          Dismiss
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                    <Button
+                      render={<Link href={`/dashboard/generate?idea=${encodeURIComponent(s.suggestion_text)}`} />}
+                      size="sm"
+                      className="w-full text-sm mt-auto"
+                    >
+                      Generate this post →
+                    </Button>
+                  </div>
                 ))}
               </div>
             )}

@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
   const scoreValues = scores.map(s => s.score)
   const topPosts = posts.slice(0, 3)
   const publishedByPillar: Record<string, number> = {}
-  posts.forEach(p => { if (p.content_pillar) publishedByPillar[p.content_pillar] = (publishedByPillar[p.content_pillar] || 0) + 1 })
+  posts.forEach(p => { if (p.content_pillars) publishedByPillar[p.content_pillars] = (publishedByPillar[p.content_pillars] || 0) + 1 })
   const pillarMax = Math.max(...Object.values(publishedByPillar), 1)
 
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']

@@ -549,8 +549,8 @@ export async function POST(request: NextRequest) {
 
   const [usersRes, profilesRes, postsRes, voiceNotesRes, storyBankRes, scoresRes, subscriptionsRes, imageBriefsRes] = await Promise.all([
     supabaseAdmin.from('users').select('id, linkedin_name, email, subscription_status, subscription_count, created_at, updated_at').order('created_at', { ascending: false }),
-    supabaseAdmin.from('user_profiles').select('user_id, name, plan, posts_used_this_month, posts_limit, control_preference, content_pillars, mcq_answers, writing_sample, onboarding_completed_at, industry, tone'),
-    supabaseAdmin.from('posts').select('id, user_id, status, source, content_pillar, created_at, published_at, content, scheduled_at'),
+    supabaseAdmin.from('user_profiles').select('user_id, name, plan, posts_used_this_month, posts_limit, control_preference, content_pillarss, mcq_answers, writing_sample, onboarding_completed_at, industry, tone'),
+    supabaseAdmin.from('posts').select('id, user_id, status, source, content_pillars, created_at, published_at, content, scheduled_at'),
     supabaseAdmin.from('voice_notes').select('id, user_id, created_at'),
     supabaseAdmin.from('story_bank').select('id, user_id, created_at'),
     supabaseAdmin.from('linkedin_scores').select('user_id, score, recorded_at').order('recorded_at', { ascending: false }),
@@ -641,14 +641,14 @@ export async function POST(request: NextRequest) {
   const autopilotUsers = profiles.filter(p => p.control_preference === 'autopilot').length
   const approvalUsers = profiles.filter(p => p.control_preference === 'approve' || !p.control_preference).length
   const suggestUsers = profiles.filter(p => p.control_preference === 'suggest').length
-  const allPillars = profiles.flatMap(p => (p.content_pillars as string[] | null) || [])
+  const allPillars = profiles.flatMap(p => (p.content_pillarss as string[] | null) || [])
   const mostUsedPillar = mostCommon(allPillars)
 
   const totalProfiles = profiles.length
   const step1 = profiles.filter(p => p.name && p.industry).length
   const step2 = profiles.filter(p => p.mcq_answers && Object.keys(p.mcq_answers || {}).length > 0).length
   const step3 = profiles.filter(p => p.writing_sample && (p.writing_sample as string).length > 0).length
-  const step4 = profiles.filter(p => (p.content_pillars as string[] | null)?.length).length
+  const step4 = profiles.filter(p => (p.content_pillarss as string[] | null)?.length).length
   const step5 = profiles.filter(p => p.control_preference).length
   const imageBriefUserIds = new Set(imageBriefs.map(ib => ib.user_id))
   const step6 = profiles.filter(p => imageBriefUserIds.has(p.user_id)).length
@@ -692,7 +692,7 @@ export async function POST(request: NextRequest) {
   const aiGenPosts = posts.filter(p => !p.source || p.source === 'ai_generated').length
   const postsWithImages = posts.filter(p => (p as Record<string, unknown>).image_urls && ((p as Record<string, unknown>).image_urls as string[])?.length > 0).length
   const avgPostLength = posts.length > 0 ? Math.round(posts.reduce((sum, p) => sum + (p.content?.length || 0), 0) / posts.length) : 0
-  const usedPillars = posts.filter(p => p.content_pillar).map(p => p.content_pillar as string)
+  const usedPillars = posts.filter(p => p.content_pillars).map(p => p.content_pillars as string)
   const mostUsedContentPillar = mostCommon(usedPillars)
   const tones = profiles.filter(p => p.tone).map(p => p.tone as string)
   const mostCommonTone = mostCommon(tones)

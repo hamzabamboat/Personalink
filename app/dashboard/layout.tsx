@@ -34,6 +34,7 @@ const BOTTOM_NAV_ITEMS = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 import { motion, AnimatePresence } from 'framer-motion'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -165,11 +166,13 @@ function SidebarContent({ user, profile, plan, planColor, pathname }: {
   pathname: string
 }) {
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900">
       {/* Logo */}
       <div className="px-5 pt-5 pb-4 border-b border-slate-100">
         <Link href="/dashboard" className="flex items-center group">
-          <img src="/logo-icon.png" alt="PersonaLink" className="h-9 w-9" />
+          <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
+            <img src="/logo-icon.png" alt="PersonaLink" className="h-8 w-8" />
+          </div>
         </Link>
       </div>
 
@@ -305,9 +308,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarProps = { user, profile, plan, planColor, pathname }
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50">
+    <div className="flex min-h-screen bg-slate-50/50 dark:bg-slate-950">
       {/* Desktop sidebar */}
-      <aside className="hide-mobile w-[220px] bg-white border-r border-slate-100 sticky top-0 h-screen overflow-y-auto shrink-0 flex flex-col shadow-[1px_0_0_0_#f1f5f9]">
+      <aside className="hide-mobile w-[220px] bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 sticky top-0 h-screen overflow-y-auto shrink-0 flex flex-col shadow-[1px_0_0_0_#f1f5f9]">
         <SidebarContent {...sidebarProps} />
       </aside>
 
@@ -326,11 +329,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Mobile top bar */}
-        <div className="hide-desktop bg-white border-b border-slate-100 h-[54px] flex items-center justify-between px-4 shadow-sm">
+        <div className="hide-desktop bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 h-[54px] flex items-center justify-between px-4 shadow-sm">
           <Link href="/dashboard" className="flex items-center">
-            <img src="/logo-icon.png" alt="PersonaLink" className="h-8 w-8" />
+            <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
+              <img src="/logo-icon.png" alt="PersonaLink" className="h-8 w-8" />
+            </div>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {user && plan === 'pro' && (
+              <button
+                onClick={() => window.location.href = '/api/auth/linkedin?add_profile=true'}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-400"
+                title="Add LinkedIn profile"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={user.linkedin_picture || ''} alt="" className="w-5 h-5 rounded-full" />
+                <span className="hidden sm:inline truncate max-w-[80px]">{user.linkedin_name?.split(' ')[0]}</span>
+              </button>
+            )}
+            <ThemeToggle />
             {user && (
               <button onClick={handleMobileLogout} className="p-2 rounded-lg hover:bg-slate-50 transition-colors">
                 <LogOut className="w-4 h-4 text-slate-500" />
@@ -357,7 +374,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Mobile bottom navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 safe-pb">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 safe-pb">
         <div className="flex h-14">
           {BOTTOM_NAV_ITEMS.map(item => {
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
@@ -372,11 +389,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }`}
               >
                 {isHome ? (
-                  <img src="/logo-icon.png" alt="Home" className={`w-7 h-7 rounded-md ${active ? 'ring-1 ring-[#0B458B]/30' : 'opacity-60'}`} />
+                  <div className={`bg-white rounded-xl p-1 inline-flex items-center justify-center shadow-sm ${active ? 'ring-1 ring-[#0B458B]/30' : 'opacity-60'}`}>
+                    <img src="/logo-icon.png" alt="Home" className="w-6 h-6 rounded-md" />
+                  </div>
                 ) : (
                   <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />
                 )}
-                <span className="text-[10px] font-medium">{item.label}</span>
+                {active && <span className="text-[9px] font-semibold">{item.label}</span>}
               </Link>
             )
           })}

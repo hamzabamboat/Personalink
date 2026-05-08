@@ -116,7 +116,9 @@ export default function OnboardingPage() {
       <div className="bg-white border-b border-slate-200 px-6">
         <div className="max-w-[720px] mx-auto h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src="/logo-text.png" alt="PersonaLink" className="h-8 w-auto" />
+            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
+              <img src="/logo-text.png" alt="PersonaLink" className="h-7 w-auto" />
+            </div>
           </div>
           <span className="text-[13px] text-slate-400">Step {step} of {TOTAL_STEPS}</span>
         </div>
@@ -147,7 +149,6 @@ export default function OnboardingPage() {
                 { label: 'Role / Title', key: 'role', placeholder: 'e.g. Founder, Student, Consultant', required: true },
                 { label: 'Industry / Institution', key: 'industry', placeholder: 'e.g. SaaS, Fintech, IIT Bombay', required: true },
                 { label: 'LinkedIn profile URL', key: 'linkedin_url', placeholder: 'https://linkedin.com/in/yourname', required: true },
-                { label: 'Company / College', key: 'company', placeholder: 'Company or institution name', required: false },
                 { label: 'Years of experience', key: 'years_experience', placeholder: '8', type: 'number', required: false },
               ].map(field => (
                 <div key={field.key}>

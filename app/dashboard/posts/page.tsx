@@ -207,8 +207,8 @@ function PostsContent() {
                     >
                       {STATUS_LABEL[post.status] || post.status}
                     </Badge>
-                    {post.content_pillar && (
-                      <Badge variant="secondary" className="text-[11px] font-medium">{post.content_pillar}</Badge>
+                    {post.content_pillars && (
+                      <Badge variant="secondary" className="text-[11px] font-medium">{post.content_pillars}</Badge>
                     )}
                     {post.scheduled_at && (
                       <span className="flex items-center gap-1 text-[11px] text-slate-400">
