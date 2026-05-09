@@ -234,8 +234,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Backgrounds: white/light → dark slate */
 .dark .bg-white { background-color: #1e293b; }
+.dark .bg-white\/90 { background-color: rgb(15 23 42 / 0.9); }
+.dark .bg-white\/95 { background-color: rgb(15 23 42 / 0.95); }
 .dark .bg-slate-50 { background-color: #1e293b; }
-.dark .bg-slate-50\/50 { background-color: rgb(30 41 59 / 0.5); }
+/* bg-slate-50/50 intentionally omitted: the only full-screen user is dashboard
+   layout which already has dark:bg-slate-950 — the unlayered override was
+   blocking it from applying. */
 .dark .bg-slate-100 { background-color: #334155; }
 .dark .bg-gray-50 { background-color: #1e293b; }
 .dark .bg-gray-100 { background-color: #334155; }
@@ -259,4 +263,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* Skeleton shimmer */
 .dark .skeleton {
   background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+}
+
+/* Landing page custom bg classes */
+.dark .hero-bg {
+  background-color: #0f172a;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(10, 102, 194, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 85% 30%, rgba(124, 58, 237, 0.08) 0%, transparent 50%);
+}
+.dark .section-gradient {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
 }
