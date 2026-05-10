@@ -10,6 +10,7 @@ import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export async function POST(request: NextRequest) {
+  try {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -19,7 +20,13 @@ export async function POST(request: NextRequest) {
 
   // Per-user hourly rate limit
   const rl = await checkRateLimit(user.id, 'claude_calls')
-  if (!rl.allowed) return NextResponse.json({ error: `Too many requests. You've made ${rl.count} AI calls this hour (limit: ${rl.limit}). Try again in ${Math.ceil(rl.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
+  if (!rl.allowed) {
+    const retryAt = new Date(Date.now() + rl.retryAfterSeconds * 1000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    return NextResponse.json(
+      { error: `You've hit the limit of ${rl.limit} generations per hour. Try again at ${retryAt}.` },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+    )
+  }
 
   const { data: profile } = await supabaseAdmin
     .from('user_profiles')
@@ -37,13 +44,13 @@ export async function POST(request: NextRequest) {
     .select('status')
     .eq('user_id', user.id)
     .maybeSingle()
-  const hasActiveSub = sub?.status === 'active'
+  const hasActiveSub = sub?.status === 'active' || sub?.status === 'trial'
   const postsUsed = profile.posts_used_this_month || 0
   if (!hasActiveSub && postsUsed >= 3) {
     return NextResponse.json({ error: 'trial_exhausted' }, { status: 402 })
   }
 
-  const { topic, voiceNoteId, storyBankId, additionalContext } = await request.json()
+  const { topic, voiceNoteId, storyBankId, additionalContext, imageIds } = await request.json()
 
   // Check posts_generated limit
   const postsCheck = await checkLimit(user.id, plan, 'posts_generated')
@@ -116,8 +123,24 @@ export async function POST(request: NextRequest) {
     }
   } catch { /* non-fatal */ }
 
+  // Resolve selected images and build context
+  let imageContext: string | undefined
+  let selectedImageUrls: string[] = []
+  if (imageIds?.length) {
+    const { data: postImages } = await supabaseAdmin
+      .from('post_images')
+      .select('*')
+      .in('id', imageIds)
+      .eq('user_id', user.id)
+    if (postImages?.length) {
+      selectedImageUrls = postImages.map(img => img.public_url)
+      imageContext = `The user has selected ${postImages.length} photo(s) to include with this post.\n` +
+        postImages.map((img, i) => `Photo ${i + 1}:\n- What's in it: ${img.ai_description || 'unknown'}\n- Mood: ${img.ai_mood || 'unknown'}\n- Topics: ${(img.ai_topics || []).join(', ')}\n- Text visible: ${img.ai_text_detected || 'none'}`).join('\n')
+    }
+  }
+
   const posts = await generateLinkedInPosts({
-    profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics,
+    profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, imageContext,
   })
 
   const validPosts = posts.filter(p => p && p.trim().length >= 50)
@@ -138,6 +161,7 @@ export async function POST(request: NextRequest) {
           voice_note_id: voiceNoteId || null,
           story_bank_id: storyBankId || null,
           generation_prompt: topic || transcript?.slice(0, 200) || storyText?.slice(0, 200),
+          image_urls: selectedImageUrls.length ? selectedImageUrls : null,
         })
         .select()
         .single()
@@ -163,4 +187,8 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ posts: insertedPosts.filter(Boolean) })
+  } catch (error) {
+    console.error('[posts/generate]', error)
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }

@@ -43,6 +43,7 @@ async function handler(_request: NextRequest) {
         accessToken: user.linkedin_access_token,
         linkedinId: user.linkedin_id,
         content: post.content,
+        imageUrls: post.image_urls || undefined,
       })
 
       await supabaseAdmin

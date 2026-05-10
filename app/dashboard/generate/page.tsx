@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, StoryBank } from '@/lib/supabase'
+import { supabase, StoryBank, Post } from '@/lib/supabase'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { PostCard, PostCardSkeleton } from '@/components/post-card'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2,
@@ -32,6 +33,8 @@ import {
   CheckCircle2,
   ArrowRight,
 } from 'lucide-react'
+import { ImageSelector } from '@/components/image-selector'
+import { PostImage } from '@/lib/supabase'
 
 const LOADING_MESSAGES = [
   'Researching your industry...',
@@ -66,24 +69,61 @@ type Tab = 'ai' | 'voice' | 'story'
 function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; postsLimit: number | null; monthName: string }) {
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [msgIdx, setMsgIdx] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
+  const [simulatedPostCount, setSimulatedPostCount] = useState(0)
   const [result, setResult] = useState<{ postsGenerated: number; nextPostDate: string | null } | null>(null)
+  const [batchPosts, setBatchPosts] = useState<Post[]>([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
   const [error, setError] = useState('')
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const batchStartRef = useRef<string>('')
+
+  useEffect(() => {
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [])
+
+  // Simulate per-post counter during writing steps (2, 3, 4)
+  useEffect(() => {
+    if (!loading || postsLimit === null) return
+    if (currentStep < 2 || currentStep > 4) return
+    const chunkSize = Math.ceil(postsLimit / 3)
+    const base = (currentStep - 2) * chunkSize
+    let count = base + 1
+    const max = Math.min(base + chunkSize, postsLimit)
+    const timer = setInterval(() => {
+      if (count <= max) setSimulatedPostCount(count++)
+    }, 1200)
+    return () => clearInterval(timer)
+  }, [currentStep, loading, postsLimit])
 
   async function handleBatchGenerate() {
     setShowConfirm(false)
-    setLoading(true); setError(''); setResult(null); setMsgIdx(0); setCurrentStep(0)
+    setLoading(true); setError(''); setResult(null); setBatchPosts([]); setCurrentStep(0); setSimulatedPostCount(0)
+    batchStartRef.current = new Date().toISOString()
+
     intervalRef.current = setInterval(() => {
-      setMsgIdx(i => (i + 1) % BATCH_MESSAGES.length)
       setCurrentStep(s => Math.min(s + 1, BATCH_STEPS.length - 2))
     }, 4000)
+
     try {
       const res = await fetch('/api/posts/generate-batch', { method: 'POST' })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
       setResult({ postsGenerated: data.postsGenerated, nextPostDate: data.nextPostDate })
+
+      setLoadingPosts(true)
+      const meRes = await fetch('/api/me')
+      const { user } = await meRes.json()
+      if (user) {
+        const { data: posts } = await supabase
+          .from('posts')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('created_at', batchStartRef.current)
+          .order('scheduled_at', { ascending: true })
+        setBatchPosts(posts || [])
+      }
+      setLoadingPosts(false)
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -94,7 +134,7 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
 
   if (postsLimit === null) {
     return (
-      <Card className="mb-6 border-slate-100 shadow-sm">
+      <Card className="mb-6 border-slate-100 shadow-sm rounded-2xl">
         <CardContent className="pt-6">
           <div className="skeleton h-6 w-48 rounded mb-2" />
           <div className="skeleton h-4 w-64 rounded" />
@@ -105,10 +145,10 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
 
   if (result) {
     return (
-      <Card className="mb-6 border-emerald-200 bg-emerald-50 shadow-sm">
+      <Card className="mb-6 border-emerald-200 bg-emerald-50 shadow-sm rounded-2xl">
         <CardContent className="pt-6">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -116,20 +156,39 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
               {result.nextPostDate && <div className="text-[13px] text-emerald-600">Next post: {result.nextPostDate}</div>}
             </div>
           </div>
-          <Link href="/dashboard/posts">
-            <Button variant="outline" size="sm" className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-100">
-              View all posts <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
-          </Link>
+
+          {loadingPosts ? (
+            <div className="flex flex-col gap-3 mb-4">
+              {[1, 2, 3].map(i => <PostCardSkeleton key={i} />)}
+            </div>
+          ) : batchPosts.length > 0 ? (
+            <div className="flex flex-col gap-3 mb-4 max-h-[480px] overflow-y-auto pr-1">
+              {batchPosts.map(post => (
+                <PostCard key={post.id} id={post.id} content={post.content} scheduledAt={post.scheduled_at} status={post.status} />
+              ))}
+            </div>
+          ) : null}
+
+          <div className="flex gap-2">
+            <Link href="/dashboard/calendar">
+              <Button variant="outline" size="sm" className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                View in Calendar <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+            <Link href="/dashboard/posts">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-emerald-600 hover:bg-emerald-100">
+                All posts
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     )
   }
 
-  // Confirmation dialog
   if (showConfirm) {
     return (
-      <Card className="mb-6 border-amber-200 bg-amber-50 shadow-sm">
+      <Card className="mb-6 border-amber-200 bg-amber-50 shadow-sm rounded-2xl">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center shrink-0 mt-0.5">
@@ -158,7 +217,7 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
   }
 
   return (
-    <Card className="mb-6 border-[#0B458B]/20 bg-gradient-to-br from-[#0B458B]/5 to-blue-50 shadow-sm">
+    <Card className="mb-6 border-[#0B458B]/20 bg-gradient-to-br from-[#0B458B]/5 to-blue-50 shadow-sm rounded-2xl">
       <CardContent className="pt-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
@@ -180,21 +239,25 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
         </div>
 
         {loading && (
-          <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6">
-            <div className="bg-white rounded-xl p-2 shadow-sm mb-6 border border-slate-100">
+          <div className="fixed inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6">
+            <div className="bg-white rounded-xl p-2 shadow-sm mb-6 border border-slate-100 logo-always-white">
               <img src="/logo-icon.png" className="h-12 w-12" alt="PersonaLink" width={48} height={48} />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Generating your posts for {monthName}...</h2>
-            <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Generating your posts for {monthName}...</h2>
+            <div className="w-64 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-2">
               <div
                 className="h-full bg-brand rounded-full transition-all duration-1000"
                 style={{ width: `${((currentStep + 1) / BATCH_STEPS.length) * 100}%` }}
               />
             </div>
-            <p className="text-slate-500 text-sm mb-6">{BATCH_STEPS[currentStep]}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 font-medium">
+              {currentStep >= 2 && currentStep <= 4
+                ? `Generating post ${simulatedPostCount || 1} of ${postsLimit}...`
+                : BATCH_STEPS[currentStep]}
+            </p>
             <div className="space-y-2 text-left w-full max-w-xs">
               {BATCH_STEPS.map((step, i) => (
-                <div key={i} className={`flex items-center gap-2 text-sm transition-colors ${i < currentStep ? 'text-emerald-600' : i === currentStep ? 'text-brand font-medium' : 'text-slate-300'}`}>
+                <div key={i} className={`flex items-center gap-2 text-sm transition-colors ${i < currentStep ? 'text-emerald-600' : i === currentStep ? 'text-brand font-medium' : 'text-slate-300 dark:text-slate-600'}`}>
                   <span className="text-xs w-4 shrink-0">{i < currentStep ? '✓' : i === currentStep ? '▶' : '○'}</span>
                   <span>{step}</span>
                 </div>
@@ -327,6 +390,8 @@ function GenerateContent() {
 
   const [imageSuggestions, setImageSuggestions] = useState<Array<{ icon: string; suggestion: string; why: string }>>([])
   const [fetchingImages, setFetchingImages] = useState(false)
+  const [selectedImages, setSelectedImages] = useState<PostImage[]>([])
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
 
   const [voiceImages, setVoiceImages] = useState<File[]>([])
   const [storyImages, setStoryImages] = useState<File[]>([])
@@ -337,17 +402,35 @@ function GenerateContent() {
   const [newStory, setNewStory] = useState('')
   const [savingStory, setSavingStory] = useState(false)
   const [selectedStory, setSelectedStory] = useState<StoryBank | null>(null)
+  const [contentPillars, setContentPillars] = useState<string[]>([])
+  const [selectedTone, setSelectedTone] = useState('')
 
   const monthName = new Date().toLocaleDateString('en-IN', { month: 'long' })
 
   useEffect(() => {
+    let cancelled = false
     fetch('/api/me').then(r => r.json()).then(d => {
+      if (cancelled) return
       if (d.profile) {
         setPlan(d.profile.plan || 'starter')
         setPostsLimit(d.profile.posts_limit ?? 12)
+        if (d.profile.content_pillars?.length) setContentPillars(d.profile.content_pillars)
       }
-    })
+    }).catch(() => {})
     loadStories()
+
+    // Pre-select image from ?imageId= query param
+    const imageId = searchParams.get('imageId')
+    if (imageId) {
+      fetch('/api/images').then(r => r.json()).then(data => {
+        if (cancelled) return
+        const img = (data.images || []).find((i: PostImage) => i.id === imageId)
+        if (img) { setSelectedImages([img]); setImageSelectorOpen(false) }
+      }).catch(() => {})
+    }
+
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function loadStories() {
@@ -423,15 +506,39 @@ function GenerateContent() {
     }, 2000)
 
     try {
-      const body: Record<string, unknown> = { additionalContext }
+      const tonePrefix = selectedTone ? `Write in a ${selectedTone.toLowerCase()} tone. ` : ''
+      const finalContext = tonePrefix + additionalContext
+      const body: Record<string, unknown> = { additionalContext: finalContext }
       if (tab === 'ai') body.topic = topic
       if (tab === 'voice') body.voiceNoteId = voiceNoteId
       if (tab === 'story' && selectedStory) body.storyBankId = selectedStory.id
+      if (selectedImages.length > 0) body.imageIds = selectedImages.map(img => img.id)
 
       const res = await fetch('/api/posts/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const data = await res.json()
-      if (data.error) { setError(data.error === 'trial_exhausted' ? 'Post limit reached. Upgrade your plan to continue.' : data.error); return }
-      setGeneratedPosts(data.posts || [])
+
+      let data: Record<string, unknown>
+      try {
+        data = await res.json()
+      } catch {
+        setError('Server error — could not parse response. Please try again.')
+        return
+      }
+
+      if (data.error) {
+        const errMsg = data.error as string
+        setError(errMsg === 'trial_exhausted' ? 'Post limit reached. Upgrade your plan to continue.' : errMsg)
+        return
+      }
+
+      const posts = data.posts as Array<{ id: string; content: string }> | undefined
+      if (!posts || posts.length === 0) {
+        setError('No posts were generated. Please try again.')
+        return
+      }
+
+      setGeneratedPosts(posts)
+    } catch {
+      setError('Generation failed — please check your connection and try again.')
     } finally {
       clearInterval(interval)
       setLoading(false)
@@ -523,6 +630,25 @@ function GenerateContent() {
         <TabsContent value="ai">
           <Card className="mt-4 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="pt-6 flex flex-col gap-4">
+              {/* Content pillar chips */}
+              {contentPillars.length > 0 && (
+                <div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Your content pillars</div>
+                  <div className="flex flex-wrap gap-2">
+                    {contentPillars.map(pillar => (
+                      <button
+                        key={pillar}
+                        type="button"
+                        onClick={() => setTopic(t => t ? t : pillar)}
+                        className="text-[12px] font-medium px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/40 hover:bg-brand-light/50 hover:text-brand transition-all"
+                      >
+                        {pillar}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="topic" className="font-medium text-sm text-gray-700 mb-1.5">What do you want to post about?</Label>
                 <Textarea
@@ -533,13 +659,99 @@ function GenerateContent() {
                   className="mt-1.5 min-h-[100px] resize-none border-slate-200 focus:border-brand/50 text-[14px]"
                 />
               </div>
+
+              {/* Tone selector */}
+              <div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tone</div>
+                <div className="flex flex-wrap gap-2">
+                  {['Professional', 'Storytelling', 'Educational', 'Data-driven', 'Casual'].map(tone => (
+                    <button
+                      key={tone}
+                      type="button"
+                      onClick={() => setSelectedTone(t => t === tone ? '' : tone)}
+                      className={`text-[12px] font-medium px-3 py-1.5 rounded-full border transition-all ${
+                        selectedTone === tone
+                          ? 'border-brand bg-brand text-white shadow-sm'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/40 hover:bg-brand-light/50 hover:text-brand'
+                      }`}
+                    >
+                      {tone}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Photo selection */}
+              <div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Photos <span className="font-normal normal-case text-slate-300">(optional)</span></div>
+                <button
+                  type="button"
+                  onClick={() => setImageSelectorOpen(true)}
+                  className="flex items-center gap-2 text-[13px] font-medium text-slate-600 border border-slate-200 rounded-xl px-3 py-2 hover:border-brand/40 hover:bg-brand-light/30 hover:text-brand transition-all"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  {selectedImages.length > 0 ? `${selectedImages.length} photo${selectedImages.length > 1 ? 's' : ''} selected` : 'Add Photos'}
+                </button>
+
+                {selectedImages.length > 0 && (
+                  <div className="mt-3 space-y-3">
+                    {/* Thumbnails */}
+                    <div className="flex gap-2 flex-wrap">
+                      {selectedImages.map(img => (
+                        <div key={img.id} className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 group">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.public_url} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => setSelectedImages(prev => prev.filter(i => i.id !== img.id))}
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          >
+                            <X className="w-3.5 h-3.5 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Topics from photos */}
+                    {selectedImages.flatMap(img => img.ai_topics || []).length > 0 && (
+                      <div>
+                        <div className="text-[11px] text-slate-400 font-semibold mb-1.5">Content from your photos:</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[...new Set(selectedImages.flatMap(img => img.ai_topics || []))].map(t => (
+                            <span key={t} className="text-[11px] bg-slate-50 border border-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hooks from photos */}
+                    {selectedImages.flatMap(img => img.ai_post_hooks || []).length > 0 && (
+                      <div>
+                        <div className="text-[11px] text-slate-400 font-semibold mb-1.5">Try these angles:</div>
+                        <div className="flex flex-col gap-1.5">
+                          {selectedImages.flatMap(img => img.ai_post_hooks || []).slice(0, 4).map((hook, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setTopic(hook)}
+                              className="text-left text-[12px] text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 hover:border-brand/40 hover:bg-brand-light/30 hover:text-brand transition-all"
+                            >
+                              {hook}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <Label htmlFor="context" className="font-medium text-sm text-gray-700 mb-1.5">Additional instructions <span className="text-gray-400 font-normal">(optional)</span></Label>
                 <Input
                   id="context"
                   value={additionalContext}
                   onChange={e => setAdditionalContext(e.target.value)}
-                  placeholder="e.g. Keep it under 200 words, make it conversational"
+                  placeholder="e.g. Keep it under 200 words, mention a specific metric"
                   className="mt-1.5 border-slate-200 focus:border-brand/50 text-[14px]"
                 />
               </div>
@@ -547,6 +759,15 @@ function GenerateContent() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <ImageSelector
+          open={imageSelectorOpen}
+          onClose={() => setImageSelectorOpen(false)}
+          onSelect={imgs => setSelectedImages(imgs)}
+          maxSelect={4}
+          alreadySelected={selectedImages.map(i => i.id)}
+          onHookSelect={hook => setTopic(hook)}
+        />
 
         {/* Voice Note */}
         <TabsContent value="voice">

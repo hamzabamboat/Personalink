@@ -1,6 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { UserProfile } from './supabase'
 
+export type ImageAnalysis = {
+  description: string
+  mood: string
+  topics: string[]
+  text_detected: string
+  post_hooks: string[]
+  content_pillars: string[]
+}
+
 export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
@@ -13,6 +22,7 @@ type GeneratePostOptions = {
   additionalContext?: string
   trendingContext?: string
   recentTopics?: string[]
+  imageContext?: string
 }
 
 function pickContentPillar(profile: UserProfile): string {
@@ -45,7 +55,7 @@ function buildVoiceContext(profile: UserProfile): string {
 }
 
 export async function generateLinkedInPosts(options: GeneratePostOptions): Promise<string[]> {
-  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics } = options
+  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, imageContext } = options
 
   const pillar = pickContentPillar(profile)
   const voiceContext = buildVoiceContext(profile)
@@ -79,7 +89,8 @@ LinkedIn post rules:
 4. HASHTAGS (MANDATORY): Always add 5-8 hashtags on a new line after the post. Mix: 2 large (1M+ followers, e.g. #Leadership #Entrepreneurship), 3 medium (100k-1M, e.g. #StartupIndia #ProductManagement), 2-3 niche (under 100k, specific to their industry/topic). Never use #instagood, #love, #follow. Base hashtags on industry, content pillar, and post topic.
 5. 150-300 words for most posts (up to 500 for deep insights)
 6. Sound like a human, not a press release
-7. Match the author's exact sentence length, vocabulary, and rhythm from their writing sample${avoidTopics}`
+7. Match the author's exact sentence length, vocabulary, and rhythm from their writing sample${avoidTopics}
+${imageContext ? `\n${imageContext}\nWrite the post so it naturally connects to what is shown in these photos. Reference the images implicitly — the post should feel written specifically to accompany them.` : ''}`
 
   const userPrompt = `${sourceContext}
 ${additionalContext ? `\nAdditional instructions: ${additionalContext}` : ''}
@@ -274,6 +285,58 @@ Respond ONLY with a JSON array:
     return match ? JSON.parse(match[0]) : []
   } catch {
     return []
+  }
+}
+
+export async function analyseImageForPost(base64Data: string, mimeType: string): Promise<ImageAnalysis> {
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 1000,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: { type: 'base64', media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: base64Data },
+        },
+        {
+          type: 'text',
+          text: `You are analysing a photo that a professional wants to use in a LinkedIn post.
+
+Analyse this image and return a JSON object with exactly these fields:
+{
+  "description": "1-2 sentence description of what is literally in the image",
+  "mood": "one of: professional / casual / celebratory / behind-the-scenes / educational / inspirational",
+  "topics": ["array", "of", "3-5", "topics", "visible", "or", "implied"],
+  "text_detected": "any text visible in the image, or empty string if none",
+  "post_hooks": [
+    "First possible LinkedIn post opening line inspired by this image",
+    "Second possible opening line with different angle",
+    "Third possible opening line"
+  ],
+  "content_pillars": ["which content pillars this image fits best from: Leadership, Innovation, Culture, Growth, Industry Insights, Personal Brand, Behind the Scenes, Team, Product, Clients"]
+}
+
+Return only valid JSON, no other text.`,
+        },
+      ],
+    }],
+  })
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '{}'
+  try {
+    const match = text.match(/\{[\s\S]*\}/)
+    const parsed = match ? JSON.parse(match[0]) : {}
+    return {
+      description: parsed.description || '',
+      mood: parsed.mood || 'professional',
+      topics: Array.isArray(parsed.topics) ? parsed.topics : [],
+      text_detected: parsed.text_detected || '',
+      post_hooks: Array.isArray(parsed.post_hooks) ? parsed.post_hooks : [],
+      content_pillars: Array.isArray(parsed.content_pillars) ? parsed.content_pillars : [],
+    }
+  } catch {
+    return { description: '', mood: 'professional', topics: [], text_detected: '', post_hooks: [], content_pillars: [] }
   }
 }
 

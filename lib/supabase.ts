@@ -82,6 +82,7 @@ export type Post = {
   approval_token: string | null
   approval_sent_at: string | null
   failure_reason: string | null
+  image_urls: string[] | null
   created_at: string
   updated_at: string
 }
@@ -150,6 +151,25 @@ export type PostAnalytics = {
   impressions: number | null
   reactions: number | null
   captured_at: string
+}
+
+export type PostImage = {
+  id: string
+  user_id: string
+  storage_path: string
+  public_url: string
+  file_name: string | null
+  file_size: number | null
+  mime_type: string | null
+  ai_description: string | null
+  ai_mood: string | null
+  ai_topics: string[] | null
+  ai_text_detected: string | null
+  ai_post_hooks: string[] | null
+  ai_content_pillars: string[] | null
+  analysed_at: string | null
+  uploaded_at: string
+  used_in_post_ids: string[] | null
 }
 
 export const supabase = createClient(
