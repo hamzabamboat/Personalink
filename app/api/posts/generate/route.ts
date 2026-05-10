@@ -123,20 +123,24 @@ export async function POST(request: NextRequest) {
     }
   } catch { /* non-fatal */ }
 
-  // Resolve selected images and build context
+  // Resolve selected images and build context (non-fatal if table missing)
   let imageContext: string | undefined
   let selectedImageUrls: string[] = []
   if (imageIds?.length) {
-    const { data: postImages } = await supabaseAdmin
-      .from('post_images')
-      .select('*')
-      .in('id', imageIds)
-      .eq('user_id', user.id)
-    if (postImages?.length) {
-      selectedImageUrls = postImages.map(img => img.public_url)
-      imageContext = `The user has selected ${postImages.length} photo(s) to include with this post.\n` +
-        postImages.map((img, i) => `Photo ${i + 1}:\n- What's in it: ${img.ai_description || 'unknown'}\n- Mood: ${img.ai_mood || 'unknown'}\n- Topics: ${(img.ai_topics || []).join(', ')}\n- Text visible: ${img.ai_text_detected || 'none'}`).join('\n')
-    }
+    try {
+      const { data: postImages } = await supabaseAdmin
+        .from('post_images')
+        .select('*')
+        .in('id', imageIds)
+        .eq('user_id', user.id)
+      if (postImages?.length) {
+        selectedImageUrls = postImages.map((img: { public_url: string }) => img.public_url)
+        imageContext = `The user has selected ${postImages.length} photo(s) to include with this post.\n` +
+          postImages.map((img: { ai_description?: string; ai_mood?: string; ai_topics?: string[]; ai_text_detected?: string }, i: number) =>
+            `Photo ${i + 1}:\n- What's in it: ${img.ai_description || 'unknown'}\n- Mood: ${img.ai_mood || 'unknown'}\n- Topics: ${(img.ai_topics || []).join(', ')}\n- Text visible: ${img.ai_text_detected || 'none'}`
+          ).join('\n')
+      }
+    } catch { /* post_images table may not exist yet — skip image context */ }
   }
 
   const posts = await generateLinkedInPosts({
@@ -150,23 +154,29 @@ export async function POST(request: NextRequest) {
 
   // Save drafts
   const insertedPosts = await Promise.all(
-    validPosts.map(content =>
-      supabaseAdmin
+    validPosts.map(content => {
+      const row: Record<string, unknown> = {
+        user_id: user.id,
+        content,
+        status: 'draft',
+        source: voiceNoteId ? 'voice_note' : storyBankId ? 'story_bank' : 'ai_generated',
+        voice_note_id: voiceNoteId || null,
+        story_bank_id: storyBankId || null,
+        generation_prompt: topic || transcript?.slice(0, 200) || storyText?.slice(0, 200),
+      }
+      // Only include image_urls if there are actual URLs (column may not exist yet)
+      if (selectedImageUrls.length) row.image_urls = selectedImageUrls
+
+      return supabaseAdmin
         .from('posts')
-        .insert({
-          user_id: user.id,
-          content,
-          status: 'draft',
-          source: voiceNoteId ? 'voice_note' : storyBankId ? 'story_bank' : 'ai_generated',
-          voice_note_id: voiceNoteId || null,
-          story_bank_id: storyBankId || null,
-          generation_prompt: topic || transcript?.slice(0, 200) || storyText?.slice(0, 200),
-          image_urls: selectedImageUrls.length ? selectedImageUrls : null,
-        })
+        .insert(row)
         .select()
         .single()
-        .then(r => r.data)
-    )
+        .then(r => {
+          if (r.error) console.error('[posts/generate] insert error:', r.error.message)
+          return r.data
+        })
+    })
   )
 
   // Increment usage tracking
