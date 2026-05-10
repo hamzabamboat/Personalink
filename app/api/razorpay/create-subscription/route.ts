@@ -58,8 +58,10 @@ export async function POST(request: NextRequest) {
       trial_days: TRIAL_DAYS,
     })
   } catch (err) {
-    console.error('[razorpay/create-subscription]', err)
-    const message = err instanceof Error ? err.message : 'Failed to create subscription'
+    // Razorpay SDK throws a plain object, not an Error instance
+    const rzpErr = err as { error?: { description?: string; code?: string }; message?: string }
+    const message = rzpErr?.error?.description || rzpErr?.message || (err instanceof Error ? err.message : 'Failed to create subscription')
+    console.error('[razorpay/create-subscription]', JSON.stringify(err))
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
