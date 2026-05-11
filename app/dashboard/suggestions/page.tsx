@@ -3,6 +3,18 @@
 import { useState, useEffect } from 'react'
 import { supabase, PostSuggestion, Post } from '@/lib/supabase'
 import Link from 'next/link'
+
+function formatAge(createdAt: string): { label: string; fresh: boolean } {
+  const ms = Date.now() - new Date(createdAt).getTime()
+  const minutes = ms / (1000 * 60)
+  const hours = ms / (1000 * 60 * 60)
+  const days = ms / (1000 * 60 * 60 * 24)
+  if (minutes < 2) return { label: 'just now', fresh: true }
+  if (hours < 1) return { label: `${Math.floor(minutes)}m ago`, fresh: true }
+  if (hours < 6) return { label: `${Math.floor(hours)}h ago`, fresh: true }
+  if (hours < 24) return { label: `${Math.floor(hours)} hours ago`, fresh: false }
+  return { label: `${Math.floor(days)} day${Math.floor(days) !== 1 ? 's' : ''} ago`, fresh: false }
+}
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,8 +33,8 @@ import {
   Lock,
   ThumbsUp,
   Eye,
-  Loader2,
 } from 'lucide-react'
+import { EmptyState } from '@/components/empty-state'
 
 type SuggestionTab = 'trending' | 'history' | 'stories' | 'repurpose'
 
@@ -40,69 +52,78 @@ export default function SuggestionsPage() {
   const [ideasAge, setIdeasAge] = useState<string | null>(null)
   const [ideasFresh, setIdeasFresh] = useState(true)
 
+  function applySuggestions(data: PostSuggestion[], lastGeneratedAt?: string | null) {
+    setSuggestions(data)
+    const ts = lastGeneratedAt || (data.length > 0 ? data[0].created_at : null)
+    if (ts) {
+      const { label, fresh } = formatAge(ts)
+      setIdeasAge(label)
+      setIdeasFresh(fresh)
+    }
+  }
+
   useEffect(() => {
+    let cancelled = false
     async function load() {
-      const meRes = await fetch('/api/me')
-      const { user, profile } = await meRes.json()
-      if (!user) { window.location.href = '/'; return }
-      setPlan(profile?.plan || 'starter')
-      setUserId(user.id)
-      const [suggestionsRes, postsRes] = await Promise.all([
-        supabase.from('post_suggestions').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
-        supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }).limit(10),
-      ])
-      const data = suggestionsRes.data || []
-      setSuggestions(data)
-      setTopPosts(postsRes.data || [])
+      try {
+        const meRes = await fetch('/api/me')
+        const { user, profile } = await meRes.json()
+        if (!user) { window.location.href = '/'; return }
+        if (cancelled) return
+        setPlan(profile?.plan || 'starter')
+        setUserId(user.id)
 
-      // Compute age of most recent idea
-      if (data.length > 0) {
-        const newest = new Date(data[0].created_at)
-        const hoursDiff = (Date.now() - newest.getTime()) / (1000 * 60 * 60)
-        const fresh = hoursDiff < 6
-        setIdeasFresh(fresh)
-        if (hoursDiff < 1) setIdeasAge('just now')
-        else if (hoursDiff < 24) setIdeasAge(`${Math.floor(hoursDiff)} hours ago`)
-        else setIdeasAge(`${Math.floor(hoursDiff / 24)} days ago`)
+        const [suggestionsRes, postsRes] = await Promise.all([
+          fetch('/api/suggestions/refresh'),
+          supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }).limit(10),
+        ])
+        if (cancelled) return
 
-        // Auto-refresh in background if older than 6 hours — don't clear existing ideas
-        if (!fresh) {
-          fetch('/api/suggestions/refresh', { method: 'POST' })
-            .then(r => r.json())
-            .then(async () => {
-              const { data: fresh } = await supabase.from('post_suggestions').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false })
-              if (fresh && fresh.length > 0) {
-                setSuggestions(fresh)
-                setIdeasAge('just now')
-                setIdeasFresh(true)
-              }
-            })
-            .catch(() => {})
+        const suggestionsData = await suggestionsRes.json()
+        const data: PostSuggestion[] = suggestionsData.suggestions || []
+        applySuggestions(data, suggestionsData.last_generated_at)
+        setTopPosts(postsRes.data || [])
+
+        // Auto-refresh in background if ideas are stale (older than 6 hours)
+        if (data.length > 0) {
+          const hoursDiff = (Date.now() - new Date(data[0].created_at).getTime()) / (1000 * 60 * 60)
+          if (hoursDiff >= 6) {
+            fetch('/api/suggestions/refresh', { method: 'POST' })
+              .then(r => r.json())
+              .then(d => {
+                if (!cancelled && d.suggestions?.length > 0) applySuggestions(d.suggestions, d.last_generated_at)
+              })
+              .catch(() => {})
+          }
         }
+      } catch {
+        /* non-fatal */
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-
-      setLoading(false)
     }
     load()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function refreshSuggestions() {
     setGenerating(true)
     const res = await fetch('/api/suggestions/refresh', { method: 'POST' })
     const data = await res.json()
-    if (data.error) { toast.error('Error refreshing: ' + data.error); setGenerating(false); return }
-    if (!userId) { setGenerating(false); return }
-    const { data: newSuggestions } = await supabase.from('post_suggestions').select('*').eq('user_id', userId).eq('status', 'pending').order('created_at', { ascending: false })
-    setSuggestions(newSuggestions || [])
-    setIdeasAge('just now')
-    setIdeasFresh(true)
     setGenerating(false)
-    toast.success('Fresh ideas generated!')
+    if (data.error) { toast.error('Error refreshing: ' + data.error); return }
+    if (data.suggestions?.length > 0) {
+      applySuggestions(data.suggestions, data.last_generated_at)
+      toast.success('Fresh ideas generated!')
+    } else {
+      toast.error(data.error || 'No ideas were generated. Please try again.')
+    }
   }
 
   async function dismissSuggestion(id: string) {
-    await supabase.from('post_suggestions').update({ status: 'dismissed' }).eq('id', id)
     setSuggestions(s => s.filter(x => x.id !== id))
+    fetch('/api/suggestions/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => {})
   }
 
   async function repurposePost(post: Post) {
@@ -121,13 +142,20 @@ export default function SuggestionsPage() {
     stories: suggestions.filter(s => s.source === 'story_bank'),
   }
 
+  const SOURCE_LABEL: Record<string, string> = {
+    news: 'Trending',
+    trends: 'Trending',
+    history: 'Your History',
+    story_bank: 'Story Bank',
+  }
+
   if (loading) {
     return (
-      <div className="p-4 md:p-8">
-        <div className="h-8 w-56 bg-slate-200 rounded-lg animate-pulse mb-6" />
+      <div className="p-4 md:p-7 w-full">
+        <div className="h-8 w-56 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-slate-200 rounded-xl animate-pulse" />
+            <div key={i} className="h-48 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -143,10 +171,10 @@ export default function SuggestionsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-7">
+    <div className="p-4 md:p-7 w-full">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Post Ideas</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Post Ideas</h1>
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-slate-400 text-sm font-medium">Fresh ideas tailored to your industry and voice</p>
             {ideasAge && (
@@ -163,7 +191,7 @@ export default function SuggestionsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as SuggestionTab)}>
-        <TabsList className="mb-6 h-10 gap-1 p-1">
+        <TabsList className="mb-6 h-10 gap-1 p-1 w-full justify-start">
           <TabsTrigger value="trending" className="gap-1.5 text-[13px]">
             <Flame className="w-3.5 h-3.5" />
             Trending
@@ -184,49 +212,36 @@ export default function SuggestionsPage() {
         </TabsList>
 
         {(['trending', 'history', 'stories'] as SuggestionTab[]).map(tabId => (
-          <TabsContent key={tabId} value={tabId}>
+          <TabsContent key={tabId} value={tabId} className="w-full">
             {currentSuggestions.length === 0 ? (
-              <Card className="border-slate-100 shadow-sm">
-                <CardContent className="py-16 text-center">
-                  {(() => {
-                    const Icon = emptyIcons[tabId as keyof typeof emptyIcons]
-                    return (
-                      <>
-                        <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
-                          <Icon className="w-6 h-6 text-amber-400" strokeWidth={1.5} />
-                        </div>
-                        <div className="font-semibold text-slate-700 mb-1.5">No suggestions yet</div>
-                        <div className="text-sm text-slate-400 mb-6">
-                          Click &quot;Refresh Ideas&quot; to generate fresh post ideas for your industry.
-                        </div>
-                        <Button onClick={refreshSuggestions} disabled={generating} className="gap-1.5">
-                          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lightbulb className="w-4 h-4" />}
-                          Generate Ideas Now
-                        </Button>
-                      </>
-                    )
-                  })()}
-                </CardContent>
-              </Card>
+              <div className="flex flex-col items-center justify-center w-full min-h-[400px] text-center">
+                <EmptyState
+                  icon={emptyIcons[tabId as keyof typeof emptyIcons]}
+                  title="No suggestions yet"
+                  subtitle='Click "Refresh Ideas" to generate fresh post ideas for your industry.'
+                  ctaLabel={generating ? 'Generating...' : 'Generate Ideas Now'}
+                  onCta={generating ? undefined : refreshSuggestions}
+                />
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
                 {currentSuggestions.map(s => (
-                  <div key={s.id} className="border border-slate-200 rounded-xl p-4 hover:border-brand hover:shadow-md transition-all cursor-pointer bg-white flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-brand bg-brand-light px-2 py-1 rounded-full capitalize">
-                        {s.source || 'General'}
+                  <div key={s.id} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-4 hover:border-brand hover:shadow-md transition-all bg-white dark:bg-slate-900 flex flex-col shadow-sm">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-[11px] font-bold text-brand bg-brand-light px-2.5 py-1 rounded-full uppercase tracking-wide">
+                        {SOURCE_LABEL[s.source] || 'General'}
                       </span>
                       <button
                         onClick={() => dismissSuggestion(s.id)}
-                        className="text-slate-300 hover:text-slate-500 transition-colors"
+                        className="text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 transition-colors p-0.5"
                         title="Dismiss"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <p className="font-semibold text-slate-900 mb-2 text-sm leading-snug flex-1">{s.suggestion_text}</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 mb-2 text-sm leading-snug flex-1">{s.suggestion_text}</p>
                     {s.why_it_works && (
-                      <p className="text-slate-500 text-xs mb-3 leading-relaxed line-clamp-2">{s.why_it_works}</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs mb-3 leading-relaxed line-clamp-2">{s.why_it_works}</p>
                     )}
                     {s.hashtags && s.hashtags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
@@ -235,13 +250,12 @@ export default function SuggestionsPage() {
                         ))}
                       </div>
                     )}
-                    <Button
-                      render={<Link href={`/dashboard/generate?idea=${encodeURIComponent(s.suggestion_text)}`} />}
-                      size="sm"
-                      className="w-full text-sm mt-auto"
-                    >
-                      Generate this post →
-                    </Button>
+                    <Link href={`/dashboard/generate?idea=${encodeURIComponent(s.suggestion_text)}`} className="mt-auto">
+                      <Button size="sm" className="w-full gap-1.5">
+                        <Lightbulb className="w-3.5 h-3.5" />
+                        Use this idea
+                      </Button>
+                    </Link>
                   </div>
                 ))}
               </div>

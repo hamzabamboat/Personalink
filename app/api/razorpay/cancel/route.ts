@@ -13,13 +13,12 @@ export async function POST(request: NextRequest) {
     .eq('user_id', user.id)
     .single()
 
-  if (!sub || (sub.status !== 'active' && sub.status !== 'trial')) {
+  if (!sub || (sub.status !== 'active' && sub.status !== 'trial' && sub.status !== 'trialing')) {
     return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
   }
 
-  // cancel_at_cycle_end: 0 = cancel now, 1 = cancel at end of current billing period
-  // 0 = cancel immediately, 1 = cancel at end of current billing cycle
-  await getRazorpay().subscriptions.cancel(sub.razorpay_subscription_id as string, 0)
+  // cancel_at_cycle_end: 1 = cancel at end of current billing period (user keeps access until then)
+  await getRazorpay().subscriptions.cancel(sub.razorpay_subscription_id as string, 1)
 
   const now = new Date().toISOString()
   await Promise.all([

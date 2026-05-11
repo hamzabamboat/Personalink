@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PostImage } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { CloudUpload, CheckCircle2, X, Trash2, Loader2, Image as ImageIcon, ExternalLink } from 'lucide-react'
+import {
+  CloudUpload, CheckCircle2, X, Trash2, Loader2, Image as ImageIcon,
+  ExternalLink, Lightbulb, RefreshCw, Lock, Zap, Camera,
+} from 'lucide-react'
 
 const MOOD_COLORS: Record<string, string> = {
   professional: 'bg-blue-100 text-blue-700',
@@ -15,6 +18,8 @@ const MOOD_COLORS: Record<string, string> = {
   educational: 'bg-cyan-100 text-cyan-700',
   inspirational: 'bg-rose-100 text-rose-700',
 }
+
+const IDEA_ICONS = ['📸', '🤝', '💼', '🏆', '🎯', '💡', '🌟', '📊', '🎤', '🏢']
 
 type UploadFile = {
   name: string
@@ -104,12 +109,124 @@ function ImageCard({ image, onDelete }: { image: PostImage; onDelete: (id: strin
   )
 }
 
+function PhotoIdeasSection({ plan }: { plan: string }) {
+  const STORAGE_KEY = 'photo_brief_prompts'
+  const [prompts, setPrompts] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return []
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const isPaid = plan === 'standard' || plan === 'pro'
+
+  async function fetchIdeas() {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/images/brief-prompts')
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setPrompts(data.prompts || [])
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.prompts || []))
+    } catch {
+      setError('Failed to generate ideas. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!isPaid) {
+    return (
+      <div className="mb-6 rounded-2xl border border-slate-100 bg-white shadow-sm p-5">
+        <div className="flex items-start gap-4">
+          <div className="relative shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center">
+              <Camera className="w-5 h-5 text-slate-300" strokeWidth={1.5} />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shadow-sm">
+              <Lock className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-slate-900 mb-0.5">AI Photo Ideas for This Month</div>
+            <p className="text-sm text-slate-500 mb-3">Get 5 specific, actionable photo prompts tailored to your industry and content pillars — so you always know what to shoot.</p>
+            <Button render={<Link href="/dashboard/settings?tab=plan" />} size="sm" className="gap-1.5 h-8 text-[13px]">
+              <Zap className="w-3.5 h-3.5" />
+              Upgrade to Standard
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-6 rounded-2xl border border-slate-100 bg-white shadow-sm p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-brand-light flex items-center justify-center">
+            <Lightbulb className="w-4.5 h-4.5 text-brand" />
+          </div>
+          <div>
+            <div className="font-semibold text-slate-900 text-[15px]">Photo Ideas for This Month</div>
+            <div className="text-[12px] text-slate-400">AI-generated shots tailored to your industry &amp; content pillars</div>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchIdeas}
+          disabled={loading}
+          className="gap-1.5 border-slate-200 shrink-0"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          {prompts.length > 0 ? 'Refresh' : 'Get Ideas'}
+        </Button>
+      </div>
+
+      {error && (
+        <div className="text-sm text-red-500 mb-3">{error}</div>
+      )}
+
+      {loading && prompts.length === 0 && (
+        <div className="flex flex-col gap-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {prompts.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {prompts.map((prompt, i) => (
+            <div key={i} className="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+              <span className="text-lg shrink-0 mt-0.5">{IDEA_ICONS[i % IDEA_ICONS.length]}</span>
+              <p className="text-[13px] text-slate-700 leading-snug">{prompt}</p>
+            </div>
+          ))}
+          <p className="text-[11px] text-slate-400 mt-1">Take these photos and upload them above — they&apos;ll be ready to use when generating posts.</p>
+        </div>
+      )}
+
+      {!loading && prompts.length === 0 && !error && (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Camera className="w-10 h-10 text-slate-200 mb-3" strokeWidth={1.5} />
+          <div className="text-sm font-medium text-slate-600 mb-1">No ideas yet</div>
+          <div className="text-[13px] text-slate-400">Click &quot;Get Ideas&quot; to generate this month&apos;s photo brief</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function UploadPage() {
   const router = useRouter()
   const [images, setImages] = useState<PostImage[]>([])
   const [loadingImages, setLoadingImages] = useState(true)
   const [uploadQueue, setUploadQueue] = useState<UploadFile[]>([])
   const [dragOver, setDragOver] = useState(false)
+  const [plan, setPlan] = useState('starter')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadImages = useCallback(async () => {
@@ -119,7 +236,12 @@ export default function UploadPage() {
     setLoadingImages(false)
   }, [])
 
-  useEffect(() => { loadImages() }, [loadImages])
+  useEffect(() => {
+    fetch('/api/me').then(r => r.json()).then(d => {
+      if (d.profile?.plan) setPlan(d.profile.plan)
+    }).catch(() => {})
+    loadImages()
+  }, [loadImages])
 
   // Poll for analysis completion on unanalysed images
   useEffect(() => {
@@ -184,6 +306,9 @@ export default function UploadPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Photo Library</h1>
         <p className="text-sm text-gray-500 leading-relaxed">Upload photos — AI analyses them for LinkedIn post hooks, mood, and topics so you can use them in your posts.</p>
       </div>
+
+      {/* AI Photo Ideas section */}
+      <PhotoIdeasSection plan={plan} />
 
       {/* Upload zone */}
       <div

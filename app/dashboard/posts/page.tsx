@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { supabase, Post } from '@/lib/supabase'
+import type { Post } from '@/lib/supabase'
+import type { PostImage } from '@/lib/supabase'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,18 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ImageSelector } from '@/components/image-selector'
 import {
-  Plus,
-  Zap,
-  List,
-  Calendar,
-  FileText,
-  ThumbsUp,
-  Eye,
-  MessageCircle,
-  Pencil,
-  Trash2,
-  Sparkles,
+  Plus, Zap, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
+  Pencil, Trash2, Sparkles, ImageIcon, X,
 } from 'lucide-react'
 
 const STATUS_COLOR: Record<string, string> = {
@@ -32,6 +25,14 @@ const STATUS_COLOR: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft', pending_approval: 'Awaiting Approval', approved: 'Approved',
   scheduled: 'Scheduled', publishing: 'Publishing', published: 'Published', failed: 'Failed', rejected: 'Rejected',
+}
+
+// Convert UTC ISO to local datetime-local value (YYYY-MM-DDTHH:MM)
+function utcToLocalInput(utcString: string): string {
+  if (!utcString) return ''
+  const date = new Date(utcString)
+  const offset = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
 type ViewMode = 'list' | 'calendar'
@@ -45,25 +46,44 @@ function PostsContent() {
   const [editingPost, setEditingPost] = useState<Post | null>(null)
   const [editContent, setEditContent] = useState('')
   const [editSchedule, setEditSchedule] = useState('')
+  const [editImages, setEditImages] = useState<PostImage[]>([])
+  const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [plan, setPlan] = useState('starter')
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
-      const meRes = await fetch('/api/me')
-      const { user, profile } = await meRes.json()
-      if (!user) { window.location.href = '/'; return }
-      setPlan(profile?.plan || 'starter')
-      const { data } = await supabase.from('posts').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-      setPosts(data || [])
-      setLoading(false)
+      try {
+        const meRes = await fetch('/api/me')
+        if (!meRes.ok) { window.location.href = '/'; return }
+        const { user, profile } = await meRes.json()
+        if (!user) { window.location.href = '/'; return }
+        if (cancelled) return
+        setPlan(profile?.plan || 'starter')
+        const postsRes = await fetch('/api/posts?order=scheduled_at')
+        const postsData = await postsRes.json()
+        if (!cancelled) setPosts(postsData.posts || [])
+      } catch {
+        /* non-fatal */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     load()
+    return () => { cancelled = true }
   }, [])
+
+  function openEdit(post: Post) {
+    setEditingPost(post)
+    setEditContent(post.content)
+    setEditSchedule(post.scheduled_at ? utcToLocalInput(post.scheduled_at) : '')
+    setEditImages([])
+  }
 
   async function deletePost(id: string) {
     if (!confirm('Delete this post?')) return
-    await supabase.from('posts').delete().eq('id', id)
+    await fetch(`/api/posts/${id}/update`, { method: 'DELETE' })
     setPosts(p => p.filter(x => x.id !== id))
     toast('Post deleted')
   }
@@ -71,10 +91,18 @@ function PostsContent() {
   async function saveEdit() {
     if (!editingPost) return
     setSaving(true)
-    const updates: Record<string, unknown> = { content: editContent, updated_at: new Date().toISOString() }
-    if (editSchedule) updates.scheduled_at = editSchedule
-    await supabase.from('posts').update(updates).eq('id', editingPost.id)
-    setPosts(p => p.map(x => x.id === editingPost.id ? { ...x, ...updates as Partial<Post> } : x))
+    const body: Record<string, unknown> = { content: editContent }
+    if (editSchedule) body.scheduled_at = new Date(editSchedule).toISOString()
+    if (editImages.length > 0) body.image_urls = editImages.map(i => i.public_url)
+    const res = await fetch(`/api/posts/${editingPost.id}/update`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (data.post) {
+      setPosts(p => p.map(x => x.id === editingPost.id ? { ...x, ...data.post } : x))
+    }
     setSaving(false)
     setEditingPost(null)
     toast.success('Post updated')
@@ -85,14 +113,20 @@ function PostsContent() {
     const res = await fetch('/api/posts/bulk-generate', { method: 'POST' })
     const data = await res.json()
     if (data.error) { toast.error('Error: ' + data.error); return }
-    const meRes = await fetch('/api/me')
-    const { user } = await meRes.json()
-    const { data: newPosts } = await supabase.from('posts').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    setPosts(newPosts || [])
+    const postsRes = await fetch('/api/posts?order=scheduled_at')
+    const postsData = await postsRes.json()
+    setPosts(postsData.posts || [])
     toast.success(`Generated ${data.count} posts for the next 30 days!`)
   }
 
-  const filtered = posts.filter(p => {
+  // Sort by scheduled_at ascending (upcoming first), then by created_at for unscheduled
+  const sortedPosts = [...posts].sort((a, b) => {
+    const aTime = a.scheduled_at ? new Date(a.scheduled_at).getTime() : (a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime())
+    const bTime = b.scheduled_at ? new Date(b.scheduled_at).getTime() : (b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime())
+    return aTime - bTime
+  })
+
+  const filtered = sortedPosts.filter(p => {
     if (filter === 'all') return true
     if (filter === 'scheduled') return p.status === 'scheduled'
     if (filter === 'draft') return ['draft', 'pending_approval'].includes(p.status)
@@ -101,7 +135,7 @@ function PostsContent() {
   })
 
   const byDate: Record<string, Post[]> = {}
-  posts.filter(p => p.scheduled_at || p.published_at).forEach(p => {
+  sortedPosts.filter(p => p.scheduled_at || p.published_at).forEach(p => {
     const d = new Date(p.scheduled_at || p.published_at!).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     if (!byDate[d]) byDate[d] = []
     byDate[d].push(p)
@@ -109,22 +143,66 @@ function PostsContent() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-7">
         <div className="skeleton h-8 w-48 mb-6 rounded" />
-        {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-24 rounded-xl mb-3" />)}
+        {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl mb-3" />)}
       </div>
     )
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl">
+    <div className="p-4 md:p-7 max-w-3xl">
+      <ImageSelector
+        open={imageSelectorOpen}
+        onClose={() => setImageSelectorOpen(false)}
+        onSelect={imgs => setEditImages(imgs)}
+        maxSelect={4}
+        alreadySelected={editImages.map(i => i.id)}
+      />
+
       <Dialog open={!!editingPost} onOpenChange={(open) => { if (!open) setEditingPost(null) }}>
         <DialogContent className="max-w-lg mx-4 md:mx-auto w-[calc(100vw-2rem)] md:w-full">
           <DialogHeader><DialogTitle className="text-base font-bold">Edit Post</DialogTitle></DialogHeader>
           <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} className="h-48 resize-none text-[14px]" />
+
+          {/* Photo attachment */}
+          <div>
+            <Label className="text-[13px] font-semibold mb-1.5 block">Photos <span className="font-normal text-slate-400">(optional)</span></Label>
+            {editImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {editImages.map(img => (
+                  <div key={img.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.public_url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => setEditImages(prev => prev.filter(i => i.id !== img.id))}
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    >
+                      <X className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setImageSelectorOpen(true)}
+              className="flex items-center gap-2 text-[12px] font-medium text-slate-500 border border-slate-200 rounded-lg px-3 py-1.5 hover:border-brand/40 hover:text-brand transition-all"
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              {editImages.length > 0 ? `${editImages.length} photo${editImages.length > 1 ? 's' : ''} selected` : 'Add photos from library'}
+            </button>
+          </div>
+
           <div className="space-y-2">
             <Label className="text-[13px] font-semibold">Reschedule <span className="text-slate-400 font-normal">(optional)</span></Label>
-            <Input type="datetime-local" value={editSchedule} onChange={e => setEditSchedule(e.target.value)} min={new Date().toISOString().slice(0, 16)} />
+            <Input
+              type="datetime-local"
+              value={editSchedule}
+              onChange={e => setEditSchedule(e.target.value)}
+              min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+            />
+            <p className="text-[11px] text-slate-400">Time is in your local timezone</p>
           </div>
           <div className="flex gap-3 pt-1">
             <Button onClick={saveEdit} disabled={saving} className="flex-1">
@@ -135,10 +213,10 @@ function PostsContent() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-7">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">My Posts</h1>
-          <p className="text-slate-400 text-sm font-medium">{posts.length} posts total</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">My Posts</h1>
+          <p className="text-gray-500 text-sm">{posts.length} posts total</p>
         </div>
         <div className="flex gap-2">
           {plan === 'pro' && (
@@ -207,17 +285,30 @@ function PostsContent() {
                     >
                       {STATUS_LABEL[post.status] || post.status}
                     </Badge>
-                    {post.content_pillars && (
-                      <Badge variant="secondary" className="text-[11px] font-medium">{post.content_pillars}</Badge>
+                    {post.content_pillar && (
+                      <Badge variant="secondary" className="text-[11px] font-medium">{post.content_pillar}</Badge>
                     )}
                     {post.scheduled_at && (
                       <span className="flex items-center gap-1 text-[11px] text-slate-400">
                         <Calendar className="w-3 h-3" />
-                        {new Date(post.scheduled_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(post.scheduled_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-slate-600 leading-relaxed overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{post.content}</p>
+                  {post.image_urls && post.image_urls.length > 0 && (
+                    <div className="flex gap-1.5 mt-2">
+                      {post.image_urls.slice(0, 3).map((url, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={i} src={url} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
+                      ))}
+                      {post.image_urls.length > 3 && (
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-[11px] text-slate-400 font-semibold">
+                          +{post.image_urls.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {post.status === 'published' && (post.reactions != null || post.impressions != null) && (
                     <div className="flex gap-4 mt-2.5">
                       {post.impressions != null && (
@@ -240,7 +331,7 @@ function PostsContent() {
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px] min-w-[36px]"
-                    onClick={() => { setEditingPost(post); setEditContent(post.content); setEditSchedule(post.scheduled_at?.slice(0, 16) || '') }}>
+                    onClick={() => openEdit(post)}>
                     <Pencil className="size-3.5" />
                     <span className="hidden sm:inline">Edit</span>
                   </Button>
@@ -272,7 +363,7 @@ function PostsContent() {
             <div key={month} className="mb-7">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{month}</div>
               <div className="flex flex-col gap-2">
-                {monthPosts.sort((a, b) => new Date(a.scheduled_at || a.published_at!).getTime() - new Date(b.scheduled_at || b.published_at!).getTime()).map(post => (
+                {monthPosts.map(post => (
                   <Card key={post.id} className="border-slate-100 shadow-sm card-hover">
                     <CardContent className="pt-3.5 pb-3.5 flex gap-3.5 items-center">
                       <div className="text-center w-11 flex-shrink-0">
@@ -280,7 +371,7 @@ function PostsContent() {
                           {new Date(post.scheduled_at || post.published_at!).getDate()}
                         </div>
                         <div className="text-[10px] text-slate-400 uppercase font-medium">
-                          {new Date(post.scheduled_at || post.published_at!).toLocaleDateString('en-IN', { weekday: 'short' })}
+                          {new Date(post.scheduled_at || post.published_at!).toLocaleDateString(undefined, { weekday: 'short' })}
                         </div>
                       </div>
                       <div className="w-px h-8 bg-slate-100 shrink-0" />
@@ -290,12 +381,12 @@ function PostsContent() {
                           <span className="text-[11px] font-semibold" style={{ color: STATUS_COLOR[post.status] }}>{STATUS_LABEL[post.status]}</span>
                           <span className="text-[11px] text-slate-300">·</span>
                           <span className="text-[11px] text-slate-400">
-                            {new Date(post.scheduled_at || post.published_at!).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(post.scheduled_at || post.published_at!).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </div>
                       <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px] shrink-0"
-                        onClick={() => { setEditingPost(post); setEditContent(post.content); setEditSchedule(post.scheduled_at?.slice(0, 16) || '') }}>
+                        onClick={() => openEdit(post)}>
                         <Pencil className="size-3.5" /> Edit
                       </Button>
                     </CardContent>

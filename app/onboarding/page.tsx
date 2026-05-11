@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Bot, CheckCircle2, Lightbulb, Check } from 'lucide-react'
+import { QuarterRings } from '@/components/concentric-rings'
 
 const TOTAL_STEPS = 7
 
@@ -146,12 +147,13 @@ export default function OnboardingPage() {
   }))
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 relative">
+      <QuarterRings size={400} color="blue" opacity={0.05} className="fixed bottom-0 right-0 pointer-events-none hidden lg:block" />
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-6">
         <div className="max-w-[720px] mx-auto h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
+            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
               <img src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
             </div>
           </div>

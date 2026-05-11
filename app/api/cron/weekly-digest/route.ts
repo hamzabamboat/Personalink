@@ -6,7 +6,7 @@ import { sendWeeklyDigestEmail } from '@/lib/email'
 import { UserProfile } from '@/lib/supabase'
 import crypto from 'crypto'
 
-export async function GET(request: NextRequest) {
+async function handler(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -80,3 +80,5 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ sent, total: users?.length, results: summary })
 }
+
+export { handler as GET, handler as POST }

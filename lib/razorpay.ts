@@ -8,11 +8,12 @@ export function getRazorpay() {
   })
 }
 
-// Map plan names to Razorpay plan IDs (set these env vars after creating plans in Razorpay)
+// Map plan names to Razorpay plan IDs
+// Supports both naming conventions for the env vars
 export const PLAN_IDS: Record<string, string> = {
-  starter: process.env.RAZORPAY_PLAN_ID_STARTER || process.env.RAZORPAY_PLAN_ID!,
-  standard: process.env.RAZORPAY_PLAN_ID_STANDARD || process.env.RAZORPAY_PLAN_ID!,
-  pro: process.env.RAZORPAY_PLAN_ID_PRO || process.env.RAZORPAY_PLAN_ID!,
+  starter: process.env.RAZORPAY_PLAN_ID_PERSONALINK_STARTER_PLAN || process.env.RAZORPAY_PLAN_ID_STARTER || process.env.RAZORPAY_PLAN_ID!,
+  standard: process.env.RAZORPAY_PLAN_ID_PERSONALINK_STANDARD_PLAN || process.env.RAZORPAY_PLAN_ID_STANDARD || process.env.RAZORPAY_PLAN_ID!,
+  pro: process.env.RAZORPAY_PLAN_ID_PERSONALINK_PRO_PLAN || process.env.RAZORPAY_PLAN_ID_PRO || process.env.RAZORPAY_PLAN_ID!,
 }
 
 // Legacy single plan ID

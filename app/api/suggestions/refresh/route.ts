@@ -7,7 +7,39 @@ import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getUserFromRequest(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const [{ data: suggestions }, { data: lastAny }] = await Promise.all([
+      supabaseAdmin
+        .from('post_suggestions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false }),
+      supabaseAdmin
+        .from('post_suggestions')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+
+    return NextResponse.json({
+      suggestions: suggestions || [],
+      last_generated_at: lastAny?.created_at || null,
+    })
+  } catch (err) {
+    console.error('[suggestions/get]', err)
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
+  try {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -68,32 +100,69 @@ export async function POST(request: NextRequest) {
   // Call Claude to generate suggestions — increment only on success
   const suggestions = await generateSuggestionsForUser(profile, trendingNews, recentTopics)
 
-  if (suggestions.length > 0) {
+  if (suggestions.length === 0) {
+    console.error('[suggestions/refresh] Claude returned 0 suggestions for user', user.id)
+    return NextResponse.json({ error: 'No ideas were generated. Please try again.' }, { status: 500 })
+  }
+
+  // Validate: Claude may return items with missing suggestion_text (NOT NULL in DB)
+  const validSuggestions = suggestions.filter(s => s.suggestion_text && s.suggestion_text.trim().length > 0)
+  if (validSuggestions.length === 0) {
+    console.error('[suggestions/refresh] Claude returned suggestions with no valid suggestion_text for user', user.id)
+    return NextResponse.json({ error: 'No valid ideas were generated. Please try again.' }, { status: 500 })
+  }
+
+  const insertPayload = validSuggestions.map(s => ({
+    user_id: user.id,
+    suggestion_text: s.suggestion_text,
+    angle: s.angle || null,
+    hashtags: Array.isArray(s.hashtags) ? s.hashtags : [],
+    why_it_works: s.why_it_works || null,
+    source: (['news', 'trends', 'history', 'story_bank'].includes(s.source) ? s.source : 'news'),
+    status: 'pending',
+  }))
+
+  // Insert new suggestions FIRST, then dismiss old ones — so ideas are never lost on failure
+  const { data: inserted, error: insertError } = await supabaseAdmin
+    .from('post_suggestions')
+    .insert(insertPayload)
+    .select()
+
+  if (insertError) {
+    console.error('[suggestions/refresh] Supabase insert error:', {
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details,
+      hint: insertError.hint,
+    })
+    console.error('[suggestions/refresh] Insert payload sample:', JSON.stringify(insertPayload[0], null, 2))
+    return NextResponse.json({ error: 'Failed to save suggestions. Please try again.' }, { status: 500 })
+  }
+
+  // Dismiss old pending only after new ones are safely saved
+  if (inserted && inserted.length > 0) {
     await supabaseAdmin
       .from('post_suggestions')
       .update({ status: 'dismissed' })
       .eq('user_id', user.id)
       .eq('status', 'pending')
-
-    await supabaseAdmin.from('post_suggestions').insert(
-      suggestions.map(s => ({
-        user_id: user.id,
-        suggestion_text: s.suggestion_text,
-        angle: s.angle,
-        hashtags: s.hashtags,
-        why_it_works: s.why_it_works,
-        source: s.source || 'news',
-        status: 'pending',
-      }))
-    )
-
-    await Promise.all([
-      incrementUsage(user.id, 'trend_refreshes'),
-      incrementRateLimit(user.id, 'claude_calls'),
-      incrementRateLimit(user.id, 'trend_refresh'),
-      trackAndCheckSpend('claude_sonnet', user.id),
-    ])
+      .not('id', 'in', `(${inserted.map(r => r.id).join(',')})`)
   }
 
-  return NextResponse.json({ count: suggestions.length })
+  await Promise.all([
+    incrementUsage(user.id, 'trend_refreshes'),
+    incrementRateLimit(user.id, 'claude_calls'),
+    incrementRateLimit(user.id, 'trend_refresh'),
+    trackAndCheckSpend('claude_haiku', user.id),
+  ])
+
+  if (!inserted || inserted.length === 0) {
+    return NextResponse.json({ error: 'No ideas were generated. Please try again.' }, { status: 500 })
+  }
+
+  return NextResponse.json({ count: inserted.length, suggestions: inserted, last_generated_at: inserted[0].created_at || null })
+  } catch (err) {
+    console.error('[suggestions/refresh]', err)
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }

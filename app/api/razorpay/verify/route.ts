@@ -8,6 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendTrialStartedEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
+  try {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -18,8 +19,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing payment details' }, { status: 400 })
   }
 
-  // When trial_period is set, Razorpay may or may not provide razorpay_payment_id
-  // (it's a ₹0 auth or card-save event). Verify signature only if payment_id is present.
+  // Razorpay may or may not provide razorpay_payment_id on card-save/₹0 auth events.
+  // Verify signature only if payment_id is present.
   if (razorpay_payment_id) {
     const isValid = verifyPaymentSignature({
       razorpay_payment_id,
@@ -94,4 +95,8 @@ export async function POST(request: NextRequest) {
     path: '/',
   })
   return response
+  } catch (err) {
+    console.error('[razorpay/verify]', err)
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }

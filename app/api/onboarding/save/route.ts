@@ -5,10 +5,12 @@ import { analyzeVoiceFingerprint } from '@/lib/anthropic'
 import { PLAN_LIMITS } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
+  try {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
+  const body = await request.json().catch(() => null)
+  if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   const {
     name, role, industry, company, years_experience, linkedin_url,
     mcq_answers, writing_sample, content_pillars, control_preference, plan,
@@ -53,4 +55,8 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('[onboarding/save]', err)
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }

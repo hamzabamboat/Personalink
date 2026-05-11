@@ -68,10 +68,18 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+    font-family: var(--font-jakarta), var(--font-inter), system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
   }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-jakarta), var(--font-inter), system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  h1 { letter-spacing: -0.03em; }
+  h2 { letter-spacing: -0.025em; }
+  h3 { letter-spacing: -0.02em; }
 }
 
 /* Scrollbar */
@@ -205,6 +213,38 @@ input[type="range"]::-webkit-slider-thumb:hover {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Sidebar width tokens */
+:root {
+  --sidebar-full: 240px;
+  --sidebar-collapsed: 64px;
+}
+
+/* Tooltip for icon-only sidebar items */
+[title]:not([title=""]).sidebar-item {
+  position: relative;
+}
+[title]:not([title=""]).sidebar-item::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+[title]:not([title=""]).sidebar-item:hover::after {
+  opacity: 1;
+}
+
 /* Mobile: ensure 16px inputs to prevent iOS auto-zoom */
 @media (max-width: 768px) {
   input, textarea, select {
@@ -274,4 +314,18 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .dark .section-gradient {
   background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Logo images: always white background, never inverted or darkened */
+.logo-always-white {
+  background-color: white !important;
+}
+
+/* Generate page — batch banner gradient */
+.batch-banner {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%) !important;
+  border-color: transparent !important;
+}
+.dark .batch-banner {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%) !important;
 }

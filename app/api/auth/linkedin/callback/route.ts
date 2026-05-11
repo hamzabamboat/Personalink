@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     }
     if (sub?.status === 'active') {
       response.cookies.set('sub_status', 'active', { ...cookieOpts, maxAge: 60 * 60 })
-    } else if (sub?.status === 'trial') {
+    } else if (sub?.status === 'trial' || sub?.status === 'trialing') {
       response.cookies.set('sub_status', 'trial', { ...cookieOpts, maxAge: 60 * 60 * 24 * 8 })
     }
     response.cookies.delete('linkedin_oauth_state')

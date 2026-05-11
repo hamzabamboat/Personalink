@@ -3,753 +3,383 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, User, Post, UserProfile, PostSuggestion } from '@/lib/supabase'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { Post, UserProfile } from '@/lib/supabase'
+import { ConcentricRings, QuarterRings } from '@/components/concentric-rings'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import {
   Sparkles,
-  Mic,
   BookOpen,
-  Calendar,
-  ThumbsUp,
-  Eye,
-  FileText,
-  Lightbulb,
-  ArrowRight,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  Circle,
-  RefreshCw,
+  CalendarDays,
   ImageIcon,
-  CheckCircle,
-  AlertCircle,
-  BarChart2,
+  RefreshCw,
+  ArrowRight,
 } from 'lucide-react'
 import { showUpgradeModal } from '@/components/upgrade-limit-modal'
-import type { FeatureKey } from '@/lib/usage-limits'
-
-type UsageSummary = Record<FeatureKey, { used: number; limit: number; remaining: number; percentage: number }>
+import { PostCard, PostCardSkeleton } from '@/components/post-card'
+import { EmptyState } from '@/components/empty-state'
 
 type ProfileAnalysis = {
   score: number
-  breakdown: Record<string, { score: number; max: number; tip: string }>
   improvements: string[]
   analysed_at: string
 }
 
-type RoadmapStep = {
-  label: string
-  done: boolean
-  current: boolean
-  href: string
-}
-
-function getRoadmapSteps(
-  preference: string,
-  profileComplete: boolean,
-  pillarsSet: boolean,
-  hasPost: boolean,
-): { title: string; steps: RoadmapStep[] } {
-  if (preference === 'autopilot') {
-    return {
-      title: 'Your path to full autopilot',
-      steps: [
-        { label: 'Complete your profile', done: profileComplete, current: !profileComplete, href: '/dashboard/settings' },
-        { label: 'Set your content pillars', done: pillarsSet, current: profileComplete && !pillarsSet, href: '/dashboard/settings#pillars' },
-        { label: 'Upload your first images', done: false, current: profileComplete && pillarsSet && !hasPost, href: '/dashboard/generate#images' },
-        { label: 'Generate your first batch of posts', done: hasPost, current: profileComplete && pillarsSet, href: '/dashboard/generate' },
-        { label: 'Posts go live automatically', done: false, current: hasPost, href: '/dashboard/posts' },
-      ],
-    }
-  }
-  if (preference === 'suggest') {
-    return {
-      title: 'Your quick start guide',
-      steps: [
-        { label: 'Complete your profile', done: profileComplete, current: !profileComplete, href: '/dashboard/settings' },
-        { label: 'Browse today\'s suggestions', done: false, current: profileComplete, href: '/dashboard/suggestions' },
-        { label: 'Generate your first post', done: hasPost, current: !hasPost && profileComplete, href: '/dashboard/generate' },
-        { label: 'Review analytics', done: false, current: hasPost, href: '/dashboard/analytics' },
-      ],
-    }
-  }
-  return {
-    title: 'Your path to growth',
-    steps: [
-      { label: 'Complete your profile', done: profileComplete, current: !profileComplete, href: '/dashboard/settings' },
-      { label: 'Set your content pillars', done: pillarsSet, current: profileComplete && !pillarsSet, href: '/dashboard/settings#pillars' },
-      { label: 'Generate your first batch of posts', done: hasPost, current: pillarsSet && !hasPost, href: '/dashboard/generate' },
-      { label: 'Browse today\'s suggestions', done: false, current: hasPost, href: '/dashboard/suggestions' },
-      { label: 'Review analytics', done: false, current: false, href: '/dashboard/analytics' },
-    ],
-  }
-}
-
-function RoadmapPanel({ profile, posts, analysis, onReanalyse, reanalysing, analyseError }: {
-  profile: UserProfile | null
-  posts: Post[]
-  analysis: ProfileAnalysis | null
-  onReanalyse: () => void
-  reanalysing: boolean
-  analyseError: string
-}) {
-  const preference = (profile as Record<string, unknown>)?.control_preference as string || 'approve'
-  const profileComplete = !!(profile?.name && profile?.industry && profile?.content_pillars?.length)
-  const pillarsSet = !!(profile?.content_pillars?.length)
-  const hasPost = posts.length > 0
-  const { title, steps } = getRoadmapSteps(preference, profileComplete, pillarsSet, hasPost)
-
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Roadmap card */}
-      <Card className="border-slate-100 shadow-sm">
-        <CardContent className="pt-5 pb-5">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">{title}</div>
-          <div className="flex flex-col gap-2">
-            {steps.map((step, i) => (
-              <Link
-                key={i}
-                href={step.href}
-                className={`flex items-center gap-2.5 text-[13px] rounded-lg px-2 py-1.5 -mx-2 transition-colors cursor-pointer ${
-                  step.done
-                    ? 'text-slate-300 hover:bg-slate-50'
-                    : step.current
-                    ? 'text-[#0B458B] font-semibold hover:bg-blue-50'
-                    : 'text-slate-400 hover:bg-slate-50'
-                }`}
-              >
-                {step.done
-                  ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={2} />
-                  : step.current
-                  ? <div className="w-4 h-4 rounded-full border-2 border-[#0B458B] bg-[#0B458B]/10 shrink-0 animate-pulse" />
-                  : <Circle className="w-4 h-4 text-slate-200 shrink-0" strokeWidth={2} />
-                }
-                <span className={step.done ? 'line-through' : ''}>{step.label}</span>
-                {step.current && <ArrowRight className="w-3 h-3 ml-auto shrink-0" />}
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Profile score card */}
-      <Card className="border-slate-100 shadow-sm">
-        <CardContent className="pt-5 pb-5">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">LinkedIn Profile Score</div>
-          {analyseError && (
-            <div className="mb-3 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-red-600 leading-relaxed">{analyseError}</p>
-              </div>
-            </div>
-          )}
-          {analysis ? (
-            <>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="relative w-14 h-14 shrink-0">
-                  <svg viewBox="0 0 56 56" className="w-14 h-14 -rotate-90">
-                    <circle cx={28} cy={28} r={22} fill="none" stroke="#f1f5f9" strokeWidth={5} />
-                    <circle cx={28} cy={28} r={22} fill="none" stroke="#0B458B" strokeWidth={5}
-                      strokeDasharray={`${(analysis.score / 100) * 2 * Math.PI * 22} ${2 * Math.PI * 22}`}
-                      strokeLinecap="round" />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[13px] font-extrabold text-[#0B458B]">{analysis.score}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">{analysis.score}/100</div>
-                  {(() => {
-                    const daysDiff = Math.floor((Date.now() - new Date(analysis.analysed_at).getTime()) / (1000 * 60 * 60 * 24))
-                    const fresh = daysDiff < 7
-                    return (
-                      <div className="flex flex-col gap-1 mt-0.5">
-                        <div className="text-[10px] text-slate-400">
-                          {daysDiff === 0 ? 'Today' : daysDiff === 1 ? 'Yesterday' : `${daysDiff} days ago`}
-                        </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full w-fit ${fresh ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                          {fresh ? '● Up to date' : '⚠ Due for refresh'}
-                        </span>
-                      </div>
-                    )
-                  })()}
-                </div>
-              </div>
-              {reanalysing && (
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-2">
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  Refreshing analysis...
-                </div>
-              )}
-              {analysis.improvements?.slice(0, 3).map((tip, i) => (
-                <div key={i} className="flex gap-2 items-start text-[12px] text-slate-500 mb-1.5">
-                  <span className="text-[#0B458B] mt-0.5 shrink-0">→</span>
-                  <span>{tip}</span>
-                </div>
-              ))}
-              <button
-                onClick={onReanalyse}
-                disabled={reanalysing}
-                className="mt-3 flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-brand transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3 h-3 ${reanalysing ? 'animate-spin' : ''}`} />
-                {reanalysing ? 'Analysing...' : 'Analyse again'}
-              </button>
-            </>
-          ) : (
-            <div className="text-center py-3">
-              <div className="text-[12px] text-slate-400 mb-3">Run an AI analysis of your LinkedIn profile</div>
-              <button
-                onClick={onReanalyse}
-                disabled={reanalysing}
-                className="w-full py-2 px-3 bg-[#0B458B] text-white text-[12px] font-semibold rounded-lg hover:bg-[#0B458B]/90 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
-              >
-                <RefreshCw className={`w-3 h-3 ${reanalysing ? 'animate-spin' : ''}`} />
-                {reanalysing ? 'Analysing...' : 'Analyse My Profile'}
-              </button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-type Score = { score: number; breakdown: { posting_consistency: number; avg_engagement: number; profile_completeness: number }; recorded_at: string }
+const TIPS = [
+  'Posts with a personal story get 3× more comments than pure opinion pieces.',
+  'Ask a question at the end — it doubles the comment rate.',
+  'The first line is 80% of the post. Rewrite it until it demands a click.',
+  'Post between 7–9 AM or 5–6 PM in your timezone for maximum reach.',
+  'Short paragraphs win on LinkedIn. One idea per line.',
+  'Carousels get 3× the impressions of text posts — try one this week.',
+  'Consistency beats virality. One post per week for 3 months beats a one-hit wonder.',
+  'Numbers in your headline increase click-through by 36%. Try "5 lessons from..."',
+  'Tag 1–2 people max — over-tagging kills reach.',
+  "Don't start with \"I\". Open with your hook statement instead.",
+  'Emojis boost engagement by 48% when used sparingly — max 3 per post.',
+  'A post that teaches one thing beats a post that covers ten.',
+  'Reply to every comment in the first hour — LinkedIn rewards it with more reach.',
+  'Your headline is your tagline. Describe what you do for others, not just your title.',
+  'Native video gets 5× the reach of shared links — record something this week.',
+  'DM someone who commented with a genuine follow-up. Most don\'t. You\'ll stand out.',
+  'Hook formula: "[Counterintuitive claim]. Here\'s why..." — try it today.',
+  'Posts that share failures get more engagement than posts that share wins.',
+  'Write your post, then cut the first paragraph. It\'s almost never your real hook.',
+  'Use "You" in your posts, not "One" or "People" — it feels personal.',
+  'Share one thing you learned this week. The bar is low; the rewards are high.',
+  'A strong CTA beats a weak post. End every post with one clear next step.',
+  'Comment on 3 posts before you post your own — the algorithm notices.',
+  'LinkedIn rewards dwell time. Line breaks make people scroll longer.',
+  'Your profile photo gets 14× more views with a professional headshot.',
+  'Post on Tuesdays and Wednesdays — data shows 20% higher engagement vs Mondays.',
+  'B2B buyers check LinkedIn before meetings. Your last post is their first impression.',
+  'Screenshot and share something you read this week — curation builds credibility fast.',
+  'Add a "so what" to every data point. Facts + insight = thought leadership.',
+  'Repost with your own commentary — it generates 2× more conversation than a silent share.',
+  'Celebrate someone else\'s win publicly. Generosity on LinkedIn compounds over time.',
+]
 
 function ScoreRing({ score }: { score: number }) {
-  const r = 38; const c = 2 * Math.PI * r
+  const r = 36
+  const c = 2 * Math.PI * r
   const filled = (score / 100) * c
   const color = score >= 70 ? '#059669' : score >= 40 ? '#d97706' : '#ef4444'
   return (
-    <svg width={100} height={100} viewBox="0 0 100 100">
-      <circle cx={50} cy={50} r={r} fill="none" stroke="#f1f5f9" strokeWidth={8} />
-      <circle cx={50} cy={50} r={r} fill="none" stroke={color} strokeWidth={8}
-        strokeDasharray={`${filled} ${c - filled}`} strokeDashoffset={c * 0.25} strokeLinecap="round" />
-      <text x={50} y={54} textAnchor="middle" fontSize={20} fontWeight={800} fill={color}>{score}</text>
-      <text x={50} y={68} textAnchor="middle" fontSize={10} fill="#94a3b8">/100</text>
+    <svg width={88} height={88} viewBox="0 0 88 88" className="-rotate-90">
+      <circle cx={44} cy={44} r={r} fill="none" stroke="#f1f5f9" strokeWidth={7} />
+      <circle cx={44} cy={44} r={r} fill="none" stroke={color} strokeWidth={7}
+        strokeDasharray={`${filled} ${c - filled}`} strokeLinecap="round" />
     </svg>
-  )
-}
-
-const STATUS_COLOR: Record<string, string> = {
-  draft: '#94a3b8', pending_approval: '#f59e0b', approved: '#10b981',
-  scheduled: '#0A66C2', publishing: '#8b5cf6', published: '#059669', failed: '#ef4444', rejected: '#dc2626',
-}
-
-function MonthAutomation({ profile, posts }: { profile: UserProfile | null; posts: Post[] }) {
-  const [generating, setGenerating] = useState(false)
-  const [result, setResult] = useState<{ postsGenerated: number; monthName: string; nextPostDate: string | null } | null>(null)
-  const [error, setError] = useState('')
-
-  const monthName = new Date().toLocaleDateString('en-IN', { month: 'long' })
-  const postsLimit = profile?.posts_limit || 12
-  const plan = profile?.plan || 'starter'
-  const controlPreference = (profile as Record<string, unknown>)?.control_preference as string || 'approve'
-  const hasApprovalMode = controlPreference === 'approve'
-  const scheduledPosts = posts.filter(p => p.status === 'scheduled' || p.status === 'pending_approval')
-  const pendingApproval = posts.filter(p => p.status === 'pending_approval')
-  const nextPost = scheduledPosts.sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())[0]
-
-  // Steps completion
-  const step1Done = posts.length > 0
-  const step2Done = !hasApprovalMode || pendingApproval.length === 0
-  const step3Done = false // image brief — approximate
-  const allDone = step1Done && step2Done
-
-  const stepsCompleted = [step1Done, step2Done].filter(Boolean).length
-  const totalSteps = hasApprovalMode ? 3 : 2
-
-  async function handleGenerate() {
-    setGenerating(true); setError(''); setResult(null)
-    try {
-      const res = await fetch('/api/posts/generate-batch', { method: 'POST' })
-      const data = await res.json()
-      if (data.error) { setError(data.error); return }
-      setResult({ postsGenerated: data.postsGenerated, monthName: data.monthName, nextPostDate: data.nextPostDate })
-      toast.success(`${data.postsGenerated} posts generated for ${data.monthName}!`)
-    } catch {
-      setError('Something went wrong. Please try again.')
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  if (allDone && nextPost) {
-    return (
-      <Card className="border-emerald-200 bg-emerald-50 shadow-sm">
-        <CardContent className="pt-5">
-          <div className="flex items-center gap-2 text-emerald-700 font-semibold text-sm mb-1">
-            <CheckCircle className="w-4 h-4" />
-            You&apos;re all set for {monthName}!
-          </div>
-          <div className="text-[13px] text-emerald-600">
-            PersonaLink will handle the rest. Next post: {new Date(nextPost.scheduled_at!).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="border-slate-100 shadow-sm">
-      <CardHeader className="py-4 px-6 border-b border-slate-50 flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-[14px] font-semibold text-slate-900">Set up this month in 5 minutes</CardTitle>
-        <div className="text-[12px] text-slate-400 font-medium">{stepsCompleted}/{totalSteps} steps done</div>
-      </CardHeader>
-      <CardContent className="pt-5 pb-5">
-        {/* Progress bar */}
-        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-5">
-          <div className="h-full bg-[#0B458B] rounded-full transition-all duration-700" style={{ width: `${(stepsCompleted / totalSteps) * 100}%` }} />
-        </div>
-
-        {error && (
-          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        {result && (
-          <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
-            <div className="font-semibold text-sm text-green-700 mb-1">{result.postsGenerated} posts generated for {result.monthName}</div>
-            {result.nextPostDate && <div className="text-[12px] text-green-600">Next post: {result.nextPostDate}</div>}
-            <Link href="/dashboard/posts" className="text-[12px] font-semibold text-green-700 flex items-center gap-1 mt-2 hover:underline">
-              View all posts <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-4">
-          {/* Step 1 */}
-          <div className="flex items-start gap-3">
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 ${step1Done ? 'bg-emerald-500 text-white' : 'bg-[#0B458B] text-white'}`}>
-              {step1Done ? '✓' : '1'}
-            </div>
-            <div className="flex-1">
-              <div className="text-[13px] font-semibold text-slate-800 mb-1.5">Generate your posts</div>
-              {!step1Done && (
-                <Button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  size="sm"
-                  className="h-8 text-[12px] gap-1.5"
-                >
-                  {generating
-                    ? <><RefreshCw className="w-3 h-3 animate-spin" /> Generating...</>
-                    : <><Sparkles className="w-3 h-3" /> Generate {postsLimit} posts for {monthName} →</>
-                  }
-                </Button>
-              )}
-              {step1Done && <div className="text-[12px] text-emerald-600 font-medium">{posts.length} posts ready</div>}
-            </div>
-          </div>
-
-          {/* Step 2 — only shown in approval mode */}
-          {hasApprovalMode && (
-            <div className="flex items-start gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 ${step2Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                {step2Done ? '✓' : '2'}
-              </div>
-              <div className="flex-1">
-                <div className="text-[13px] font-semibold text-slate-800 mb-1.5">Review &amp; approve</div>
-                {pendingApproval.length > 0 && (
-                  <Link href="/dashboard/posts">
-                    <Button variant="outline" size="sm" className="h-8 text-[12px] gap-1.5 border-amber-300 text-amber-600 hover:bg-amber-50">
-                      Review {pendingApproval.length} pending posts →
-                    </Button>
-                  </Link>
-                )}
-                {step2Done && <div className="text-[12px] text-emerald-600 font-medium">All posts approved</div>}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3 — images */}
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 bg-slate-200 text-slate-500">
-              {hasApprovalMode ? '3' : '2'}
-            </div>
-            <div className="flex-1">
-              <div className="text-[13px] font-semibold text-slate-800 mb-1.5">Upload your monthly images</div>
-              <Link href="/dashboard/generate#images">
-                <Button variant="outline" size="sm" className="h-8 text-[12px] gap-1.5 border-slate-200">
-                  <ImageIcon className="w-3 h-3" /> View image brief →
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Final state */}
-          {nextPost && (
-            <div className="mt-1 px-4 py-3 bg-[#0B458B]/5 rounded-xl border border-[#0B458B]/10">
-              <div className="text-[12px] font-semibold text-[#0B458B]">
-                Next post: {new Date(nextPost.scheduled_at!).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   )
 }
 
 function DashboardContent() {
   const searchParams = useSearchParams()
   const upgraded = searchParams.get('upgraded')
-  const [user, setUser] = useState<User | null>(null)
+
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
-  const [score, setScore] = useState<Score | null>(null)
-  const [suggestions, setSuggestions] = useState<PostSuggestion[]>([])
-  const [loading, setLoading] = useState(true)
-  const [profileAnalysis, setProfileAnalysis] = useState<ProfileAnalysis | null>(null)
+  const [score, setScore] = useState<number | null>(null)
+  const [analysis, setAnalysis] = useState<ProfileAnalysis | null>(null)
   const [reanalysing, setReanalysing] = useState(false)
-  const [analyseError, setAnalyseError] = useState('')
-  const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [monthStats, setMonthStats] = useState({ generated: 0, published: 0, pending: 0 })
 
   useEffect(() => {
     if (upgraded) toast.success('Subscription activated! Welcome to the plan.')
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
-      const meRes = await fetch('/api/me')
-      if (!meRes.ok) { window.location.href = '/'; return }
-      const { user: u, profile: p } = await meRes.json()
-      setUser(u); setProfile(p)
+      try {
+        const meRes = await fetch('/api/me')
+        if (!meRes.ok) { window.location.href = '/'; return }
+        const { user: u, profile: p } = await meRes.json()
+        if (!u || cancelled) return
+        if (!cancelled) setProfile(p)
 
-      const [postsRes, scoreRes, suggestionsRes, analysisRes, usageRes] = await Promise.all([
-        supabase.from('posts').select('*').eq('user_id', u.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('linkedin_scores').select('*').eq('user_id', u.id).order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('post_suggestions').select('*').eq('user_id', u.id).eq('status', 'pending').order('created_at', { ascending: false }).limit(3),
-        supabase.from('profile_analyses').select('*').eq('user_id', u.id).order('analysed_at', { ascending: false }).limit(1).maybeSingle(),
-        fetch('/api/usage').then(r => r.ok ? r.json() : null).catch(() => null),
-      ])
-      setPosts(postsRes.data || [])
-      setScore(scoreRes.data)
-      setSuggestions(suggestionsRes.data || [])
-      setProfileAnalysis(analysisRes.data || null)
-      if (usageRes?.usage) setUsageSummary(usageRes.usage)
-      setLoading(false)
+        const now = new Date()
+        const createdMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+        const [scheduledRes, analysisRes, monthRes] = await Promise.all([
+          fetch('/api/posts?status=scheduled&order=scheduled_at&limit=5').then(r => r.json()),
+          fetch('/api/profile/analyse').then(r => r.json()),
+          fetch(`/api/posts?created_month=${createdMonth}`).then(r => r.json()),
+        ])
+
+        if (!cancelled) {
+          setPosts(scheduledRes.posts || [])
+          const latestAnalysis = analysisRes?.analyses?.[0]
+          if (latestAnalysis) {
+            setAnalysis(latestAnalysis)
+            setScore(latestAnalysis.score)
+          }
+          const all: Post[] = monthRes.posts || []
+          setMonthStats({
+            generated: all.length,
+            published: all.filter(p => p.status === 'published').length,
+            pending: all.filter(p => p.status === 'pending_approval' || p.status === 'scheduled').length,
+          })
+        }
+      } catch {
+        /* non-fatal — page stays in loading state */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     load()
+    return () => { cancelled = true }
   }, [])
 
-  if (loading) {
-    return (
-      <div className="p-8">
-        <div className="mb-8">
-          <div className="skeleton h-8 w-56 mb-2.5 rounded" />
-          <div className="skeleton h-4 w-40 rounded" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="border-slate-100">
-              <CardContent className="pt-6">
-                <div className="skeleton h-4 w-3/5 mb-3 rounded" />
-                <div className="skeleton h-7 w-2/5 rounded" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) return null
-
   async function handleReanalyse() {
-    setReanalysing(true); setAnalyseError('')
+    setReanalysing(true)
     try {
       const res = await fetch('/api/profile/analyse', { method: 'POST' })
       const data = await res.json()
       if (res.status === 429 && data.feature) {
         showUpgradeModal({ feature: data.feature, plan: data.plan, used: data.used, limit: data.limit })
-        setReanalysing(false); return
+        return
       }
-      if (data.error) {
-        setAnalyseError(data.error)
-        toast.error('Analysis failed: ' + data.error)
-      } else {
-        setProfileAnalysis({ ...data, analysed_at: new Date().toISOString() })
-        toast.success('Profile analysed! Score: ' + data.score + '/100')
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Network error'
-      setAnalyseError(msg)
+      if (data.error) { toast.error('Analysis failed: ' + data.error); return }
+      setAnalysis({ ...data, analysed_at: new Date().toISOString() })
+      setScore(data.score)
+      toast.success('Profile analysed! Score: ' + data.score + '/100')
+    } catch {
+      toast.error('Failed to analyse profile.')
     } finally {
       setReanalysing(false)
     }
   }
 
-  const scheduledPosts = posts.filter(p => p.status === 'scheduled')
-  const nextPost = scheduledPosts.sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())[0]
-  const postsUsed = profile?.posts_used_this_month || 0
-  const postsLimit = profile?.posts_limit || 12
-  const planLabel = profile?.plan ? profile.plan.charAt(0).toUpperCase() + profile.plan.slice(1) : 'Starter'
-  const firstName = user.linkedin_name?.split(' ')[0] || 'there'
-  const usagePct = Math.min((postsUsed / postsLimit) * 100, 100)
+  const firstName = profile?.name?.split(' ')[0] || 'there'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night'
+  const todayStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+  const postsUsed = profile?.posts_used_this_month || 0
+  const postsLimit = profile?.posts_limit || 12
+  const pillars = profile?.content_pillars || []
+  const plan = profile?.plan || 'starter'
+  const planColor = plan === 'pro' ? '#7c3aed' : plan === 'standard' ? '#0B458B' : '#64748b'
+  const _now = new Date()
+  const _dayOfYear = Math.floor((_now.getTime() - new Date(_now.getFullYear(), 0, 0).getTime()) / 86400000)
+  const tipOfDay = TIPS[_dayOfYear % TIPS.length]
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-7">
+        {/* Welcome skeleton */}
+        <div className="animate-pulse mb-7">
+          <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-lg w-64 mb-2" />
+          <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-40" />
+        </div>
+        {/* Grid skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 flex flex-col gap-5">
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse h-24 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+              ))}
+            </div>
+            {[...Array(3)].map((_, i) => <PostCardSkeleton key={i} />)}
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="animate-pulse h-48 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+            <div className="animate-pulse h-24 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex xl:gap-0">
-    <div className="p-4 md:p-7 flex-1 max-w-[1000px]">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6 md:mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-sm text-slate-400 font-medium">
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+    <div className="p-4 md:p-7">
+      {/* Welcome card */}
+      <div className="mb-6 relative overflow-hidden">
+        <QuarterRings size={300} color="blue" className="absolute -top-10 -right-10 pointer-events-none hidden lg:block" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight mb-1">
+              {greeting}, {firstName} 👋
+            </h1>
+            <p className="text-sm text-slate-400 font-medium">{todayStr}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="bg-blue-50 text-blue-600 rounded-full px-3 py-1 text-[13px] font-semibold">
+              {postsUsed}/{postsLimit} posts used
+            </span>
+            <Button render={<Link href="/dashboard/generate" />} className="gap-2 shadow-sm">
+              <Sparkles className="w-4 h-4" />
+              Generate
+            </Button>
+          </div>
         </div>
-        <Button render={<Link href="/dashboard/generate" />} className="gap-2 shadow-sm hover:shadow-md transition-shadow w-full sm:w-auto">
-          <Sparkles className="size-4" />
-          Generate Post
-        </Button>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-5 md:mb-7">
-        {/* LinkedIn Score */}
-        <Card className="border-slate-100 shadow-sm hover:shadow-md transition-shadow card-hover">
-          <CardContent className="pt-5 flex items-center gap-3.5">
-            <ScoreRing score={score?.score || 0} />
-            <div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">LinkedIn Score</div>
-              <div className="flex items-center gap-1 text-[12px] text-slate-500">
-                <TrendingUp className="w-3 h-3 text-emerald-500" />
-                Updated weekly
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Main 2-column grid */}
 
-        {/* Posts this month */}
-        <Card className="border-slate-100 shadow-sm hover:shadow-md transition-shadow card-hover">
-          <CardContent className="pt-5">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Posts This Month</div>
-            <div className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
-              {postsUsed}<span className="text-base font-medium text-slate-300">/{postsLimit}</span>
-            </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${usagePct}%`, background: postsUsed >= postsLimit ? '#ef4444' : '#0B458B' }} />
-            </div>
-            <div className="text-[11px] text-slate-400">{planLabel} · {postsLimit - postsUsed} remaining</div>
-          </CardContent>
-        </Card>
-
-        {/* Next post */}
-        <Card className="border-slate-100 shadow-sm hover:shadow-md transition-shadow card-hover">
-          <CardContent className="pt-5">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Next Scheduled</div>
-            {nextPost ? (
-              <>
-                <p className="text-[13px] text-slate-600 leading-relaxed line-clamp-3 mb-2">{nextPost.content}</p>
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-brand">
-                  <Clock className="w-3 h-3" />
-                  {new Date(nextPost.scheduled_at!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </>
-            ) : (
-              <div className="text-center pt-2">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center mx-auto mb-2.5">
-                  <Calendar className="w-5 h-5 text-slate-300" />
-                </div>
-                <div className="text-[12px] text-slate-400 mb-2">No posts scheduled</div>
-                <Link href="/dashboard/generate" className="text-[12px] text-brand font-semibold flex items-center justify-center gap-1">
-                  Schedule one <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick actions */}
-        <Card className="border-slate-100 shadow-sm hover:shadow-md transition-shadow card-hover">
-          <CardContent className="pt-5">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3.5">Quick Actions</div>
-            <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* ── Left column (col-span-2) ── */}
+        <div className="lg:col-span-2 flex flex-col gap-5">
+          {/* Quick actions */}
+          <div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Quick actions</div>
+            <div className="grid grid-cols-2 gap-3">
               {[
-                { href: '/dashboard/generate', label: 'Generate Post', icon: Sparkles, bg: '#e8f0fb', color: '#0A66C2' },
-                { href: '/dashboard/generate?tab=voice', label: 'Voice Note', icon: Mic, bg: '#f5f3ff', color: '#7c3aed' },
-                { href: '/dashboard/generate?tab=story', label: 'Story Bank', icon: BookOpen, bg: '#f0fdf4', color: '#059669' },
+                { href: '/dashboard/generate', label: 'Generate Post', sub: 'Write with AI', icon: Sparkles, bg: 'bg-blue-50 dark:bg-blue-950/30', iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-100 dark:bg-blue-900/50' },
+                { href: '/dashboard/story-bank', label: 'Add a Story', sub: 'Build your bank', icon: BookOpen, bg: 'bg-emerald-50 dark:bg-emerald-950/30', iconColor: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-100 dark:bg-emerald-900/50' },
+                { href: '/dashboard/calendar', label: 'View Calendar', sub: 'See your schedule', icon: CalendarDays, bg: 'bg-violet-50 dark:bg-violet-950/30', iconColor: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-100 dark:bg-violet-900/50' },
+                { href: '/dashboard/upload', label: 'Upload Photos', sub: 'Boost engagement', icon: ImageIcon, bg: 'bg-amber-50 dark:bg-amber-950/30', iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-100 dark:bg-amber-900/50' },
               ].map(a => {
                 const Icon = a.icon
                 return (
                   <Link key={a.href} href={a.href}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-all duration-150 hover:brightness-95"
-                    style={{ background: a.bg, color: a.color }}>
-                    <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
-                    {a.label}
+                    className={`flex items-center gap-3 p-4 rounded-2xl ${a.bg} border border-transparent hover:shadow-md transition-all duration-200 group`}>
+                    <div className={`w-10 h-10 rounded-xl ${a.iconBg} flex items-center justify-center shrink-0`}>
+                      <Icon className={`w-5 h-5 ${a.iconColor}`} strokeWidth={1.75} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className={`text-[13px] font-bold ${a.iconColor} leading-tight`}>{a.label}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{a.sub}</div>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300 ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform" />
                   </Link>
                 )
               })}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
 
-      {/* Usage this month */}
-      {usageSummary && (
-        <Card className="border-slate-100 shadow-sm mb-5">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart2 className="w-4 h-4 text-slate-400" strokeWidth={1.75} />
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Usage This Month</div>
-              <Link href="/dashboard/upgrade" className="ml-auto text-[11px] text-brand font-semibold hover:underline">Upgrade plan →</Link>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-3.5">
-              {([
-                ['posts_generated', 'Posts'],
-                ['image_uploads', 'Images'],
-                ['profile_analyses', 'Analyses'],
-                ['trend_refreshes', 'Trend Refreshes'],
-                ['voice_transcriptions', 'Voice Notes'],
-              ] as [FeatureKey, string][]).map(([key, label]) => {
-                const u = usageSummary[key]
-                if (!u) return null
-                const isNA = u.limit === 0
-                const pct = isNA ? 100 : Math.min(100, Math.round((u.used / u.limit) * 100))
-                const color = isNA ? '#e2e8f0' : pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#0B458B'
-                return (
-                  <div key={key}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] font-medium text-slate-500">{label}</span>
-                      <span className="text-[11px] font-semibold text-slate-600">
-                        {isNA ? 'N/A' : `${u.used}/${u.limit}`}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: color }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-4 md:gap-5 mb-5">
-        {/* Recent posts */}
-        <Card className="overflow-hidden border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="py-4 px-6 border-b border-slate-50 flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base font-semibold text-gray-800">Recent Posts</CardTitle>
-            <Link href="/dashboard/posts" className="text-[13px] text-brand font-semibold flex items-center gap-1 hover:gap-1.5 transition-all">
-              View all <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </CardHeader>
-          {posts.length === 0 ? (
-            <CardContent className="py-14 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-6 h-6 text-slate-300" strokeWidth={1.5} />
-              </div>
-              <div className="font-semibold text-gray-800 mb-1.5">No posts yet</div>
-              <div className="text-sm text-slate-400 leading-relaxed mb-5">Generate your first AI post and start growing</div>
-              <Button render={<Link href="/dashboard/generate" />} size="sm" className="gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                Generate Now
-              </Button>
-            </CardContent>
-          ) : (
-            <div>
-              {posts.slice(0, 5).map(post => (
-                <div key={post.id} className="px-6 py-4 border-b border-slate-50 last:border-0 flex gap-3.5 items-start hover:bg-slate-50/50 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">{post.content}</p>
-                    <div className="flex gap-3 mt-2.5 items-center flex-wrap">
-                      <span
-                        className="text-[11px] px-2 py-0.5 rounded-full font-semibold"
-                        style={{ background: (STATUS_COLOR[post.status] || '#94a3b8') + '18', color: STATUS_COLOR[post.status] || '#94a3b8' }}
-                      >
-                        {post.status.replace('_', ' ')}
-                      </span>
-                      {post.reactions != null && (
-                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                          <ThumbsUp className="w-3 h-3" /> {post.reactions}
-                        </span>
-                      )}
-                      {post.impressions != null && (
-                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                          <Eye className="w-3 h-3" /> {post.impressions}
-                        </span>
-                      )}
-                      <span className="text-[11px] text-slate-300 ml-auto">
-                        {new Date(post.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Trending suggestions */}
-        <Card className="overflow-hidden border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="py-4 px-6 border-b border-slate-50 flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base font-semibold text-gray-800">Trending Ideas</CardTitle>
-            <Link href="/dashboard/suggestions" className="text-[13px] text-brand font-semibold flex items-center gap-1 hover:gap-1.5 transition-all">
-              See all <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </CardHeader>
-          {suggestions.length === 0 ? (
-            <CardContent className="py-14 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
-                <Lightbulb className="w-6 h-6 text-amber-400" strokeWidth={1.5} />
-              </div>
-              <div className="font-semibold text-gray-800 mb-1">Generating ideas...</div>
-              <div className="text-sm text-slate-400 leading-relaxed mb-4">Fresh ideas based on your industry</div>
-              <Link href="/dashboard/suggestions" className="text-[13px] text-brand font-semibold flex items-center justify-center gap-1">
-                View suggestions <ArrowRight className="w-3 h-3" />
+          {/* Upcoming scheduled posts */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Scheduled Posts</div>
+              <Link href="/dashboard/calendar" className="text-[12px] text-brand font-semibold flex items-center gap-1 hover:gap-1.5 transition-all">
+                View all <ArrowRight className="w-3 h-3" />
               </Link>
-            </CardContent>
-          ) : (
-            <div>
-              {suggestions.map(s => (
-                <div key={s.id} className="px-5 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                  <p className="text-sm text-gray-600 leading-relaxed mb-2.5 line-clamp-2">{s.suggestion_text}</p>
-                  <div className="flex gap-2 items-center">
-                    <Badge variant="secondary" className="text-[11px] font-medium">{s.source}</Badge>
-                    <Link
-                      href={`/dashboard/generate?idea=${encodeURIComponent(s.suggestion_text)}`}
-                      className="text-[12px] font-semibold text-brand ml-auto flex items-center gap-1 hover:gap-1.5 transition-all"
-                    >
-                      Generate <ArrowRight className="w-3 h-3" />
-                    </Link>
+            </div>
+            {posts.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                <EmptyState
+                  icon={CalendarDays}
+                  title="No posts scheduled"
+                  subtitle="Generate your first post and schedule it to go live automatically."
+                  ctaLabel="Generate a post"
+                  ctaHref="/dashboard/generate"
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {posts.map(post => (
+                  <PostCard
+                    key={post.id}
+                    id={post.id}
+                    content={post.content}
+                    scheduledAt={post.scheduled_at}
+                    status={post.status}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Right column ── */}
+        <div className="flex flex-col gap-4">
+          {/* LinkedIn score card */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5 relative overflow-hidden">
+            <ConcentricRings size={160} className="absolute inset-0 m-auto pointer-events-none" opacity={0.05} />
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4 relative">LinkedIn Score</div>
+            {analysis ? (
+              <>
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="relative shrink-0">
+                    <ScoreRing score={analysis.score} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[18px] font-extrabold text-slate-900 dark:text-slate-100">{analysis.score}</span>
+                    </div>
                   </div>
+                  <div>
+                    <div className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{analysis.score}<span className="text-sm text-slate-400 font-normal">/100</span></div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      {(() => {
+                        const days = Math.floor((Date.now() - new Date(analysis.analysed_at).getTime()) / (1000 * 60 * 60 * 24))
+                        if (days < 1) return 'Analysed today'
+                        if (days === 1) return 'Analysed yesterday'
+                        if (days < 7) return `Analysed ${days} days ago`
+                        return `Analysed on ${new Date(analysis.analysed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                      })()}
+                    </div>
+                  </div>
+                </div>
+                {analysis.improvements?.slice(0, 2).map((tip, i) => (
+                  <div key={i} className="flex gap-2 items-start text-[12px] text-slate-500 dark:text-slate-400 mb-1.5">
+                    <span className="text-brand mt-0.5 shrink-0">→</span>
+                    <span>{tip}</span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div className="text-center py-2">
+                <div className="w-16 h-16 rounded-full border-4 border-slate-100 dark:border-slate-800 flex items-center justify-center mx-auto mb-3">
+                  <span className="text-[22px] font-extrabold text-slate-200 dark:text-slate-700">?</span>
+                </div>
+                <p className="text-[12px] text-slate-400 mb-3">Run an AI analysis of your LinkedIn profile</p>
+              </div>
+            )}
+            <button
+              onClick={handleReanalyse}
+              disabled={reanalysing}
+              className="mt-3 w-full py-2 px-3 rounded-xl text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60"
+              style={{ background: planColor + '15', color: planColor }}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${reanalysing ? 'animate-spin' : ''}`} />
+              {reanalysing ? 'Analysing...' : 'Analyse Profile'}
+            </button>
+          </div>
+
+          {/* Month stats */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">This Month</div>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { label: 'Generated', value: monthStats.generated, bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300' },
+                { label: 'Published', value: monthStats.published, bg: 'bg-green-50 dark:bg-green-950/40', text: 'text-green-700 dark:text-green-400' },
+                { label: 'Pending', value: monthStats.pending, bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400' },
+              ].map(stat => (
+                <div key={stat.label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${stat.bg}`}>
+                  <span className={`text-sm font-bold ${stat.text}`}>{stat.value}</span>
+                  <span className={`text-[11px] font-medium ${stat.text} opacity-80`}>{stat.label}</span>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Content pillars */}
+          {pillars.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm p-5">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Content Pillars</div>
+              <div className="flex flex-wrap gap-2">
+                {pillars.map(p => (
+                  <Link
+                    key={p}
+                    href={`/dashboard/generate?idea=${encodeURIComponent(p)}`}
+                    className="text-[12px] font-medium px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 rounded-full hover:bg-blue-100 transition-colors"
+                  >
+                    {p}
+                  </Link>
+                ))}
+              </div>
+            </div>
           )}
-        </Card>
+
+          {/* Tip card */}
+          <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 p-4 text-white">
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-70">Tip of the day</div>
+            <p className="text-[13px] leading-relaxed font-medium">{tipOfDay}</p>
+          </div>
+        </div>
       </div>
-
-      {/* Month Automation */}
-      <MonthAutomation profile={profile} posts={posts} />
     </div>
-
-    {/* Right panel */}
-    <div className="hidden xl:block w-72 pt-7 pr-6 shrink-0">
-      <RoadmapPanel
-        profile={profile}
-        posts={posts}
-        analysis={profileAnalysis}
-        onReanalyse={handleReanalyse}
-        reanalysing={reanalysing}
-        analyseError={analyseError}
-      />
-    </div>
-  </div>
   )
 }
 

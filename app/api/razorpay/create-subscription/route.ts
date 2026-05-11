@@ -22,31 +22,33 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (existingSub?.status === 'active' || existingSub?.status === 'trial') {
+    if (existingSub?.status === 'active' || existingSub?.status === 'trial' || existingSub?.status === 'trialing') {
       return NextResponse.json({ error: 'Already subscribed' }, { status: 409 })
     }
 
-    // Create subscription with 7-day free trial
-    // trial_period is valid Razorpay API field but missing from their TS typings
+    const now = new Date()
+    const trialEndTimestamp = Math.floor(now.getTime() / 1000) + TRIAL_DAYS * 24 * 60 * 60
+    const trialEndsAt = new Date(trialEndTimestamp * 1000).toISOString()
+
     const rzp = getRazorpay()
-    type RazorpaySubscriptionWithTrial = Parameters<typeof rzp.subscriptions.create>[0] & { trial_period?: number }
-    const subscriptionBody: RazorpaySubscriptionWithTrial = {
+    const subscription = await rzp.subscriptions.create({
       plan_id: razorpayPlanId,
       customer_notify: 1,
       quantity: 1,
       total_count: 120,
-      trial_period: TRIAL_DAYS,
+      start_at: trialEndTimestamp,
       notes: { user_id: user.id, plan: planId },
-    }
-    const subscription = await rzp.subscriptions.create(subscriptionBody as Parameters<typeof rzp.subscriptions.create>[0])
+    })
 
     await supabaseAdmin.from('subscriptions').upsert(
       {
         user_id: user.id,
         razorpay_subscription_id: subscription.id,
-        status: 'created',
+        status: 'trialing',
         plan_id: razorpayPlanId,
-        updated_at: new Date().toISOString(),
+        current_period_start: now.toISOString(),
+        trial_ends_at: trialEndsAt,
+        updated_at: now.toISOString(),
       },
       { onConflict: 'user_id' }
     )

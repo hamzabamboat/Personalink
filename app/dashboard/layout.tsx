@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { User, UserProfile } from '@/lib/supabase'
+import { useOnlineStatus } from '@/hooks/use-online-status'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -25,24 +26,61 @@ import {
   User as UserIcon,
   HelpCircle,
   ChevronDown,
+  CalendarDays,
+  BookOpen,
+  MoreHorizontal,
+  ImageIcon,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { ErrorBoundary } from '@/components/error-boundary'
+
+type NavItem = {
+  href: string
+  label: string
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  exact?: boolean
+  minPlan?: string
+}
+
+const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Content',
+    items: [
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      { href: '/dashboard/generate', label: 'Generate', icon: Sparkles },
+      { href: '/dashboard/posts', label: 'Posts', icon: FileText },
+      { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarDays },
+      { href: '/dashboard/story-bank', label: 'Story Bank', icon: BookOpen },
+    ],
+  },
+  {
+    label: 'Analytics',
+    items: [
+      { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3, minPlan: 'standard' },
+      { href: '/dashboard/suggestions', label: 'Ideas', icon: Lightbulb },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+    ],
+  },
+]
 
 const BOTTOM_NAV_ITEMS = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/generate', label: 'Generate', icon: Sparkles },
-  { href: '/dashboard/posts', label: 'Posts', icon: FileText },
-  { href: '/dashboard/suggestions', label: 'Ideas', icon: Lightbulb },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/dashboard/story-bank', label: 'Stories', icon: BookOpen },
 ]
-import { motion, AnimatePresence } from 'framer-motion'
-import { ThemeToggle } from '@/components/theme-toggle'
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/generate', label: 'Generate', icon: Sparkles },
-  { href: '/dashboard/posts', label: 'Posts', icon: FileText },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3, minPlan: 'standard' },
-  { href: '/dashboard/suggestions', label: 'Ideas', icon: Lightbulb },
+const MORE_ITEMS = [
+  { href: '/dashboard/posts', label: 'My Posts', icon: FileText },
+  { href: '/dashboard/suggestions', label: 'Trending Ideas', icon: Lightbulb },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/dashboard/upload', label: 'Upload Photos', icon: ImageIcon },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -98,7 +136,6 @@ function ProfileDropdown({ user, profile, plan, planColor }: {
 
       {open && (
         <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden z-50">
-          {/* User info header */}
           <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
             <div className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate">{user.linkedin_name}</div>
             <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{user.email}</div>
@@ -108,7 +145,6 @@ function ProfileDropdown({ user, profile, plan, planColor }: {
             </div>
           </div>
 
-          {/* Usage */}
           <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-700">
             <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Posts this month</div>
             <div className="flex items-center gap-2">
@@ -119,7 +155,6 @@ function ProfileDropdown({ user, profile, plan, planColor }: {
             </div>
           </div>
 
-          {/* Menu items */}
           <div className="py-1">
             {plan !== 'pro' && (
               <Link href="/dashboard/upgrade"
@@ -144,7 +179,6 @@ function ProfileDropdown({ user, profile, plan, planColor }: {
             </Link>
           </div>
 
-          {/* Logout */}
           <div className="border-t border-slate-100 dark:border-slate-700 py-1">
             <button
               onClick={handleLogout}
@@ -159,89 +193,138 @@ function ProfileDropdown({ user, profile, plan, planColor }: {
   )
 }
 
-function SidebarContent({ user, profile, plan, planColor, pathname }: {
+function SidebarNav({ plan, planColor, pathname, collapsed }: {
+  plan: string
+  planColor: string
+  pathname: string
+  collapsed: boolean
+}) {
+  return (
+    <nav className="flex-1 px-2 py-3 overflow-y-auto">
+      {NAV_SECTIONS.map((section, si) => (
+        <div key={section.label} className={si > 0 ? 'mt-4' : ''}>
+          {/* Section label — hidden in icon-only mode */}
+          {!collapsed && (
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1.5">
+              {section.label}
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {section.items.map(item => {
+              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+              const locked = item.minPlan && planRank(plan) < planRank(item.minPlan)
+              const href = locked ? `/dashboard/upgrade?feature=${item.href.split('/').pop()}` : item.href
+              const Icon = item.icon
+
+              return (
+                <Link
+                  key={item.href}
+                  href={href}
+                  title={collapsed ? item.label : undefined}
+                  className={`relative flex items-center gap-2.5 rounded-lg transition-all duration-150 group ${
+                    collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'
+                  } ${
+                    active
+                      ? 'bg-brand-light text-brand font-semibold'
+                      : locked
+                      ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                >
+                  {active && !collapsed && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-brand rounded-full" />
+                  )}
+                  <Icon
+                    className={`shrink-0 ${collapsed ? 'w-[18px] h-[18px]' : 'w-[17px] h-[17px]'} ${
+                      active ? 'text-brand' : locked ? 'text-slate-300 dark:text-slate-600' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                    } transition-colors`}
+                    strokeWidth={active ? 2 : 1.75}
+                  />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-[13.5px]">{item.label}</span>
+                      {locked && <Lock className="w-3 h-3 text-slate-300 dark:text-slate-600" />}
+                    </>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  )
+}
+
+function SidebarContent({ user, profile, plan, planColor, pathname, collapsed = false }: {
   user: User | null
   profile: UserProfile | null
   plan: string
   planColor: string
   pathname: string
+  collapsed?: boolean
 }) {
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900">
       {/* Logo */}
-      <div className="px-5 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <div className={`pt-5 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
         <Link href="/dashboard" className="flex items-center group">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700">
+          <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
             <Image src="/logo-icon.png" alt="PersonaLink" width={32} height={32} className="h-8 w-8" />
           </div>
         </Link>
-        <ThemeToggle />
+        {!collapsed && <ThemeToggle />}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-0.5">
-        {NAV_ITEMS.map(item => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
-          const locked = item.minPlan && planRank(plan) < planRank(item.minPlan)
-          const href = locked ? `/dashboard/upgrade?feature=${item.href.split('/').pop()}` : item.href
-          const Icon = item.icon
-
-          return (
-            <Link
-              key={item.href}
-              href={href}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all duration-150 group relative ${
-                active
-                  ? 'bg-brand-light text-brand font-semibold'
-                  : locked
-                  ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
-              }`}
-            >
-              {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-brand rounded-full" />
-              )}
-              <Icon
-                className={`w-[17px] h-[17px] shrink-0 ${active ? 'text-brand' : locked ? 'text-slate-300 dark:text-slate-600' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'} transition-colors`}
-                strokeWidth={active ? 2 : 1.75}
-              />
-              <span className="flex-1">{item.label}</span>
-              {locked && <Lock className="w-3 h-3 text-slate-300 dark:text-slate-600" />}
-            </Link>
-          )
-        })}
-      </nav>
+      <SidebarNav plan={plan} planColor={planColor} pathname={pathname} collapsed={collapsed} />
 
       {/* Upgrade banner */}
       {plan !== 'pro' && (
-        <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800">
-          <Link
-            href="/dashboard/upgrade"
-            className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 transition-all duration-150 hover:opacity-90 group"
-            style={{ background: `${planColor}0d`, border: `1px solid ${planColor}20` }}
-          >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: planColor + '20' }}>
-              <Zap className="w-3.5 h-3.5" style={{ color: planColor }} strokeWidth={2} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold leading-tight mb-0.5" style={{ color: planColor }}>
-                {plan === 'starter' ? 'Upgrade to Standard' : 'Upgrade to Pro'}
+        <div className={`border-t border-slate-100 dark:border-slate-800 ${collapsed ? 'px-2 py-2' : 'px-3 py-2'}`}>
+          {collapsed ? (
+            <Link href="/dashboard/upgrade" title="Upgrade Plan"
+              className="flex items-center justify-center py-2 px-1.5 rounded-xl transition-opacity hover:opacity-80"
+              style={{ background: planColor + '15' }}>
+              <Zap className="w-4 h-4" style={{ color: planColor }} strokeWidth={2} />
+            </Link>
+          ) : (
+            <Link href="/dashboard/upgrade"
+              className="flex items-center gap-2.5 rounded-xl px-3.5 py-3 transition-all duration-150 hover:opacity-90 group"
+              style={{ background: `${planColor}0d`, border: `1px solid ${planColor}20` }}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: planColor + '20' }}>
+                <Zap className="w-3.5 h-3.5" style={{ color: planColor }} strokeWidth={2} />
               </div>
-              <div className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
-                {plan === 'starter' ? 'Unlock analytics & voice notes' : 'Get repurpose & bulk generate'}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold leading-tight mb-0.5" style={{ color: planColor }}>
+                  {plan === 'starter' ? 'Upgrade to Standard' : 'Upgrade to Pro'}
+                </div>
+                <div className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
+                  {plan === 'starter' ? 'Unlock analytics & voice notes' : 'Get repurpose & bulk generate'}
+                </div>
               </div>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-400 dark:group-hover:text-slate-400 transition-colors shrink-0" />
-          </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-400 transition-colors shrink-0" />
+            </Link>
+          )}
         </div>
       )}
 
-      {/* Profile dropdown at bottom */}
-      <div className="px-2 py-2 border-t border-slate-100 dark:border-slate-800">
-        {user
-          ? <ProfileDropdown user={user} profile={profile} plan={plan} planColor={planColor} />
-          : <div className="h-12 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg" />
-        }
+      {/* Profile */}
+      <div className={`border-t border-slate-100 dark:border-slate-800 ${collapsed ? 'px-2 py-2' : 'px-2 py-2'}`}>
+        {collapsed ? (
+          <div className="flex items-center justify-center py-1.5">
+            <Avatar className="w-8 h-8 ring-2 ring-offset-1 ring-slate-100 dark:ring-slate-700">
+              <AvatarImage src={user?.linkedin_picture || ''} alt={user?.linkedin_name || ''} />
+              <AvatarFallback className="bg-brand-light text-brand font-bold text-xs">
+                {user?.linkedin_name?.[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        ) : (
+          user
+            ? <ProfileDropdown user={user} profile={profile} plan={plan} planColor={planColor} />
+            : <div className="h-12 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-lg" />
+        )}
       </div>
     </div>
   )
@@ -283,6 +366,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [trialDismissed, setTrialDismissed] = useState(false)
 
   useEffect(() => {
@@ -306,34 +390,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const plan = profile?.plan || 'starter'
   const planColor = plan === 'pro' ? '#7c3aed' : plan === 'standard' ? '#0B458B' : '#64748b'
+  const isOnline = useOnlineStatus()
 
   const sidebarProps = { user, profile, plan, planColor, pathname }
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 dark:bg-slate-950">
-      {/* Desktop sidebar */}
-      <aside className="hide-mobile w-[220px] bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 sticky top-0 h-screen overflow-y-auto shrink-0 flex flex-col shadow-[1px_0_0_0_#f1f5f9] dark:shadow-none">
-        <SidebarContent {...sidebarProps} />
+      {/* Desktop sidebar — icon-only on md (768–1023px), full on lg (1024px+) */}
+      <aside className="hidden md:flex md:w-16 lg:w-[240px] flex-col bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 sticky top-0 h-screen overflow-y-auto shrink-0 shadow-[1px_0_0_0_#f1f5f9] dark:shadow-none transition-all duration-200">
+        {/* Collapsed (icon-only) version on md */}
+        <div className="flex flex-col h-full lg:hidden">
+          <SidebarContent {...sidebarProps} collapsed={true} />
+        </div>
+        {/* Full version on lg+ */}
+        <div className="hidden lg:flex flex-col h-full">
+          <SidebarContent {...sidebarProps} collapsed={false} />
+        </div>
       </aside>
 
       {/* Mobile Sheet sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" showCloseButton={false} className="p-0 w-[240px]">
-          <SidebarContent {...sidebarProps} />
+          <SidebarContent {...sidebarProps} collapsed={false} />
         </SheetContent>
       </Sheet>
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Offline banner */}
+        {!isOnline && (
+          <div className="bg-slate-800 text-white text-center text-xs font-medium py-2 px-4">
+            You're offline — changes won't be saved until you reconnect
+          </div>
+        )}
+
         {/* Trial banner */}
         {!trialDismissed && subscription?.status === 'trial' && subscription.trial_ends_at && new Date(subscription.trial_ends_at) > new Date() && (
           <TrialBanner trialEndsAt={subscription.trial_ends_at} onDismiss={() => setTrialDismissed(true)} />
         )}
 
         {/* Mobile top bar */}
-        <div className="hide-desktop bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 h-[54px] flex items-center justify-between px-4 shadow-sm">
+        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 h-[54px] flex items-center justify-between px-4 shadow-sm">
           <Link href="/dashboard" className="flex items-center">
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700">
+            <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
               <Image src="/logo-icon.png" alt="PersonaLink" width={32} height={32} className="h-8 w-8" />
             </div>
           </Link>
@@ -372,7 +471,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
-            {children}
+            <ErrorBoundary>{children}</ErrorBoundary>
           </motion.main>
         </AnimatePresence>
       </div>
@@ -383,28 +482,64 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {BOTTOM_NAV_ITEMS.map(item => {
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
             const Icon = item.icon
-            const isHome = item.href === '/dashboard' && item.exact
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 pt-1 transition-colors ${
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors ${
                   active ? 'text-[#0B458B]' : 'text-slate-400 dark:text-slate-500'
                 }`}
               >
-                {isHome ? (
-                  <div className={`bg-white dark:bg-slate-800 rounded-xl p-1 inline-flex items-center justify-center shadow-sm ${active ? 'ring-1 ring-[#0B458B]/30' : 'opacity-60'}`}>
-                    <Image src="/logo-icon.png" alt="Home" width={24} height={24} className="w-6 h-6 rounded-md" />
-                  </div>
-                ) : (
-                  <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />
-                )}
-                {active && <span className="text-[9px] font-semibold">{item.label}</span>}
+                <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />
+                <span className={`text-[9px] font-semibold transition-opacity ${active ? 'opacity-100' : 'opacity-0 h-0'}`}>
+                  {item.label}
+                </span>
               </Link>
             )
           })}
+          {/* More */}
+          <button
+            onClick={() => setMoreOpen(true)}
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] text-slate-400 dark:text-slate-500 transition-colors"
+          >
+            <MoreHorizontal className="w-5 h-5" strokeWidth={1.75} />
+            <span className="text-[9px] font-semibold opacity-0 h-0">More</span>
+          </button>
         </div>
       </nav>
+
+      {/* More sheet */}
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent side="bottom" className="pb-safe rounded-t-2xl px-4 pt-4">
+          <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-5" />
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1 mb-2">More</div>
+          <div className="flex flex-col gap-0.5">
+            {MORE_ITEMS.map(item => {
+              const Icon = item.icon
+              const active = pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMoreOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl min-h-[44px] transition-colors ${
+                    active
+                      ? 'bg-brand-light dark:bg-brand/10 text-brand font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-brand' : 'text-slate-400 dark:text-slate-500'}`} strokeWidth={active ? 2 : 1.75} />
+                  <span className="text-[14px]">{item.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between px-3">
+            <span className="text-[13px] text-slate-500 dark:text-slate-400">Appearance</span>
+            <ThemeToggle />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

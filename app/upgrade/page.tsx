@@ -8,7 +8,9 @@ import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, Check } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Loader2, Check, CheckCircle2 } from 'lucide-react'
+import { ConcentricRings } from '@/components/concentric-rings'
 
 export default function UpgradePage() {
   const router = useRouter()
@@ -16,6 +18,11 @@ export default function UpgradePage() {
   const [user, setUser] = useState<{ name?: string; email?: string } | null>(null)
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
   const [userCountry, setUserCountry] = useState('IN')
+  const [codeInput, setCodeInput] = useState('')
+  const [codeChecking, setCodeChecking] = useState(false)
+  const [codeError, setCodeError] = useState('')
+  const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
+  const [showCodeField, setShowCodeField] = useState(false)
 
   useEffect(() => {
     const match = document.cookie.match(/user_country=([^;]+)/)
@@ -102,6 +109,44 @@ export default function UpgradePage() {
     }
   }
 
+  async function handleAccessCode() {
+    if (!codeInput.trim()) return
+    setCodeChecking(true); setCodeError(''); setAppliedCode(null)
+    try {
+      const res = await fetch(`/api/access-codes/validate?code=${encodeURIComponent(codeInput.trim())}`)
+      const d = await res.json()
+      if (d.valid) {
+        setAppliedCode({ code: d.code, plan: d.plan })
+        toast.success(`Access code applied! You get ${d.plan} plan.`)
+      } else {
+        setCodeError(d.error || 'Invalid or expired code.')
+      }
+    } catch {
+      setCodeError('Failed to validate code. Please try again.')
+    } finally {
+      setCodeChecking(false)
+    }
+  }
+
+  async function handleActivateCode() {
+    if (!appliedCode) return
+    setUpgradingPlan('code')
+    try {
+      const res = await fetch('/api/access-codes/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: appliedCode.code }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) { toast.error(data.error || 'Failed to activate code.'); setUpgradingPlan(null); return }
+      toast.success(`${appliedCode.plan.charAt(0).toUpperCase() + appliedCode.plan.slice(1)} plan activated!`)
+      setTimeout(() => { window.location.href = '/dashboard' }, 1500)
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+      setUpgradingPlan(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -116,7 +161,7 @@ export default function UpgradePage() {
       <div className="min-h-screen bg-slate-50">
         <div className="bg-white border-b border-slate-200 px-6">
           <div className="max-w-[860px] mx-auto h-16 flex items-center">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
+            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
               <img src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
             </div>
           </div>
@@ -138,6 +183,11 @@ export default function UpgradePage() {
                 className="overflow-hidden relative"
                 style={{ border: `2px solid ${plan.color}30` }}
               >
+                <ConcentricRings
+                  size={120} opacity={0.06}
+                  color={plan.id === 'pro' ? 'white' : 'blue'}
+                  className="absolute -bottom-6 -right-6 pointer-events-none"
+                />
                 {plan.popular && (
                   <div
                     className="absolute top-0 inset-x-0 text-center text-[11px] font-bold py-1 text-white"
@@ -182,6 +232,58 @@ export default function UpgradePage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Access code section */}
+          <div className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 max-w-md mx-auto">
+            {!showCodeField ? (
+              <button
+                onClick={() => setShowCodeField(true)}
+                className="text-sm text-slate-400 hover:text-brand transition-colors underline underline-offset-2 w-full text-center"
+              >
+                Have an access code? Enter it here
+              </button>
+            ) : appliedCode ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5">
+                  <CheckCircle2 className="size-4 shrink-0" />
+                  <p className="text-[13px] font-semibold">
+                    Code applied! You get <span className="capitalize">{appliedCode.plan}</span> plan free.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleActivateCode}
+                  disabled={upgradingPlan === 'code'}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
+                >
+                  {upgradingPlan === 'code'
+                    ? <><Loader2 className="size-4 animate-spin" /> Activating...</>
+                    : `Activate ${appliedCode.plan.charAt(0).toUpperCase() + appliedCode.plan.slice(1)} Plan →`
+                  }
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-[13px] font-semibold text-slate-600 mb-1">Enter your access code</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={codeInput}
+                    onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeError('') }}
+                    placeholder="PERSONALINK-FREE-1234"
+                    className="font-mono text-sm flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleAccessCode}
+                    disabled={codeChecking || !codeInput.trim()}
+                    className="shrink-0"
+                  >
+                    {codeChecking ? <Loader2 className="size-4 animate-spin" /> : 'Apply'}
+                  </Button>
+                </div>
+                {codeError && <p className="text-[12px] text-red-500">{codeError}</p>}
+              </div>
+            )}
           </div>
 
           <p className="text-center text-xs text-slate-400 mt-6">

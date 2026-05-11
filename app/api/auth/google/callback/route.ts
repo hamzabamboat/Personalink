@@ -1,40 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 export async function GET(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
-  if (!token?.googleId) {
-    return NextResponse.redirect(`${APP_URL}/?error=google_failed`)
+  const { searchParams } = new URL(request.url)
+  const code = searchParams.get('code')
+  const state = searchParams.get('state')
+  const error = searchParams.get('error')
+
+  if (error) {
+    console.error('[google/callback] OAuth error:', error)
+    return NextResponse.redirect(`${APP_URL}/?error=google_denied`)
   }
 
-  const { data: user } = await supabaseAdmin
-    .from('users')
-    .select('*')
-    .eq('google_id', token.googleId as string)
-    .maybeSingle()
+  const storedState = request.cookies.get('google_oauth_state')?.value
+  if (!state || !storedState || state !== storedState) {
+    console.error('[google/callback] state mismatch')
+    return NextResponse.redirect(`${APP_URL}/?error=state_mismatch`)
+  }
 
-  if (!user) return NextResponse.redirect(`${APP_URL}/?error=google_failed`)
+  if (!code) {
+    return NextResponse.redirect(`${APP_URL}/?error=no_code`)
+  }
 
-  const { data: existingProfile } = await supabaseAdmin
-    .from('user_profiles')
-    .select('onboarding_completed_at')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  try {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: `${APP_URL}/api/auth/google/callback`,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      }),
+    })
 
-  const redirectTo = !existingProfile?.onboarding_completed_at
-    ? `${APP_URL}/onboarding`
-    : `${APP_URL}/dashboard`
+    const tokenData = await tokenResponse.json()
+    if (!tokenData.access_token) {
+      console.error('[google/callback] token error:', tokenData)
+      throw new Error('No access token from Google')
+    }
 
-  const response = NextResponse.redirect(redirectTo)
-  response.cookies.set('session_user_id', user.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30,
-    path: '/',
-  })
-  return response
+    const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    })
+
+    if (!profileResponse.ok) {
+      throw new Error(`Google profile fetch failed: ${profileResponse.status}`)
+    }
+
+    const profile = await profileResponse.json()
+
+    // First try to find by google_id
+    let { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('google_id', profile.sub)
+      .maybeSingle()
+
+    // If not found by google_id, find by email (user may have signed up via LinkedIn)
+    if (!existingUser && profile.email) {
+      const { data: userByEmail } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('email', profile.email)
+        .maybeSingle()
+
+      if (userByEmail) {
+        // Link Google account to existing user
+        await supabaseAdmin
+          .from('users')
+          .update({ google_id: profile.sub, updated_at: new Date().toISOString() })
+          .eq('id', userByEmail.id)
+        existingUser = userByEmail
+      }
+    }
+
+    let userId: string
+
+    if (!existingUser) {
+      const { data: newUser, error: insertError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          google_id: profile.sub,
+          auth_provider: 'google',
+          email: profile.email,
+          linkedin_name: profile.name,
+          linkedin_picture: profile.picture,
+          updated_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single()
+
+      if (insertError) throw insertError
+      userId = newUser.id
+    } else {
+      userId = existingUser.id
+    }
+
+    const { data: userProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('onboarding_completed_at')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    const redirectTo = !userProfile?.onboarding_completed_at
+      ? `${APP_URL}/onboarding`
+      : `${APP_URL}/dashboard`
+
+    const response = NextResponse.redirect(redirectTo)
+    response.cookies.set('session_user_id', userId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+      path: '/',
+    })
+    response.cookies.delete('google_oauth_state')
+    return response
+  } catch (err) {
+    console.error('[google/callback] error:', err)
+    return NextResponse.redirect(`${APP_URL}/?error=google_failed`)
+  }
 }

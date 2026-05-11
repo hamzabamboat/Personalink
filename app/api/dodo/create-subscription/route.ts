@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (existingSub?.status === 'active' || existingSub?.status === 'trial') {
+  if (existingSub?.status === 'active' || existingSub?.status === 'trial' || existingSub?.status === 'trialing') {
     return NextResponse.json({ error: 'Already subscribed' }, { status: 409 })
   }
 
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
     customer: {
       email: userData?.email ?? '',
       name: userData?.linkedin_name ?? 'User',
-      create_new_customer: false,
-    },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
     product_id: planConfig.productId,
     quantity: 1,
     payment_link: true,

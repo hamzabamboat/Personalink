@@ -345,29 +345,44 @@ export async function generateSuggestionsForUser(
   trendingNews: string[],
   recentPosts: string[],
 ): Promise<Array<{ suggestion_text: string; angle: string; hashtags: string[]; why_it_works: string; source: string }>> {
+  const role = profile.role || profile.job_title || 'professional'
+  const industry = profile.industry || 'business'
+  const pillars = (profile.content_pillars || profile.topics || []).join(', ') || 'career, leadership, industry insights'
+
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 2000,
     messages: [{
       role: 'user',
-      content: `Generate 5 LinkedIn post ideas for this person.
+      content: `Generate 5 LinkedIn post ideas for a ${role} in ${industry}.
+Content pillars: ${pillars}
+${trendingNews.length ? `Trending topics: ${trendingNews.join('; ')}` : ''}
+${recentPosts.length ? `Avoid repeating these recent topics: ${recentPosts.join('; ')}` : ''}
 
-Profile: ${profile.name || profile.role} in ${profile.industry}
-Content pillars: ${(profile.content_pillars || profile.topics || []).join(', ')}
-${trendingNews.length ? `Trending news: ${trendingNews.join('; ')}` : ''}
-${recentPosts.length ? `Recent posts (don't repeat): ${recentPosts.join('; ')}` : ''}
+Respond with ONLY a valid JSON array (no markdown, no explanation) of 5 objects, each with these exact keys:
+- suggestion_text: the post idea/hook (1-2 sentences)
+- angle: the storytelling angle (e.g. "personal story", "contrarian take", "how-to")
+- hashtags: array of exactly 3 relevant hashtags (without #)
+- why_it_works: one sentence on why this will get engagement
+- source: one of "news", "trends", or "history"
 
-For each idea output a JSON object with: suggestion_text, angle, hashtags (array of 3), why_it_works, source (news|trends|history)
-
-Output a JSON array of 5 objects.`,
+Example format:
+[{"suggestion_text":"...","angle":"...","hashtags":["a","b","c"],"why_it_works":"...","source":"trends"}]`,
     }],
   })
 
   try {
     const text = msg.content[0].type === 'text' ? msg.content[0].text : '[]'
-    const match = text.match(/\[[\s\S]*\]/)
-    return match ? JSON.parse(match[0]) : []
-  } catch {
+    // Strip markdown code fences if present
+    const stripped = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim()
+    const match = stripped.match(/\[[\s\S]*\]/)
+    if (!match) {
+      console.error('[generateSuggestions] no JSON array found in response:', text.slice(0, 200))
+      return []
+    }
+    return JSON.parse(match[0])
+  } catch (err) {
+    console.error('[generateSuggestions] parse error:', err)
     return []
   }
 }

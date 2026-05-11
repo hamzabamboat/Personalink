@@ -73,38 +73,49 @@ export default function AnalyticsPage() {
   const [posts, setPosts] = useState<Post[]>([])
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
-      const meRes = await fetch('/api/me')
-      const { user, profile } = await meRes.json()
-      if (!user) { window.location.href = '/'; return }
-      setPlan(profile?.plan || 'starter')
-      if (profile?.plan === 'starter') { setLoading(false); return }
-      const [scoresRes, postsRes] = await Promise.all([
-        supabase.from('linkedin_scores').select('score, recorded_at').eq('user_id', user.id).order('recorded_at', { ascending: true }).limit(12),
-        supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }),
-      ])
-      setScores(scoresRes.data || [])
-      setPosts(postsRes.data || [])
-      setLoading(false)
+      try {
+        const meRes = await fetch('/api/me')
+        if (!meRes.ok) { window.location.href = '/'; return }
+        const { user, profile } = await meRes.json()
+        if (!user) { window.location.href = '/'; return }
+        if (cancelled) return
+        setPlan(profile?.plan || 'starter')
+        if (profile?.plan === 'starter') { if (!cancelled) setLoading(false); return }
+        const [scoresRes, postsRes] = await Promise.all([
+          supabase.from('linkedin_scores').select('score, recorded_at').eq('user_id', user.id).order('recorded_at', { ascending: true }).limit(12),
+          supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }),
+        ])
+        if (!cancelled) {
+          setScores(scoresRes.data || [])
+          setPosts(postsRes.data || [])
+        }
+      } catch {
+        /* non-fatal */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     load()
+    return () => { cancelled = true }
   }, [])
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-7">
         <div className="skeleton h-8 w-48 mb-6 rounded" />
-        <div className="skeleton h-48 rounded-xl mb-5" />
-        <div className="skeleton h-48 rounded-xl" />
+        <div className="skeleton h-48 rounded-2xl mb-5" />
+        <div className="skeleton h-48 rounded-2xl" />
       </div>
     )
   }
 
   if (plan === 'starter') {
     return (
-      <div className="p-4 md:p-8 max-w-2xl">
-        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Analytics</h1>
-        <Card className="mt-6 border-slate-100 shadow-sm">
+      <div className="p-4 md:p-7 max-w-2xl">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Analytics</h1>
+        <Card className="mt-6 border-slate-100 shadow-sm rounded-2xl">
           <CardContent className="py-16 px-10 text-center">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand/10 to-pro/10 flex items-center justify-center mx-auto mb-5">
               <BarChart3 className="w-8 h-8 text-brand" strokeWidth={1.5} />
@@ -113,10 +124,12 @@ export default function AnalyticsPage() {
             <p className="text-slate-500 text-sm leading-relaxed mb-7 max-w-sm mx-auto">
               Get LinkedIn Score history, engagement trends, best posting times heatmap, and your top-performing posts.
             </p>
-            <Button render={<Link href="/dashboard/settings?tab=plan" />} className="gap-1.5">
-              <Zap className="w-4 h-4" />
-              Upgrade to Standard
-            </Button>
+            <Link href="/dashboard/settings?tab=plan">
+              <Button className="gap-1.5">
+                <Zap className="w-4 h-4" />
+                Upgrade to Standard
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -126,7 +139,18 @@ export default function AnalyticsPage() {
   const scoreValues = scores.map(s => s.score)
   const topPosts = posts.slice(0, 3)
   const publishedByPillar: Record<string, number> = {}
-  posts.forEach(p => { if (p.content_pillars) publishedByPillar[p.content_pillars] = (publishedByPillar[p.content_pillars] || 0) + 1 })
+  posts.forEach(p => { if (p.content_pillar) publishedByPillar[p.content_pillar] = (publishedByPillar[p.content_pillar] || 0) + 1 })
+
+  // Posts published per week — last 4 weeks
+  const now = new Date()
+  const weekBuckets = [0, 0, 0, 0]
+  posts.forEach(p => {
+    if (!p.published_at) return
+    const weeksAgo = Math.floor((now.getTime() - new Date(p.published_at).getTime()) / (7 * 24 * 60 * 60 * 1000))
+    if (weeksAgo >= 0 && weeksAgo < 4) weekBuckets[3 - weeksAgo]++
+  })
+  const weekMax = Math.max(...weekBuckets, 1)
+  const weekLabels = ['3w ago', '2w ago', 'Last week', 'This week']
   const pillarMax = Math.max(...Object.values(publishedByPillar), 1)
 
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -156,22 +180,22 @@ export default function AnalyticsPage() {
   const medalBgs = ['#fffbeb', '#f8fafc', '#fff7ed']
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
-      <div className="mb-5 md:mb-7">
-        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Analytics</h1>
-        <p className="text-slate-400 text-sm font-medium">Your LinkedIn performance at a glance</p>
+    <div className="p-4 md:p-7 max-w-4xl">
+      <div className="mb-5 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Analytics</h1>
+        <p className="text-gray-500 text-sm">Your LinkedIn performance at a glance</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-5 md:mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-5">
         {STAT_CONFIGS.map(cfg => {
           const Icon = cfg.icon
           return (
-            <Card key={cfg.key} className="border-slate-100 shadow-sm card-hover">
+            <Card key={cfg.key} className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
               <CardContent className="pt-5 pb-5">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: cfg.bg }}>
-                  <Icon className="w-4.5 h-4.5" style={{ color: cfg.color }} strokeWidth={1.75} />
+                  <Icon className="w-4 h-4" style={{ color: cfg.color }} strokeWidth={1.75} />
                 </div>
-                <div className="text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">
+                <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1 tracking-tight">
                   {statValues[cfg.key as keyof typeof statValues]}
                 </div>
                 <div className="text-xs text-slate-400 font-medium">{cfg.label}</div>
@@ -181,10 +205,32 @@ export default function AnalyticsPage() {
         })}
       </div>
 
+      {/* Posts published per week bar chart */}
+      <Card className="mb-4 md:mb-5 border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">Posts Published</CardTitle>
+          <p className="text-xs text-slate-400">Last 4 weeks</p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-3 h-28 pt-2">
+            {weekBuckets.map((count, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                <span className="text-[12px] font-bold text-slate-700 dark:text-slate-300">{count}</span>
+                <div
+                  className="w-full rounded-t-lg bg-brand/80 dark:bg-brand transition-all"
+                  style={{ height: `${Math.max((count / weekMax) * 72, count > 0 ? 6 : 0)}px` }}
+                />
+                <span className="text-[10px] text-slate-400 whitespace-nowrap">{weekLabels[i]}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4 md:gap-5 mb-4 md:mb-5">
-        <Card className="border-slate-100 shadow-sm">
+        <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[14px] font-semibold text-slate-900">LinkedIn Score History</CardTitle>
+            <CardTitle className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">LinkedIn Score History</CardTitle>
             <p className="text-xs text-slate-400">Last 12 weeks</p>
           </CardHeader>
           <CardContent>
@@ -202,9 +248,9 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-100 shadow-sm">
+        <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[14px] font-semibold text-slate-900">Content Pillars</CardTitle>
+            <CardTitle className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">Content Pillars</CardTitle>
           </CardHeader>
           <CardContent>
             {Object.keys(publishedByPillar).length === 0 ? (
@@ -229,9 +275,9 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      <Card className="mb-5 border-slate-100 shadow-sm">
+      <Card className="mb-4 md:mb-5 border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-[14px] font-semibold text-slate-900">Best Posting Times</CardTitle>
+          <CardTitle className="text-[14px] font-semibold text-slate-900 dark:text-slate-100">Best Posting Times</CardTitle>
           <p className="text-xs text-slate-400">Based on reactions earned per time slot</p>
         </CardHeader>
         <CardContent>
@@ -250,9 +296,9 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-100 shadow-sm">
+      <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
         <CardHeader className="pb-2">
-          <CardTitle className="text-[14px] font-semibold text-slate-900 flex items-center gap-2">
+          <CardTitle className="text-[14px] font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-400" />
             Top Posts of All Time
           </CardTitle>
@@ -266,7 +312,7 @@ export default function AnalyticsPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {topPosts.map((post, i) => (
-                <div key={post.id} className="flex gap-4 p-4 border border-slate-100 rounded-xl hover:bg-slate-50/50 transition-colors">
+                <div key={post.id} className="flex gap-4 p-4 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
                     style={{ background: medalBgs[i], color: medalColors[i] }}>
                     <Trophy className="w-4 h-4" style={{ color: medalColors[i] }} strokeWidth={2} />

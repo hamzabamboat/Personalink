@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     .select('status')
     .eq('user_id', user.id)
     .maybeSingle()
-  const hasActiveSub = sub?.status === 'active' || sub?.status === 'trial'
+  const hasActiveSub = sub?.status === 'active' || sub?.status === 'trial' || sub?.status === 'trialing'
   const postsUsed = profile.posts_used_this_month || 0
   if (!hasActiveSub && postsUsed >= 3) {
     return NextResponse.json({ error: 'trial_exhausted' }, { status: 402 })

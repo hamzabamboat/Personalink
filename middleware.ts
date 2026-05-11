@@ -69,14 +69,34 @@ export async function middleware(request: NextRequest) {
 
   // Dashboard: check sub, trial, or access_code
   const cachedStatus = request.cookies.get('sub_status')?.value
-  if (cachedStatus === 'active' || cachedStatus === 'trial' || cachedStatus === 'access_code') {
-    return NextResponse.next()
-  }
+  const usedCode = request.cookies.get('used_code')?.value
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+
+  // If user has an access_code session, verify the code is still active
+  if (cachedStatus === 'access_code' && usedCode) {
+    const { data: codeRow } = await supabase
+      .from('access_codes')
+      .select('is_active')
+      .eq('code', usedCode)
+      .maybeSingle()
+    if (!codeRow || !codeRow.is_active) {
+      // Code deactivated — clear session and redirect to home
+      const response = NextResponse.redirect(new URL('/?deactivated=1', request.url))
+      response.cookies.delete('session_user_id')
+      response.cookies.delete('sub_status')
+      response.cookies.delete('used_code')
+      return response
+    }
+    return NextResponse.next()
+  }
+
+  if (cachedStatus === 'active' || cachedStatus === 'trial') {
+    return NextResponse.next()
+  }
 
   const { data: user } = await supabase
     .from('users')
@@ -85,6 +105,21 @@ export async function middleware(request: NextRequest) {
     .single()
 
   if (user?.subscription_status === 'access_code') {
+    // Verify the code is still active if we know which one they used
+    if (usedCode) {
+      const { data: codeRow } = await supabase
+        .from('access_codes')
+        .select('is_active')
+        .eq('code', usedCode)
+        .maybeSingle()
+      if (!codeRow || !codeRow.is_active) {
+        const response = NextResponse.redirect(new URL('/?deactivated=1', request.url))
+        response.cookies.delete('session_user_id')
+        response.cookies.delete('sub_status')
+        response.cookies.delete('used_code')
+        return response
+      }
+    }
     const response = NextResponse.next()
     response.cookies.set('sub_status', 'access_code', {
       httpOnly: true,
@@ -103,7 +138,7 @@ export async function middleware(request: NextRequest) {
     .maybeSingle()
 
   const hasActiveSub = sub?.status === 'active'
-  const isTrial = sub?.status === 'trial' && !!sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date()
+  const isTrial = (sub?.status === 'trial' || sub?.status === 'trialing') && !!sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date()
 
   if (!hasActiveSub && !isTrial) {
     return NextResponse.redirect(new URL('/upgrade', request.url))
@@ -125,5 +160,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/onboarding', '/admin/:path*'],
+  matcher: ['/dashboard/:path*', '/onboarding', '/upgrade', '/admin/:path*'],
 }

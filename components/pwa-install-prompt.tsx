@@ -19,6 +19,10 @@ export function PWAInstallPrompt() {
       return
     }
 
+    // Only show on mobile devices
+    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent)
+    if (!isMobile) return
+
     const dismissed = localStorage.getItem('pwaPromptDismissed')
     if (dismissed) return
 

@@ -12,7 +12,7 @@ async function generateBatch(
   count: number,
   profile: Record<string, unknown>,
   pillars: string[],
-): Promise<Array<{ content: string; content_pillars: string; format: string }>> {
+): Promise<Array<{ content: string; content_pillar: string; format: string }>> {
   const voiceCtx = [
     profile.voice_fingerprint ? `Voice fingerprint:\n${profile.voice_fingerprint}` : '',
     profile.writing_sample ? `Writing sample:\n${String(profile.writing_sample).slice(0, 400)}` : '',
@@ -42,7 +42,7 @@ Respond with ONLY a valid JSON array (no markdown, no explanation):
 [
   {
     "content": "<full post text with hashtags>",
-    "content_pillars": "<pillar name>",
+    "content_pillar": "<pillar name>",
     "format": "<story|tips|insight|contrarian|behind_the_scenes|lesson|question>"
   }
 ]
@@ -57,30 +57,56 @@ Generate all ${count} posts now.`,
   try { return JSON.parse(match[0]) } catch { return [] }
 }
 
-function buildScheduleSlots(now: Date, count: number, preferredHour: number, preferredDays: string[]): Date[] {
+function buildScheduleSlots(
+  now: Date,
+  count: number,
+  preferredHour: number,
+  preferredDays: string[],
+  takenDateStrings: Set<string>,
+  timezone: string,
+): Date[] {
   const slots: Date[] = []
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-  const startDay = now.getDate() + 1
 
+  // Get current date/time in user's timezone to determine valid starting point
+  const userNowStr = now.toLocaleString('en-US', { timeZone: timezone })
+  const userNow = new Date(userNowStr)
+  const userHour = userNow.getHours()
+
+  // If preferred hour has already passed today in user's timezone, start from tomorrow
+  const startDay = userHour >= preferredHour ? now.getDate() + 1 : now.getDate()
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+
+  // First pass: preferred days only, skipping already-scheduled dates
   for (let day = startDay; day <= daysInMonth && slots.length < count; day++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), day)
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' })
+    // Build the slot time in user's timezone by using a UTC offset calculation
+    const slotLocal = new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0)
+    // Convert from user's timezone to UTC for storage
+    const slotUtc = new Date(
+      new Date(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(preferredHour).padStart(2, '0')}:00:00`).toLocaleString('en-US', { timeZone: 'UTC' })
+    )
+    // Use a timezone-aware date string for dedup
+    const dateStr = slotLocal.toDateString()
+    if (takenDateStrings.has(dateStr)) continue
+    const dayName = slotLocal.toLocaleDateString('en-US', { weekday: 'long' })
     if (!preferredDays.length || preferredDays.includes(dayName)) {
-      slots.push(new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0))
+      slots.push(slotLocal)
     }
   }
 
-  if (slots.length < count) {
-    for (let day = startDay; day <= daysInMonth && slots.length < count; day++) {
-      const d = new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0)
-      if (!slots.some(s => s.getDate() === d.getDate())) slots.push(d)
-    }
+  // Second pass: any remaining days (still skip taken), to fill up to count
+  for (let day = startDay; day <= daysInMonth && slots.length < count; day++) {
+    const slotLocal = new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0)
+    const dateStr = slotLocal.toDateString()
+    if (takenDateStrings.has(dateStr)) continue
+    if (!slots.some(s => s.toDateString() === dateStr)) slots.push(slotLocal)
   }
 
   return slots
 }
 
 export async function POST(request: NextRequest) {
+  try {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -133,18 +159,39 @@ export async function POST(request: NextRequest) {
     }, { status: 429 })
   }
 
-  const postsToGenerate = postsCheck.remaining
-  const pillars: string[] = (profile.content_pillarss as string[]) || ['Professional Insights', 'Industry Trends', 'Personal Growth']
+  // Honour optional count from client (clamped to remaining balance)
+  const body = await request.json().catch(() => ({}))
+  const requestedCount = typeof body.count === 'number' && body.count > 0 ? body.count : null
+  const postsToGenerate = requestedCount ? Math.min(requestedCount, postsCheck.remaining) : postsCheck.remaining
+
+  const pillars: string[] = (profile.content_pillars as string[]) || ['Professional Insights', 'Industry Trends', 'Personal Growth']
   const controlPreference: string = (profile.control_preference as string) || 'approve'
   const preferredHour: number = (profile.preferred_post_hour as number) || 9
   const preferredDays: string[] = (profile.preferred_days as string[]) || ['Monday', 'Wednesday', 'Friday']
+  const timezone: string = (profile.timezone as string) || 'Asia/Kolkata'
 
   const now = new Date()
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
+  // Fetch already-scheduled posts this month to avoid calendar overlap
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
+  const { data: existingScheduled } = await supabaseAdmin
+    .from('posts')
+    .select('scheduled_at')
+    .eq('user_id', user.id)
+    .in('status', ['scheduled', 'pending_approval'])
+    .gte('scheduled_at', monthStart)
+    .lte('scheduled_at', monthEnd)
+  const takenDateStrings = new Set(
+    (existingScheduled || [])
+      .filter(p => p.scheduled_at)
+      .map(p => new Date(p.scheduled_at).toDateString())
+  )
+
   // Generate in batches of 10 to stay within token limits
   const BATCH_SIZE = 10
-  const allPosts: Array<{ content: string; content_pillars: string; format: string }> = []
+  const allPosts: Array<{ content: string; content_pillar: string; format: string }> = []
   let batchIdx = 0
 
   while (allPosts.length < postsToGenerate) {
@@ -160,7 +207,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate posts. Please try again.' }, { status: 500 })
   }
 
-  const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays)
+  const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays, takenDateStrings, timezone)
 
   const postStatus = controlPreference === 'autopilot' ? 'scheduled'
     : controlPreference === 'suggest' ? 'draft'
@@ -169,7 +216,7 @@ export async function POST(request: NextRequest) {
   const insertPayloads = allPosts.map((post, i) => ({
     user_id: user.id,
     content: post.content,
-    content_pillars: post.content_pillars || pillars[i % pillars.length],
+    content_pillar: post.content_pillar || pillars[i % pillars.length],
     source: 'ai_generated',
     status: postStatus,
     scheduled_at: slots[i]?.toISOString() ?? null,
@@ -213,4 +260,8 @@ export async function POST(request: NextRequest) {
     nextPostDate,
     controlPreference,
   })
+  } catch (error) {
+    console.error('[posts/generate-batch]', error)
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }

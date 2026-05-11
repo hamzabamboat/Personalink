@@ -1,10 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function AdminLoginPage() {
-  const router = useRouter()
   const [secret, setSecret] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,7 +17,7 @@ export default function AdminLoginPage() {
       body: JSON.stringify({ secret }),
     })
     if (res.ok) {
-      router.push('/admin')
+      window.location.href = '/admin'
     } else {
       setError('Invalid secret')
       setLoading(false)
@@ -31,7 +29,7 @@ export default function AdminLoginPage() {
       <div className="bg-slate-800 rounded-2xl p-8 w-full max-w-sm shadow-2xl">
         <div className="mb-6 text-center">
           <div className="flex justify-center mb-3">
-            <div className="bg-white rounded-xl px-4 py-2">
+            <div className="bg-white rounded-xl px-4 py-2 logo-always-white">
               <img src="/logo-text.png" alt="PersonaLink" width={206} height={32} className="h-8 w-auto" />
             </div>
           </div>

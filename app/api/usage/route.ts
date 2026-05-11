@@ -4,17 +4,22 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUsageSummary } from '@/lib/usage-limits'
 
 export async function GET(request: NextRequest) {
-  const user = await getUserFromRequest(request)
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const user = await getUserFromRequest(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabaseAdmin
-    .from('user_profiles')
-    .select('plan')
-    .eq('user_id', user.id)
-    .maybeSingle()
+    const { data: profile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('plan')
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-  const plan = profile?.plan || 'starter'
-  const summary = await getUsageSummary(user.id, plan)
+    const plan = profile?.plan || 'starter'
+    const summary = await getUsageSummary(user.id, plan)
 
-  return NextResponse.json({ usage: summary, plan })
+    return NextResponse.json({ usage: summary, plan })
+  } catch (err) {
+    console.error('[usage]', err)
+    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
+  }
 }

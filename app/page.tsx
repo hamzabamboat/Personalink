@@ -20,6 +20,7 @@ import {
   ArrowRight,
   ChevronRight,
 } from 'lucide-react'
+import { ConcentricRings, QuarterRings } from '@/components/concentric-rings'
 
 function LinkedinIcon({ className }: { className?: string }) {
   return (
@@ -287,7 +288,7 @@ function HomeContent() {
       <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
+            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
               <Image src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" priority />
             </div>
           </div>
@@ -340,15 +341,19 @@ function HomeContent() {
       )}
 
       {/* ── Hero ── */}
-      <section className="hero-bg max-w-full">
+      <section className="hero-bg max-w-full relative overflow-hidden">
+        <QuarterRings size={500} color="blue" className="absolute -top-20 -right-20 pointer-events-none hidden lg:block" />
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 pt-10 md:pt-16 flex justify-center">
-          <Image src="/logo-full.png" alt="PersonaLink" width={78} height={96} className="h-24 w-auto mx-auto" priority />
+          <div className="bg-white rounded-full p-3 inline-flex items-center justify-center shadow-sm mx-auto logo-always-white">
+            <Image src="/logo-full.png" alt="PersonaLink" width={78} height={96} className="h-24 w-auto" priority />
+          </div>
         </div>
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-8 md:py-14 md:pb-20 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
           <motion.div
             initial="hidden"
             animate="show"
             variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
+            className="text-center md:text-left"
           >
             <motion.div variants={staggerItem}>
               <div className="inline-flex items-center gap-2 bg-brand-light border border-brand/10 rounded-full px-3.5 py-1.5 mb-5 text-[13px] font-semibold text-brand">
@@ -365,11 +370,11 @@ function HomeContent() {
               <span className="gradient-text">on autopilot.</span>
             </motion.h1>
 
-            <motion.p variants={staggerItem} className="text-base md:text-lg text-slate-500 leading-[1.75] mb-7 md:mb-9 max-w-[440px]">
+            <motion.p variants={staggerItem} className="text-base md:text-lg text-slate-500 leading-[1.75] mb-7 md:mb-9 max-w-[440px] mx-auto md:mx-0">
               AI writes posts in your exact voice, schedules them at peak times, and grows your personal brand — while you focus on your actual work.
             </motion.p>
 
-            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3">
+            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
               <Button
                 render={<a href="/api/auth/linkedin" />}
                 className="h-12 md:h-14 px-6 md:px-7 text-base font-bold gap-2.5 shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/25 transition-all duration-200 w-full sm:w-auto"
@@ -378,7 +383,7 @@ function HomeContent() {
                 Connect LinkedIn — Free
               </Button>
               <Button
-                onClick={() => window.location.href = '/api/auth/signin/google'}
+                render={<a href="/api/auth/google" />}
                 variant="outline"
                 className="h-12 md:h-13 px-6 md:px-7 text-base font-semibold gap-2.5 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 w-full sm:w-auto"
               >
@@ -387,7 +392,7 @@ function HomeContent() {
               </Button>
             </motion.div>
 
-            <motion.p variants={staggerItem} className="mt-4 text-[13px] text-slate-400 flex items-center gap-1.5">
+            <motion.p variants={staggerItem} className="mt-4 text-[13px] text-slate-400 flex items-center gap-1.5 justify-center md:justify-start">
               <span className="flex -space-x-1.5">
                 {['bg-blue-500', 'bg-purple-500', 'bg-emerald-500'].map((c, i) => (
                   <span key={i} className={`w-5 h-5 rounded-full border-2 border-white ${c}`} />
@@ -459,8 +464,9 @@ function HomeContent() {
               const Icon = f.icon
               return (
                 <motion.div key={f.title} variants={staggerItem}>
-                  <Card className="h-full card-hover border-slate-100 cursor-default">
-                    <CardContent className="pt-7 pb-7">
+                  <Card className="h-full card-hover border-slate-100 cursor-default relative overflow-hidden">
+                    <ConcentricRings size={200} opacity={0.06} className="absolute -bottom-12 -right-12 pointer-events-none" />
+                    <CardContent className="pt-7 pb-7 relative">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style={{ background: f.bg }}>
                         <Icon className="w-5 h-5" style={{ color: f.color }} strokeWidth={1.75} />
                       </div>
@@ -475,16 +481,18 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* ── Testimonials — CSS-only rotation, zero JS/API ── */}
-      <section className="py-12 md:py-16 px-4 md:px-6 bg-white border-t border-slate-100">
-        <div className="max-w-[760px] mx-auto text-center">
-          <FadeUp>
+      {/* ── Testimonials ── */}
+      <section className="py-12 md:py-20 px-4 md:px-6 bg-white border-t border-slate-100">
+        <div className="max-w-[1100px] mx-auto">
+          <FadeUp className="text-center mb-10 md:mb-14">
             <div className="inline-flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-4">What our users say</div>
+            <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Real results, real people</h2>
+            <p className="text-slate-500 text-base md:text-lg">Founders, consultants and professionals growing on LinkedIn every day</p>
           </FadeUp>
-          {/* Fixed-height container — both testimonials absolutely positioned, CSS fade alternates them */}
-          <div className="relative mx-auto" style={{ height: '200px', maxWidth: '640px' }}>
-            {/* Testimonial 1 */}
-            <div className="testimonial-item absolute inset-0 flex flex-col items-center justify-center">
+
+          {/* Rotating pair — CSS-only, zero JS */}
+          <div className="relative mx-auto mb-12 md:mb-16" style={{ height: '200px', maxWidth: '640px' }}>
+            <div className="testimonial-item absolute inset-0 flex flex-col items-center justify-center text-center">
               <blockquote className="text-lg md:text-xl font-medium text-slate-700 leading-[1.6] mb-5 italic">
                 &ldquo;PersonaLink completely transformed my LinkedIn presence. I went from 0 to 3,000 followers in 60 days without writing a single post myself.&rdquo;
               </blockquote>
@@ -496,8 +504,7 @@ function HomeContent() {
                 </div>
               </div>
             </div>
-            {/* Testimonial 2 — same animation, 4s offset → they alternate */}
-            <div className="testimonial-item-2 absolute inset-0 flex flex-col items-center justify-center" style={{ opacity: 0 }}>
+            <div className="testimonial-item-2 absolute inset-0 flex flex-col items-center justify-center text-center" style={{ opacity: 0 }}>
               <blockquote className="text-lg md:text-xl font-medium text-slate-700 leading-[1.6] mb-5 italic">
                 &ldquo;I was spending 3 hours a week on LinkedIn content. Now PersonaLink handles everything and my engagement is up 400%. Game changer.&rdquo;
               </blockquote>
@@ -510,6 +517,44 @@ function HomeContent() {
               </div>
             </div>
           </div>
+
+          {/* Static testimonial grid */}
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+          >
+            {[
+              { quote: 'Went from posting once a month to 3× a week — without spending more time. My inbound DMs from potential clients tripled.', name: 'Rahul Gupta', title: 'VP Sales, B2B SaaS', initial: 'R', from: '#059669', to: '#047857' },
+              { quote: 'As a career coach I need to stay visible. PersonaLink keeps me top-of-mind without taking up my whole morning.', name: 'Neha Kapoor', title: 'Career Coach, Delhi', initial: 'N', from: '#7c3aed', to: '#6d28d9' },
+              { quote: 'Generated 3 inbound investor leads in my first month. My posts were finally reaching the right people.', name: 'James Osei', title: 'Co-founder, Accra', initial: 'J', from: '#0891b2', to: '#0e7490' },
+              { quote: "I'd been \"planning to post more\" for 2 years. PersonaLink made it happen in week one. 40 new followers in the first 10 days.", name: 'Sofia Lindqvist', title: 'Marketing Director, Stockholm', initial: 'S', from: '#d97706', to: '#b45309' },
+              { quote: 'The voice matching is eerily accurate. My team could not tell which posts were AI-assisted. That is the real magic.', name: 'Marcus Williams', title: 'Product Manager, New York', initial: 'M', from: '#dc2626', to: '#b91c1c' },
+              { quote: 'From lurker to thought leader in 90 days. LinkedIn profile views up 6×. Completely worth it.', name: 'Layla Hassan', title: 'Brand Consultant, Dubai', initial: 'L', from: '#0B458B', to: '#083670' },
+            ].map(t => (
+              <motion.div key={t.name} variants={staggerItem}>
+                <Card className="h-full border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="pt-6 pb-6 flex flex-col h-full">
+                    <div className="flex gap-0.5 mb-4">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                      ))}
+                    </div>
+                    <p className="text-slate-600 text-[14px] leading-relaxed italic flex-1 mb-5">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br flex items-center justify-center text-white font-bold text-sm shrink-0`} style={{ background: `linear-gradient(135deg, ${t.from}, ${t.to})` }}>{t.initial}</div>
+                      <div>
+                        <div className="font-semibold text-slate-900 text-[13px]">{t.name}</div>
+                        <div className="text-slate-400 text-[11px]">{t.title}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
@@ -529,7 +574,7 @@ function HomeContent() {
             <PricingSlider />
           </FadeUp>
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8 md:mt-12"
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8 md:mt-12 items-stretch"
             variants={staggerContainer}
             initial="hidden"
             whileInView="show"
@@ -539,7 +584,7 @@ function HomeContent() {
               <motion.div
                 key={p.id}
                 variants={staggerItem}
-                className="rounded-2xl relative card-hover"
+                className="rounded-2xl relative card-hover overflow-hidden h-full"
                 style={{
                   background: p.popular ? 'linear-gradient(135deg, #0B458B 0%, #083670 100%)' : 'white',
                   border: p.popular ? 'none' : '1px solid #e2e8f0',
@@ -547,42 +592,50 @@ function HomeContent() {
                   boxShadow: p.popular ? '0 16px 48px rgba(10,102,194,0.25)' : '0 1px 3px rgba(0,0,0,0.05)',
                 }}
               >
-                {p.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-4 py-1 text-xs font-bold whitespace-nowrap shadow-sm">
-                    Most Popular
-                  </div>
-                )}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-semibold" style={{ color: p.popular ? 'rgba(255,255,255,0.7)' : '#64748b' }}>{p.label}</span>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.popular ? 'rgba(255,255,255,0.2)' : '#ecfdf5', color: p.popular ? 'white' : '#059669' }}>7-day free trial</span>
-                </div>
-                <div className="text-[40px] font-extrabold mb-1 tracking-tight" style={{ color: p.popular ? 'white' : '#0f172a' }}>₹{p.price.toLocaleString('en-IN')}</div>
-                <div className="text-[13px] mb-6" style={{ color: p.popular ? 'rgba(255,255,255,0.65)' : '#64748b' }}>/month · {p.posts} posts</div>
-                <div className="flex flex-col gap-2.5 mb-7">
-                  {p.features.map(f => (
-                    <div key={f} className="flex items-center gap-2.5 text-sm" style={{ color: p.popular ? 'rgba(255,255,255,0.9)' : '#374151' }}>
-                      <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: p.popular ? 'rgba(255,255,255,0.2)' : '#e8f0fb' }}>
-                        <Check className="w-2.5 h-2.5" style={{ color: p.popular ? 'white' : '#0B458B' }} strokeWidth={2.5} />
-                      </div>
-                      {f}
+                <ConcentricRings size={120} opacity={0.04} color={p.popular ? 'white' : 'blue'} className="absolute -bottom-6 -right-6 pointer-events-none" />
+                <div className="h-full flex flex-col">
+                  {/* Badge — inside card, not floating above */}
+                  {p.popular && (
+                    <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-3.5 py-1 text-xs font-bold mb-4 w-fit">
+                      Most Popular
                     </div>
-                  ))}
-                </div>
-                <a
-                  href="/api/auth/linkedin"
-                  className="w-full py-3 rounded-xl font-bold text-[15px] transition-all duration-200 flex items-center justify-center gap-2"
-                  style={{
-                    border: p.popular ? 'none' : '1.5px solid #0B458B',
-                    background: p.popular ? 'white' : 'transparent',
-                    color: '#0B458B',
-                    textDecoration: 'none',
-                  }}
-                >
-                  Start Free Trial
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-                <div className="text-center text-[11px] mt-2" style={{ color: p.popular ? 'rgba(255,255,255,0.5)' : '#94a3b8' }}>
-                  Free for 7 days, then ₹{p.price.toLocaleString('en-IN')}/mo
+                  )}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-semibold" style={{ color: p.popular ? 'rgba(255,255,255,0.7)' : '#64748b' }}>{p.label}</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.popular ? 'rgba(255,255,255,0.2)' : '#ecfdf5', color: p.popular ? 'white' : '#059669' }}>7-day free trial</span>
+                  </div>
+                  <div className="text-[40px] font-extrabold mb-1 tracking-tight" style={{ color: p.popular ? 'white' : '#0f172a' }}>₹{p.price.toLocaleString('en-IN')}</div>
+                  <div className="text-[13px] mb-6" style={{ color: p.popular ? 'rgba(255,255,255,0.65)' : '#64748b' }}>/month · {p.posts} posts</div>
+                  {/* Features — flex-1 pushes button to bottom */}
+                  <div className="flex flex-col gap-2.5 flex-1">
+                    {p.features.map(f => (
+                      <div key={f} className="flex items-center gap-2.5 text-sm" style={{ color: p.popular ? 'rgba(255,255,255,0.9)' : '#374151' }}>
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: p.popular ? 'rgba(255,255,255,0.2)' : '#e8f0fb' }}>
+                          <Check className="w-2.5 h-2.5" style={{ color: p.popular ? 'white' : '#0B458B' }} strokeWidth={2.5} />
+                        </div>
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Button always at bottom */}
+                  <div className="mt-7">
+                    <a
+                      href="/api/auth/linkedin"
+                      className="w-full py-3 rounded-2xl font-bold text-[15px] transition-all duration-200 flex items-center justify-center gap-2"
+                      style={{
+                        border: p.popular ? 'none' : '1.5px solid #0B458B',
+                        background: p.popular ? 'white' : 'transparent',
+                        color: '#0B458B',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Start Free Trial
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                    <div className="text-center text-[11px] mt-2" style={{ color: p.popular ? 'rgba(255,255,255,0.5)' : '#94a3b8' }}>
+                      Free for 7 days, then ₹{p.price.toLocaleString('en-IN')}/mo
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -600,7 +653,7 @@ function HomeContent() {
           <FadeUp delay={0.08}>
             <Accordion multiple={false} className="flex flex-col gap-1">
               {FAQS.map((faq, i) => (
-                <AccordionItem key={i} value={String(i)} className="bg-white rounded-xl border border-slate-200/80 overflow-hidden px-0 shadow-sm">
+                <AccordionItem key={i} value={String(i)} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden px-0 shadow-sm">
                   <AccordionTrigger className="px-6 py-5 font-semibold text-slate-900 text-[15px] hover:no-underline hover:text-brand transition-colors">
                     {faq.q}
                   </AccordionTrigger>
@@ -618,6 +671,7 @@ function HomeContent() {
       <FadeUp>
         <section className="relative py-14 md:py-24 px-4 md:px-6 text-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0B458B 0%, #083670 100%)' }}>
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
+          <QuarterRings size={400} color="white" className="absolute -bottom-16 -right-16 pointer-events-none" />
           <div className="relative">
             <h2 className="text-[24px] md:text-[42px] font-extrabold text-white mb-4 tracking-tight">Start growing on LinkedIn today</h2>
             <p className="text-white/75 text-base md:text-lg mb-7 md:mb-9">No credit card required. Set up in 10 minutes.</p>
@@ -635,7 +689,7 @@ function HomeContent() {
       {/* Footer */}
       <footer className="bg-slate-900 py-10 px-6 text-center">
         <div className="flex items-center justify-center mb-4">
-          <div className="bg-white rounded-lg px-3 py-1.5">
+          <div className="bg-white rounded-lg px-3 py-1.5 logo-always-white">
             <Image src="/logo-text.png" alt="PersonaLink" width={154} height={24} className="h-6 w-auto" />
           </div>
         </div>
