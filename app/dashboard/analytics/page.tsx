@@ -14,6 +14,7 @@ import {
   Zap,
   Trophy,
   TrendingUp,
+  RefreshCw,
 } from 'lucide-react'
 
 type ScoreRecord = { score: number; recorded_at: string }
@@ -71,6 +72,18 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [scores, setScores] = useState<ScoreRecord[]>([])
   const [posts, setPosts] = useState<Post[]>([])
+  const [userId, setUserId] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+
+  async function fetchData(uid: string) {
+    const [scoresRes, postsRes] = await Promise.all([
+      supabase.from('linkedin_scores').select('score, recorded_at').eq('user_id', uid).order('recorded_at', { ascending: true }).limit(12),
+      supabase.from('posts').select('*').eq('user_id', uid).eq('status', 'published').order('reactions', { ascending: false }),
+    ])
+    setScores(scoresRes.data || [])
+    setPosts(postsRes.data || [])
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -83,13 +96,21 @@ export default function AnalyticsPage() {
         if (cancelled) return
         setPlan(profile?.plan || 'starter')
         if (profile?.plan === 'starter') { if (!cancelled) setLoading(false); return }
-        const [scoresRes, postsRes] = await Promise.all([
-          supabase.from('linkedin_scores').select('score, recorded_at').eq('user_id', user.id).order('recorded_at', { ascending: true }).limit(12),
-          supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }),
-        ])
-        if (!cancelled) {
-          setScores(scoresRes.data || [])
-          setPosts(postsRes.data || [])
+        setUserId(user.id)
+        await fetchData(user.id)
+
+        // Auto-record score if none in last 24 hours
+        const lastScore = (await supabase
+          .from('linkedin_scores')
+          .select('recorded_at')
+          .eq('user_id', user.id)
+          .order('recorded_at', { ascending: false })
+          .limit(1)).data?.[0]
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
+        if (!lastScore || new Date(lastScore.recorded_at).getTime() < oneDayAgo) {
+          fetch('/api/scoring', { method: 'POST' })
+            .then(() => { if (!cancelled) fetchData(user.id) })
+            .catch(() => {})
         }
       } catch {
         /* non-fatal */
@@ -100,6 +121,29 @@ export default function AnalyticsPage() {
     load()
     return () => { cancelled = true }
   }, [])
+
+  async function syncFromLinkedIn() {
+    if (!userId) return
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const res = await fetch('/api/linkedin/sync-stats', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setSyncMsg(data.error || 'Sync failed')
+      } else if (data.synced === 0 && data.message) {
+        setSyncMsg(data.message)
+      } else {
+        setSyncMsg(`Synced ${data.synced} of ${data.total} posts`)
+        await fetchData(userId)
+      }
+    } catch {
+      setSyncMsg('Sync failed. Please try again.')
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncMsg(null), 5000)
+    }
+  }
 
   if (loading) {
     return (
@@ -181,9 +225,24 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-4 md:p-7 max-w-4xl">
-      <div className="mb-5 md:mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Analytics</h1>
-        <p className="text-gray-500 text-sm">Your LinkedIn performance at a glance</p>
+      <div className="mb-5 md:mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Analytics</h1>
+          <p className="text-gray-500 text-sm">Your LinkedIn performance at a glance</p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 shrink-0"
+            onClick={syncFromLinkedIn}
+            disabled={syncing}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing…' : 'Sync LinkedIn'}
+          </Button>
+          {syncMsg && <p className="text-xs text-slate-500">{syncMsg}</p>}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-5">
