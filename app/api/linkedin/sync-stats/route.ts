@@ -53,19 +53,27 @@ export async function POST(request: NextRequest) {
       }
 
       const data = await res.json()
-      const reactions = data.likesSummary?.totalLikes ?? null
+      // LinkedIn may return totalLikes or aggregatedTotalLikes; default to 0 so the
+      // post still counts as synced even when there are no reactions yet.
+      const reactions =
+        data.likesSummary?.totalLikes ??
+        data.likesSummary?.aggregatedTotalLikes ??
+        0
 
-      if (reactions !== null) {
-        await supabaseAdmin
-          .from('posts')
-          .update({ reactions })
-          .eq('id', post.id)
-        synced++
-      }
+      await supabaseAdmin
+        .from('posts')
+        .update({ reactions })
+        .eq('id', post.id)
+      synced++
     } catch {
       failed++
     }
   }
 
-  return NextResponse.json({ synced, failed, total: posts.length })
+  const message =
+    failed > 0
+      ? `Synced ${synced} of ${posts.length} posts (${failed} failed — LinkedIn may have rejected those URNs)`
+      : `Synced ${synced} of ${posts.length} posts`
+
+  return NextResponse.json({ synced, failed, total: posts.length, message })
 }

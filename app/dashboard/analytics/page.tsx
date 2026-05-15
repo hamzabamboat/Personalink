@@ -131,11 +131,9 @@ export default function AnalyticsPage() {
       const data = await res.json()
       if (!res.ok) {
         setSyncMsg(data.error || 'Sync failed')
-      } else if (data.synced === 0 && data.message) {
-        setSyncMsg(data.message)
       } else {
-        setSyncMsg(`Synced ${data.synced} of ${data.total} posts`)
-        await fetchData(userId)
+        setSyncMsg(data.message)
+        if (data.synced > 0) await fetchData(userId)
       }
     } catch {
       setSyncMsg('Sync failed. Please try again.')
