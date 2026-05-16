@@ -181,7 +181,7 @@ export default function CalendarPage() {
     : ''
 
   return (
-    <div className="p-4 md:p-7 max-w-[960px]">
+    <div className="p-3 sm:p-4 md:p-7 max-w-[960px]">
       <ImageSelector
         open={imageSelectorOpen}
         onClose={() => setImageSelectorOpen(false)}

@@ -151,7 +151,7 @@ export default function SuggestionsPage() {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-7 w-full">
+      <div className="p-3 sm:p-4 md:p-7 w-full">
         <div className="h-8 w-56 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
@@ -171,7 +171,7 @@ export default function SuggestionsPage() {
   }
 
   return (
-    <div className="p-4 md:p-7 w-full">
+    <div className="p-3 sm:p-4 md:p-7 w-full">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Post Ideas</h1>

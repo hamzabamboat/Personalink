@@ -193,20 +193,20 @@ function DashboardContent() {
   }
 
   return (
-    <div className="p-4 md:p-7">
+    <div className="p-3 sm:p-4 md:p-7">
       {/* Welcome card */}
-      <div className="mb-6 relative overflow-hidden">
+      <div className="mb-5 md:mb-6 relative overflow-hidden">
         <QuarterRings size={300} color="blue" className="absolute -top-10 -right-10 pointer-events-none hidden lg:block" />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight mb-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 tracking-tight mb-1">
               {greeting}, {firstName} 👋
             </h1>
             <p className="text-sm text-slate-400 font-medium">{todayStr}</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="bg-blue-50 text-blue-600 rounded-full px-3 py-1 text-[13px] font-semibold">
-              {postsUsed}/{postsLimit} posts used
+            <span className="bg-blue-50 text-blue-600 rounded-full px-2.5 sm:px-3 py-1 text-[12px] sm:text-[13px] font-semibold whitespace-nowrap">
+              {postsUsed}/{postsLimit} posts
             </span>
             <Button render={<Link href="/dashboard/generate" />} className="gap-2 shadow-sm">
               <Sparkles className="w-4 h-4" />
@@ -224,25 +224,25 @@ function DashboardContent() {
           {/* Quick actions */}
           <div>
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Quick actions</div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {[
                 { href: '/dashboard/generate', label: 'Generate Post', sub: 'Write with AI', icon: Sparkles, bg: 'bg-blue-50 dark:bg-blue-950/30', iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-100 dark:bg-blue-900/50' },
                 { href: '/dashboard/story-bank', label: 'Add a Story', sub: 'Build your bank', icon: BookOpen, bg: 'bg-emerald-50 dark:bg-emerald-950/30', iconColor: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-100 dark:bg-emerald-900/50' },
-                { href: '/dashboard/calendar', label: 'View Calendar', sub: 'See your schedule', icon: CalendarDays, bg: 'bg-violet-50 dark:bg-violet-950/30', iconColor: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-100 dark:bg-violet-900/50' },
+                { href: '/dashboard/calendar', label: 'Calendar', sub: 'See your schedule', icon: CalendarDays, bg: 'bg-violet-50 dark:bg-violet-950/30', iconColor: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-100 dark:bg-violet-900/50' },
                 { href: '/dashboard/upload', label: 'Upload Photos', sub: 'Boost engagement', icon: ImageIcon, bg: 'bg-amber-50 dark:bg-amber-950/30', iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-100 dark:bg-amber-900/50' },
               ].map(a => {
                 const Icon = a.icon
                 return (
                   <Link key={a.href} href={a.href}
-                    className={`flex items-center gap-3 p-4 rounded-2xl ${a.bg} border border-transparent hover:shadow-md transition-all duration-200 group`}>
-                    <div className={`w-10 h-10 rounded-xl ${a.iconBg} flex items-center justify-center shrink-0`}>
-                      <Icon className={`w-5 h-5 ${a.iconColor}`} strokeWidth={1.75} />
+                    className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-2xl ${a.bg} border border-transparent hover:shadow-md transition-all duration-200 group`}>
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${a.iconBg} flex items-center justify-center shrink-0`}>
+                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${a.iconColor}`} strokeWidth={1.75} />
                     </div>
-                    <div className="min-w-0">
-                      <div className={`text-[13px] font-bold ${a.iconColor} leading-tight`}>{a.label}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{a.sub}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-[12px] sm:text-[13px] font-bold ${a.iconColor} leading-tight truncate`}>{a.label}</div>
+                      <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">{a.sub}</div>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-300 ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3 h-3 text-slate-300 shrink-0 group-hover:translate-x-0.5 transition-transform hidden sm:block" />
                   </Link>
                 )
               })}

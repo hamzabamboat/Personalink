@@ -18,7 +18,7 @@ type InputMode = 'text' | 'voice'
 function storyStatusLabel(status: StoryBank['status']) {
   if (status === 'converted') return { label: 'Used in a post', color: 'text-emerald-600 bg-emerald-50' }
   if (status === 'dismissed') return { label: 'Skipped', color: 'text-slate-400 bg-slate-50' }
-  return { label: 'Queued for next batch', color: 'text-blue-600 bg-blue-50' }
+  return { label: 'Queued', color: 'text-blue-600 bg-blue-50' }
 }
 
 function storyStatusIcon(status: StoryBank['status']) {
@@ -175,11 +175,11 @@ export default function StoryBankPage() {
   const canSave = inputMode === 'voice' ? !!transcript.trim() : !!newStory.trim()
 
   return (
-    <div className="p-4 md:p-7 max-w-[820px]">
+    <div className="p-3 sm:p-4 md:p-7 max-w-[820px]">
       <div className="flex items-start justify-between mb-6 relative overflow-hidden">
         <QuarterRings size={200} color="blue" className="absolute top-0 right-0 pointer-events-none hidden lg:block" />
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Story Bank</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Story Bank</h1>
           <p className="text-sm text-gray-500 leading-relaxed">
             Dump raw experiences here. AI turns them into authentic LinkedIn posts in your next batch.
           </p>
@@ -354,21 +354,21 @@ export default function StoryBankPage() {
                     <div className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-2">{story.title}</div>
                   )}
                   <p className="text-[14px] text-slate-600 leading-relaxed mb-4 line-clamp-4">{story.raw_text}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-400">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[11px] text-slate-400 shrink-0">
                         {new Date(story.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${statusInfo.color}`}>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 whitespace-nowrap ${statusInfo.color}`}>
                         {storyStatusIcon(story.status)}
                         {statusInfo.label}
                       </span>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-red-400 hover:text-red-600 hover:bg-red-50 px-2"
+                        className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
                         onClick={() => deleteStory(story.id)}
                         disabled={deleting === story.id}
                       >
@@ -378,8 +378,8 @@ export default function StoryBankPage() {
                         }
                       </Button>
                       <Link href="/dashboard/generate?tab=story">
-                        <Button size="sm" className="h-7 gap-1.5 text-xs">
-                          <Sparkles className="w-3.5 h-3.5" />
+                        <Button size="sm" className="h-8 gap-1.5 text-xs whitespace-nowrap px-3">
+                          <Sparkles className="w-3.5 h-3.5 shrink-0" />
                           Generate post
                         </Button>
                       </Link>

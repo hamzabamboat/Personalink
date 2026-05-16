@@ -584,11 +584,10 @@ function HomeContent() {
               <motion.div
                 key={p.id}
                 variants={staggerItem}
-                className="rounded-2xl relative card-hover overflow-hidden h-full"
+                className="rounded-2xl relative card-hover overflow-hidden h-full p-5 sm:p-7"
                 style={{
                   background: p.popular ? 'linear-gradient(135deg, #0B458B 0%, #083670 100%)' : 'white',
                   border: p.popular ? 'none' : '1px solid #e2e8f0',
-                  padding: '32px 28px',
                   boxShadow: p.popular ? '0 16px 48px rgba(10,102,194,0.25)' : '0 1px 3px rgba(0,0,0,0.05)',
                 }}
               >
@@ -604,7 +603,7 @@ function HomeContent() {
                     <span className="text-sm font-semibold" style={{ color: p.popular ? 'rgba(255,255,255,0.7)' : '#64748b' }}>{p.label}</span>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.popular ? 'rgba(255,255,255,0.2)' : '#ecfdf5', color: p.popular ? 'white' : '#059669' }}>7-day free trial</span>
                   </div>
-                  <div className="text-[40px] font-extrabold mb-1 tracking-tight" style={{ color: p.popular ? 'white' : '#0f172a' }}>₹{p.price.toLocaleString('en-IN')}</div>
+                  <div className="text-[32px] sm:text-[40px] font-extrabold mb-1 tracking-tight" style={{ color: p.popular ? 'white' : '#0f172a' }}>₹{p.price.toLocaleString('en-IN')}</div>
                   <div className="text-[13px] mb-6" style={{ color: p.popular ? 'rgba(255,255,255,0.65)' : '#64748b' }}>/month · {p.posts} posts</div>
                   {/* Features — flex-1 pushes button to bottom */}
                   <div className="flex flex-col gap-2.5 flex-1">

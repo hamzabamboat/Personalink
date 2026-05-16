@@ -45,7 +45,7 @@ function UpgradeContent() {
   // Pro users see a "you're already on the best plan" message
   if (currentPlan === 'pro') {
     return (
-      <div className="p-8 max-w-3xl">
+      <div className="p-4 sm:p-8 max-w-3xl">
         <Button variant="ghost" size="sm" render={<Link href="/dashboard" />} className="mb-8 -ml-2 text-slate-500 gap-1.5">
           <ChevronLeft className="size-4" />
           Back to dashboard
@@ -74,7 +74,7 @@ function UpgradeContent() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-8 max-w-3xl">
       <Button variant="ghost" size="sm" render={<Link href="/dashboard" />} className="mb-8 -ml-2 text-slate-500 gap-1.5">
         <ChevronLeft className="size-4" />
         Back to dashboard
@@ -114,12 +114,12 @@ function UpgradeContent() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div className="skeleton h-72 rounded-2xl" />
           <div className="skeleton h-72 rounded-2xl" />
         </div>
       ) : (
-        <div className={`grid gap-5 ${plansToShow.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-2'}`}>
+        <div className={`grid gap-4 sm:gap-5 ${plansToShow.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-1 sm:grid-cols-2'}`}>
           {plansToShow.map(plan => (
             <Card
               key={plan.id}

@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
 
   if (plan === 'starter') {
     return (
-      <div className="p-4 md:p-7 max-w-2xl">
+      <div className="p-3 sm:p-4 md:p-7 max-w-2xl">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Analytics</h1>
         <Card className="mt-6 border-slate-100 shadow-sm rounded-2xl">
           <CardContent className="py-16 px-10 text-center">
@@ -224,7 +224,7 @@ export default function AnalyticsPage() {
   const medalBgs = ['#fffbeb', '#f8fafc', '#fff7ed']
 
   return (
-    <div className="p-4 md:p-7 max-w-4xl">
+    <div className="p-3 sm:p-4 md:p-7 max-w-4xl">
       <div className="mb-5 md:mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Analytics</h1>

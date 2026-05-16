@@ -432,33 +432,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
 
         {/* Mobile top bar */}
-        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 h-[54px] flex items-center justify-between px-4 shadow-sm">
+        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 h-[52px] flex items-center justify-between px-3 shadow-sm">
           <Link href="/dashboard" className="flex items-center">
-            <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
-              <Image src="/logo-icon.png" alt="PersonaLink" width={32} height={32} className="h-8 w-8" />
+            <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
+              <Image src="/logo-icon.png" alt="PersonaLink" width={28} height={28} className="h-7 w-7" />
             </div>
           </Link>
-          <div className="flex items-center gap-1">
-            {user && plan === 'pro' && (
-              <button
-                onClick={() => window.location.href = '/api/auth/linkedin?add_profile=true'}
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-400"
-                title="Add LinkedIn profile"
-              >
-                {user.linkedin_picture
-                  ? <Image src={user.linkedin_picture} alt="" width={20} height={20} className="w-5 h-5 rounded-full" />
-                  : <div className="w-5 h-5 rounded-full bg-brand-light" />
-                }
-                <span className="hidden sm:inline truncate max-w-[80px]">{user.linkedin_name?.split(' ')[0]}</span>
-              </button>
-            )}
+          <div className="flex items-center gap-0.5">
             <ThemeToggle />
-            {user && (
-              <button onClick={handleMobileLogout} className="p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <LogOut className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              </button>
-            )}
-            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(o => !o)} className="rounded-lg">
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(o => !o)} className="rounded-lg w-9 h-9">
               <Menu className="size-5 text-slate-600 dark:text-slate-400" />
             </Button>
           </div>
@@ -467,7 +449,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <AnimatePresence mode="wait" initial={false}>
           <motion.main
             key={pathname}
-            className="flex-1 overflow-x-hidden pb-16 md:pb-0"
+            className="flex-1 overflow-x-hidden pb-nav-safe"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -480,7 +462,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 safe-pb">
-        <div className="flex h-14">
+        <div className="flex h-[56px]">
           {BOTTOM_NAV_ITEMS.map(item => {
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
             const Icon = item.icon
@@ -488,12 +470,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors ${
+                className={`flex-1 flex flex-col items-center justify-center gap-[3px] min-h-[44px] transition-colors ${
                   active ? 'text-[#0B458B]' : 'text-slate-400 dark:text-slate-500'
                 }`}
               >
-                <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />
-                <span className={`text-[9px] font-semibold transition-opacity ${active ? 'opacity-100' : 'opacity-0 h-0'}`}>
+                <Icon className="w-[22px] h-[22px]" strokeWidth={active ? 2.25 : 1.75} />
+                <span className={`text-[10px] font-semibold leading-none ${active ? 'opacity-100' : 'opacity-50'}`}>
                   {item.label}
                 </span>
               </Link>
@@ -502,10 +484,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* More */}
           <button
             onClick={() => setMoreOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] text-slate-400 dark:text-slate-500 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-[3px] min-h-[44px] text-slate-400 dark:text-slate-500 transition-colors"
           >
-            <MoreHorizontal className="w-5 h-5" strokeWidth={1.75} />
-            <span className="text-[9px] font-semibold opacity-0 h-0">More</span>
+            <MoreHorizontal className="w-[22px] h-[22px]" strokeWidth={1.75} />
+            <span className="text-[10px] font-semibold leading-none opacity-50">More</span>
           </button>
         </div>
       </nav>
@@ -536,9 +518,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )
             })}
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between px-3">
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between px-3">
             <span className="text-[13px] text-slate-500 dark:text-slate-400">Appearance</span>
             <ThemeToggle />
+          </div>
+          <div className="mt-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => { setMoreOpen(false); handleMobileLogout() }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl min-h-[44px] text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            >
+              <LogOut className="w-5 h-5 shrink-0" strokeWidth={1.75} />
+              <span className="text-[14px] font-semibold">Log out</span>
+            </button>
           </div>
         </SheetContent>
       </Sheet>

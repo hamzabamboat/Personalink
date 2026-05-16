@@ -150,14 +150,14 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-slate-50 relative">
       <QuarterRings size={400} color="blue" opacity={0.05} className="fixed bottom-0 right-0 pointer-events-none hidden lg:block" />
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6">
-        <div className="max-w-[720px] mx-auto h-16 flex items-center justify-between">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6">
+        <div className="max-w-[720px] mx-auto h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
-              <img src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
+            <div className="bg-white rounded-xl px-2 py-1 sm:px-3 sm:py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
+              <img src="/logo-text.png" alt="PersonaLink" width={140} height={22} className="h-5 sm:h-7 w-auto" />
             </div>
           </div>
-          <span className="text-[13px] text-slate-400">Step {step} of {TOTAL_STEPS}</span>
+          <span className="text-[12px] sm:text-[13px] text-slate-400 font-medium">Step {step} of {TOTAL_STEPS}</span>
         </div>
         {/* Progress bar */}
         <div className="max-w-[720px] mx-auto pb-0">
@@ -167,7 +167,7 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      <div className="max-w-[680px] mx-auto px-4 md:px-6 py-8 md:py-12">
+      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm mb-6">{error}</div>
         )}
@@ -285,7 +285,7 @@ export default function OnboardingPage() {
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Pick your 3 content pillars</h1>
               <p className="text-slate-500 text-base">These are the themes your posts will rotate across. Pick exactly 3.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6">
               {CONTENT_PILLARS.map(p => {
                 const selected = form.content_pillars.includes(p)
                 const maxed = form.content_pillars.length >= 3 && !selected
@@ -294,7 +294,7 @@ export default function OnboardingPage() {
                     key={p}
                     onClick={() => togglePillar(p)}
                     disabled={maxed}
-                    className={`p-4 rounded-xl border-2 text-left text-[15px] font-medium transition-all flex items-center justify-between ${
+                    className={`p-3 sm:p-4 rounded-xl border-2 text-left text-[13px] sm:text-[15px] font-medium transition-all flex items-center justify-between min-h-[52px] ${
                       selected ? 'border-brand bg-brand-light text-brand font-bold' : maxed ? 'border-slate-200 text-slate-300 cursor-not-allowed' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                     }`}
                   >
@@ -336,14 +336,14 @@ export default function OnboardingPage() {
                   <button
                     key={opt.id}
                     onClick={() => setForm(f => ({ ...f, control_preference: opt.id }))}
-                    className={`p-6 rounded-xl border-2 text-left transition-all ${selected ? 'border-brand bg-brand-light shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                    className={`p-4 sm:p-6 rounded-xl border-2 text-left transition-all ${selected ? 'border-brand bg-brand-light shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                   >
-                    <div className="flex gap-4 items-start">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: opt.iconBg }}>
-                        <Icon className="w-5 h-5" style={{ color: opt.iconColor }} strokeWidth={1.75} />
+                    <div className="flex gap-3 sm:gap-4 items-start">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: opt.iconBg }}>
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: opt.iconColor }} strokeWidth={1.75} />
                       </div>
-                      <div className="flex-1">
-                        <div className={`font-bold text-[17px] mb-1.5 ${selected ? 'text-brand' : 'text-slate-900'}`}>{opt.title}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-bold text-[15px] sm:text-[17px] mb-1 sm:mb-1.5 ${selected ? 'text-brand' : 'text-slate-900'}`}>{opt.title}</div>
                         <div className="text-slate-500 text-sm leading-relaxed">{opt.desc}</div>
                       </div>
                       {selected && (
@@ -409,25 +409,25 @@ export default function OnboardingPage() {
                   <button
                     key={p.id}
                     onClick={() => setForm(f => ({ ...f, plan: p.id }))}
-                    className={`p-6 rounded-xl border-2 text-left transition-all relative ${selected ? '' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                    className={`p-4 sm:p-6 rounded-xl border-2 text-left transition-all relative ${selected ? '' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                     style={selected ? { borderColor: p.color, background: p.color + '10' } : {}}
                   >
                     {p.popular && (
-                      <div className="absolute -top-2.5 right-4 bg-amber-400 text-white rounded-full px-3 py-0.5 text-[11px] font-bold">Most Popular</div>
+                      <div className="absolute -top-2.5 right-3 sm:right-4 bg-amber-400 text-white rounded-full px-2.5 sm:px-3 py-0.5 text-[10px] sm:text-[11px] font-bold">Most Popular</div>
                     )}
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-2.5 sm:mb-3 gap-2">
                       <div>
-                        <div className="font-bold text-[17px] mb-0.5" style={{ color: p.color }}>{p.label}</div>
-                        <div className="text-[13px] text-slate-500">{p.posts} posts/month</div>
+                        <div className="font-bold text-[15px] sm:text-[17px] mb-0.5" style={{ color: p.color }}>{p.label}</div>
+                        <div className="text-[12px] sm:text-[13px] text-slate-500">{p.posts} posts/month</div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-[13px] font-bold text-emerald-600 mb-0.5">Free for 7 days</div>
-                        <div className="text-sm text-slate-400">then {currencyInfo.symbol}{p.price.toLocaleString()}/mo</div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[12px] sm:text-[13px] font-bold text-emerald-600 mb-0.5">Free for 7 days</div>
+                        <div className="text-xs sm:text-sm text-slate-400">then {currencyInfo.symbol}{p.price.toLocaleString()}/mo</div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1 sm:gap-1.5">
                       {p.features.slice(0, 4).map(f => (
-                        <span key={f} className="text-xs text-slate-500 bg-slate-100 rounded-md px-2.5 py-1">{f}</span>
+                        <span key={f} className="text-[11px] sm:text-xs text-slate-500 bg-slate-100 rounded-md px-2 sm:px-2.5 py-0.5 sm:py-1">{f}</span>
                       ))}
                       {p.features.length > 4 && <span className="text-xs text-slate-400">+{p.features.length - 4} more</span>}
                     </div>

@@ -301,7 +301,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="p-4 md:p-7 max-w-[900px]">
+    <div className="p-3 sm:p-4 md:p-7 max-w-[900px]">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Photo Library</h1>
         <p className="text-sm text-gray-500 leading-relaxed">Upload photos — AI analyses them for LinkedIn post hooks, mood, and topics so you can use them in your posts.</p>

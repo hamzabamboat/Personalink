@@ -401,15 +401,15 @@ function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { pl
   }
 
   return (
-    <div className="relative rounded-2xl p-6 overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 dark:from-blue-900 dark:via-blue-800 dark:to-blue-700 shadow-sm">
-      <QuarterRings size={240} color="white" className="absolute -bottom-8 -right-8 pointer-events-none" />
-      <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex-1">
-          <div className="font-bold text-lg text-white mb-1">Generate posts for {monthName}</div>
+    <div className="relative rounded-2xl p-4 sm:p-6 overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 dark:from-blue-900 dark:via-blue-800 dark:to-blue-700 shadow-sm">
+      <QuarterRings size={200} color="white" className="absolute -bottom-8 -right-8 pointer-events-none opacity-40" />
+      <div className="relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-base sm:text-lg text-white mb-1">Generate posts for {monthName}</div>
           <div className="text-sm text-blue-100 leading-relaxed">
             Based on your profile, industry, and content pillars — no input needed.
             {remaining > 0
-              ? ` You have ${remaining} post${remaining !== 1 ? 's' : ''} remaining this month.`
+              ? ` You have ${remaining} post${remaining !== 1 ? 's' : ''} remaining.`
               : " You've used all your posts this month."}
           </div>
           {error && <div className="mt-2 text-sm text-red-200">{error}</div>}
@@ -418,7 +418,7 @@ function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { pl
           <Button
             onClick={() => setShowConfirm(true)}
             disabled={remaining === 0}
-            className="gap-2 whitespace-nowrap bg-white text-blue-700 hover:bg-blue-50 shadow-sm hover:shadow-md transition-shadow disabled:opacity-60"
+            className="w-full sm:w-auto gap-2 whitespace-nowrap bg-white text-blue-700 hover:bg-blue-50 shadow-sm hover:shadow-md transition-shadow disabled:opacity-60"
           >
             <Sparkles className="w-4 h-4" />
             Generate posts →
@@ -769,9 +769,9 @@ function GenerateContent() {
   const canGenerate = tab === 'ai' ? topic.trim().length > 0 : tab === 'voice' ? !!voiceNoteId : !!selectedStory
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 pt-4 md:pt-7 space-y-6">
+    <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pt-4 md:pt-7 space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Generate Post</h1>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Create a post</h1>
         <p className="text-sm text-gray-600 leading-relaxed">AI writes in your exact voice. You approve before it goes live.</p>
       </div>
 
@@ -789,27 +789,29 @@ function GenerateContent() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
         {/* Tab bar — full width, directly below the banner */}
-        <TabsList className="w-full h-10 justify-center gap-2 bg-transparent">
-          <TabsTrigger value="ai" className="gap-1.5 text-[13px]">
-            <Brain className="w-3.5 h-3.5" />
-            AI Generate
-          </TabsTrigger>
-          <TabsTrigger value="voice" className="flex items-center gap-1.5 text-[13px]">
-            <Mic className="w-3.5 h-3.5" />
-            Voice Note
-            {plan === 'starter' && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-brand-light text-brand ml-0.5">STD+</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="story" className="gap-1.5 text-[13px]">
-            <BookOpen className="w-3.5 h-3.5" />
-            Story Bank
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="w-full min-w-[280px] h-10 justify-center gap-1 sm:gap-2 bg-transparent">
+            <TabsTrigger value="ai" className="gap-1.5 text-[12px] sm:text-[13px] px-2 sm:px-3">
+              <Brain className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">AI Generate</span>
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-1.5 text-[12px] sm:text-[13px] px-2 sm:px-3">
+              <Mic className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Voice Note</span>
+              {plan === 'starter' && <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-brand-light text-brand ml-0.5 shrink-0">PRO</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="story" className="gap-1.5 text-[12px] sm:text-[13px] px-2 sm:px-3">
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Story Bank</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <div className="w-full">
 
         {/* AI Generate */}
         <TabsContent value="ai" className="mt-0 w-full">
-          <div className="w-full rounded-2xl bg-slate-900 dark:bg-slate-900 border border-slate-800 p-6 flex flex-col gap-6">
+          <div className="w-full rounded-2xl bg-slate-900 dark:bg-slate-900 border border-slate-800 p-4 sm:p-6 flex flex-col gap-5 sm:gap-6">
               {/* Content pillar chips */}
               {contentPillars.length > 0 && (
                 <div>

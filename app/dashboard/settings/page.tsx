@@ -247,7 +247,7 @@ function SettingsContent() {
   }
 
   return (
-    <div className="p-4 md:p-7 max-w-[700px]">
+    <div className="p-3 sm:p-4 md:p-7 max-w-[700px]">
       <div className="mb-6 md:mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Settings</h1>
         <p className="text-sm text-gray-500">Manage your account and preferences</p>
