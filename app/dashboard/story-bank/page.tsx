@@ -1,16 +1,25 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { StoryBank } from '@/lib/supabase'
 import { Textarea } from '@/components/ui/textarea'
 import {
   BookOpen, Plus, Sparkles, Trash2, Save, Loader2,
-  Mic, Upload, SquareIcon, CheckCircle2, Clock, RefreshCw,
+  Mic, Upload, SquareIcon, CheckCircle2, Clock, RefreshCw, AlertTriangle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
 type InputMode = 'text' | 'voice'
+type MicPermission = 'unknown' | 'checking' | 'granted' | 'denied' | 'unavailable'
+
+function getMicDeniedInstructions(): string {
+  if (typeof navigator === 'undefined') return ''
+  const ua = navigator.userAgent
+  if (/Firefox/i.test(ua)) return 'Click the lock icon in the address bar → Remove the microphone block → Refresh the page.'
+  if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) return 'Go to Safari → Settings → Websites → Microphone → find this site and set it to Allow.'
+  return 'Click the lock icon (🔒) in the address bar → Site settings → Microphone → Allow → Refresh the page.'
+}
 
 function storyStatusInfo(status: StoryBank['status']) {
   if (status === 'converted') return { label: 'Used in a post', color: '#059669' }
@@ -36,11 +45,35 @@ export default function StoryBankPage() {
   const [transcribing, setTranscribing] = useState(false)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [transcript, setTranscript] = useState('')
+  const [micPermission, setMicPermission] = useState<MicPermission>('unknown')
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { fetchStories() }, [])
+  const checkMicPermission = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicPermission('unavailable')
+      return
+    }
+    if (navigator.permissions) {
+      try {
+        const status = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+        setMicPermission(status.state === 'granted' ? 'granted' : status.state === 'denied' ? 'denied' : 'unknown')
+        status.onchange = () => {
+          setMicPermission(status.state === 'granted' ? 'granted' : status.state === 'denied' ? 'denied' : 'unknown')
+        }
+        return
+      } catch {
+        // Permissions API not fully supported — fall through
+      }
+    }
+    setMicPermission('unknown')
+  }, [])
+
+  useEffect(() => {
+    fetchStories()
+    checkMicPermission()
+  }, [checkMicPermission])
 
   async function fetchStories() {
     setLoading(true)
@@ -80,27 +113,52 @@ export default function StoryBankPage() {
     } catch { toast.error('Failed to delete story.') } finally { setDeleting(null) }
   }
 
-  async function startRecording() {
+  async function requestMicStream(): Promise<MediaStream | null> {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicPermission('unavailable')
+      return null
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      chunksRef.current = []
-      const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' })
-      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-      mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        setAudioBlob(blob)
-        stream.getTracks().forEach(t => t.stop())
-        transcribeAudio(blob)
-      }
-      mr.start(); mediaRecorderRef.current = mr; setRecording(true)
+      setMicPermission('granted')
+      return stream
     } catch (err) {
-      const isDenied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
-      if (isDenied) {
-        toast.error('Microphone access denied', {
-          description: 'Click the lock icon in the address bar → Site settings → Allow Microphone',
-          action: { label: 'Try Again', onClick: startRecording }, duration: 12000,
-        })
-      } else { toast.error('Could not access microphone.') }
+      if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        setMicPermission('denied')
+      } else if (err instanceof DOMException && err.name === 'NotFoundError') {
+        toast.error('No microphone found. Please connect a microphone and try again.')
+      } else {
+        toast.error('Could not access microphone. Please try again.')
+      }
+      return null
+    }
+  }
+
+  async function startRecording() {
+    const stream = await requestMicStream()
+    if (!stream) return
+    chunksRef.current = []
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+    const mr = new MediaRecorder(stream, { mimeType })
+    mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+    mr.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mimeType })
+      setAudioBlob(blob)
+      stream.getTracks().forEach(t => t.stop())
+      transcribeAudio(blob)
+    }
+    mr.start()
+    mediaRecorderRef.current = mr
+    setRecording(true)
+  }
+
+  async function switchToVoiceMode() {
+    setInputMode('voice')
+    setNewStory('')
+    if (micPermission !== 'granted' && micPermission !== 'denied') {
+      setMicPermission('checking')
+      const stream = await requestMicStream()
+      stream?.getTracks().forEach(t => t.stop())
     }
   }
 
@@ -165,7 +223,10 @@ export default function StoryBankPage() {
             {(['text', 'voice'] as InputMode[]).map(mode => (
               <button
                 key={mode}
-                onClick={() => { setInputMode(mode); if (mode === 'text') resetVoice(); else setNewStory('') }}
+                onClick={() => {
+                  if (mode === 'text') { setInputMode('text'); resetVoice() }
+                  else switchToVoiceMode()
+                }}
                 className="flex items-center gap-1.5 transition-all"
                 style={{
                   padding: '6px 12px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500,
@@ -200,20 +261,46 @@ export default function StoryBankPage() {
                 Record yourself talking through a story or upload an existing audio clip. It auto-transcribes.
               </p>
 
-              {!audioBlob && !transcribing && !transcript && (
+              {micPermission === 'denied' && (
+                <div className="flex gap-3 p-3 mb-3" style={{ borderRadius: 'var(--r-md)', background: '#fffbeb', border: '1px solid #fcd34d' }}>
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#d97706' }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>Microphone access blocked</p>
+                    <p style={{ fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>{getMicDeniedInstructions()}</p>
+                  </div>
+                </div>
+              )}
+
+              {micPermission === 'unavailable' && (
+                <div className="flex gap-3 p-3 mb-3" style={{ borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--ink-4)' }} />
+                  <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Audio recording is not supported in this browser. Try uploading an audio file instead.</p>
+                </div>
+              )}
+
+              {!audioBlob && !transcribing && !transcript && micPermission !== 'unavailable' && (
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={recording ? stopRecording : startRecording}
-                    className="flex items-center gap-2 transition-all hover:opacity-80"
-                    style={{
-                      padding: '8px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500,
-                      background: recording ? '#ef4444' : 'var(--surface-2)',
-                      color: recording ? '#fff' : 'var(--ink-2)',
-                      border: '1px solid ' + (recording ? '#ef4444' : 'var(--line)'),
-                    }}
-                  >
-                    {recording ? <><SquareIcon className="w-4 h-4" /> Stop recording</> : <><Mic className="w-4 h-4" /> Record</>}
-                  </button>
+                  {micPermission !== 'denied' && (
+                    <button
+                      onClick={recording ? stopRecording : startRecording}
+                      disabled={micPermission === 'checking'}
+                      className="flex items-center gap-2 transition-all hover:opacity-80"
+                      style={{
+                        padding: '8px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500,
+                        background: recording ? '#ef4444' : 'var(--surface-2)',
+                        color: recording ? '#fff' : 'var(--ink-2)',
+                        border: '1px solid ' + (recording ? '#ef4444' : 'var(--line)'),
+                        opacity: micPermission === 'checking' ? 0.6 : 1,
+                      }}
+                    >
+                      {micPermission === 'checking'
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Requesting access…</>
+                        : recording
+                          ? <><SquareIcon className="w-4 h-4" /> Stop recording</>
+                          : <><Mic className="w-4 h-4" /> Record</>
+                      }
+                    </button>
+                  )}
                   {recording && (
                     <span className="flex items-center gap-1.5" style={{ fontSize: 13, color: '#ef4444', fontWeight: 500 }}>
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
