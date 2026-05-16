@@ -65,8 +65,13 @@ export const DEFAULTS: AppearanceState = {
   fontSans:    'dm',
 }
 
-export function useAppearance() {
+const NOOP = () => {}
+
+export function useAppearance(): AppearanceContextValue {
   const ctx = useContext(AppearanceContext)
-  if (!ctx) throw new Error('useAppearance must be used inside AppearanceProvider')
+  if (!ctx) {
+    // SSR / prerender fallback — provider mounts after hydration
+    return { ...DEFAULTS, setTheme: NOOP, setPalette: NOOP, setFontDisplay: NOOP, setFontSans: NOOP, reset: NOOP }
+  }
   return ctx
 }
