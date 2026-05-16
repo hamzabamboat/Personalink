@@ -70,14 +70,20 @@ function estimateEtaSecs(postsLimit: number): number {
 
 type Tab = 'ai' | 'voice' | 'story'
 
+const TONE_OPTIONS = ['Professional', 'Storytelling', 'Educational', 'Data-driven', 'Casual', 'Inspirational']
+
 function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { plan: string; postsLimit: number | null; postsRemaining: number | null; monthName: string }) {
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [selectedCount, setSelectedCount] = useState<number | null>(null)
+  const [instructions, setInstructions] = useState('')
+  const [tone, setTone] = useState('')
+  const [storyBankCount, setStoryBankCount] = useState(0)
+  const [rawStoryCount, setRawStoryCount] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
   const [simulatedPostCount, setSimulatedPostCount] = useState(0)
   const [elapsedSecs, setElapsedSecs] = useState(0)
-  const [result, setResult] = useState<{ postsGenerated: number; nextPostDate: string | null } | null>(null)
+  const [result, setResult] = useState<{ postsGenerated: number; storyPostsGenerated?: number; nextPostDate: string | null } | null>(null)
   const [batchPosts, setBatchPosts] = useState<Post[]>([])
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [error, setError] = useState('')
@@ -96,6 +102,17 @@ function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { pl
   useEffect(() => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [])
+
+  // Fetch raw story count when confirm dialog opens
+  useEffect(() => {
+    if (!showConfirm) return
+    fetch('/api/story-bank').then(r => r.json()).then(data => {
+      const raw = (data.stories || []).filter((s: { status: string }) => s.status === 'raw')
+      setRawStoryCount(raw.length)
+      // Reset story count if it exceeds what's now available
+      setStoryBankCount(c => Math.min(c, raw.length))
+    }).catch(() => {})
+  }, [showConfirm])
 
   // Simulate per-post counter during writing steps
   useEffect(() => {
@@ -137,11 +154,16 @@ function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { pl
       const res = await fetch('/api/posts/generate-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: effectiveCount }),
+        body: JSON.stringify({
+          count: effectiveCount,
+          instructions: instructions.trim() || undefined,
+          tone: tone || undefined,
+          storyBankCount: storyBankCount > 0 ? Math.min(storyBankCount, effectiveCount) : undefined,
+        }),
       })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
-      setResult({ postsGenerated: data.postsGenerated, nextPostDate: data.nextPostDate })
+      setResult({ postsGenerated: data.postsGenerated, storyPostsGenerated: data.storyPostsGenerated, nextPostDate: data.nextPostDate })
 
       setLoadingPosts(true)
       const postsData = await fetch(
@@ -215,6 +237,12 @@ function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { pl
             </div>
             <div>
               <div className="font-semibold text-emerald-800">{result.postsGenerated} posts generated for {monthName}</div>
+              {(result.storyPostsGenerated ?? 0) > 0 && (
+                <div className="text-[13px] text-emerald-700 flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  {result.storyPostsGenerated} from your story bank
+                </div>
+              )}
               {result.nextPostDate && <div className="text-[13px] text-emerald-600">Next post: {result.nextPostDate}</div>}
             </div>
           </div>
@@ -251,11 +279,15 @@ function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { pl
   if (showConfirm) {
     // Build preset options: every 5 up to remaining, always include 1 and remaining itself
     const presets = Array.from(new Set([1, 5, 10, 15, 20, 25, 30].filter(n => n < remaining).concat([remaining]))).sort((a, b) => a - b)
+    const maxStoryCount = Math.min(rawStoryCount, effectiveCount)
+    const storyCountOptions = maxStoryCount > 0
+      ? Array.from({ length: maxStoryCount + 1 }, (_, i) => i)
+      : []
 
     return (
       <Card className="border-amber-200 bg-amber-50 shadow-sm rounded-2xl">
         <CardContent className="pt-6">
-          <div className="flex items-start gap-3 mb-4">
+          <div className="flex items-start gap-3 mb-5">
             <div className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center shrink-0 mt-0.5">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
@@ -291,6 +323,66 @@ function BatchGenerateCard({ plan, postsLimit, postsRemaining, monthName }: { pl
               {effectiveCount === remaining
                 ? `Generating all ${remaining} remaining post${remaining !== 1 ? 's' : ''} this month`
                 : `Generating ${effectiveCount} of ${remaining} remaining post${remaining !== 1 ? 's' : ''} this month`}
+            </div>
+          </div>
+
+          {/* Story bank priority */}
+          {maxStoryCount > 0 && (
+            <div className="mb-5">
+              <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" />
+                Use from story bank? ({rawStoryCount} unread)
+              </div>
+              <div className="text-[12px] text-amber-600 mb-2.5">Story bank posts are generated first and given priority.</div>
+              <div className="flex flex-wrap gap-2">
+                {storyCountOptions.map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setStoryBankCount(n)}
+                    className={`px-3.5 py-1.5 rounded-full text-[13px] font-semibold border transition-all ${
+                      storyBankCount === n
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                        : 'bg-white border-amber-300 text-amber-800 hover:border-amber-500 hover:bg-amber-100'
+                    }`}
+                  >
+                    {n === 0 ? 'None' : n === maxStoryCount && n === rawStoryCount ? `All ${n}` : n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="mb-5">
+            <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1.5">Instructions <span className="font-normal normal-case text-amber-600">(optional)</span></div>
+            <textarea
+              value={instructions}
+              onChange={e => setInstructions(e.target.value)}
+              placeholder="e.g. Focus on AI trends this month, include 2 posts about client wins, avoid hard-sell language..."
+              rows={3}
+              className="w-full text-[13px] border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-amber-900 placeholder:text-amber-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+            />
+          </div>
+
+          {/* Tone picker */}
+          <div className="mb-5">
+            <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-2">Tone <span className="font-normal normal-case text-amber-600">(optional)</span></div>
+            <div className="flex flex-wrap gap-2">
+              {TONE_OPTIONS.map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTone(prev => prev === t ? '' : t)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-all ${
+                    tone === t
+                      ? 'bg-amber-600 border-amber-600 text-white shadow-sm'
+                      : 'bg-white border-amber-300 text-amber-800 hover:border-amber-500 hover:bg-amber-100'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
 

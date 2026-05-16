@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Send, Trash2, X } from 'lucide-react'
+import { CheckCircle2, Pencil, Send, Trash2, X } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
   draft: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Draft' },
@@ -23,6 +23,7 @@ export type PostCardProps = {
   onEdit?: () => void
   onDelete?: () => void
   onPostNow?: () => void
+  onApprove?: () => void
 }
 
 function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
@@ -48,7 +49,7 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
   )
 }
 
-export function PostCard({ content, scheduledAt, status, imageUrls, onEdit, onDelete, onPostNow }: PostCardProps) {
+export function PostCard({ content, scheduledAt, status, imageUrls, onEdit, onDelete, onPostNow, onApprove }: PostCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const s = STATUS_CONFIG[status] || STATUS_CONFIG.draft
@@ -106,6 +107,15 @@ export function PostCard({ content, scheduledAt, status, imageUrls, onEdit, onDe
               {s.label}
             </span>
             <div className="flex items-center gap-0.5 ml-1">
+              {onApprove && status === 'pending_approval' && (
+                <button
+                  onClick={onApprove}
+                  title="Approve post"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </button>
+              )}
               {onEdit && (
                 <button
                   onClick={onEdit}

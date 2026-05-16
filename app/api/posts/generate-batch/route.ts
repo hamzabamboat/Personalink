@@ -5,6 +5,8 @@ import { anthropic } from '@/lib/anthropic'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
+import { analyzeContent } from '@/lib/compliance'
+import { calculateSimilarityScore } from '@/lib/similarity'
 
 export const maxDuration = 300
 
@@ -12,11 +14,16 @@ async function generateBatch(
   count: number,
   profile: Record<string, unknown>,
   pillars: string[],
+  instructions?: string,
+  tone?: string,
 ): Promise<Array<{ content: string; content_pillar: string; format: string }>> {
   const voiceCtx = [
     profile.voice_fingerprint ? `Voice fingerprint:\n${profile.voice_fingerprint}` : '',
     profile.writing_sample ? `Writing sample:\n${String(profile.writing_sample).slice(0, 400)}` : '',
   ].filter(Boolean).join('\n\n')
+
+  const toneInstruction = tone ? `\nTone: Write every post in a ${tone.toLowerCase()} tone.` : ''
+  const extraInstructions = instructions?.trim() ? `\nBatch instructions from the user: ${instructions.trim()}` : ''
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
@@ -27,16 +34,20 @@ async function generateBatch(
 
 Author: ${profile.name || 'Professional'}, ${profile.role || 'expert'} in ${profile.industry || 'business'}
 Content pillars (rotate evenly): ${pillars.join(', ')}
-${voiceCtx}
+${voiceCtx}${toneInstruction}${extraInstructions}
 
 Rules:
 1. Scroll-stopping first line — no generic openers, never start with "I"
-2. Short punchy paragraphs, blank lines between
+2. Short paragraphs (1-3 lines), blank lines between — vary paragraph length naturally
 3. 150-300 words per post
 4. Include 5-8 hashtags (mix of large/medium/niche) on the last line
-5. Vary formats: story, tips list, contrarian take, industry insight, behind-the-scenes, lesson learned, question to audience
-6. Sound 100% human — match the writing sample's rhythm exactly
+5. Vary formats: personal story, contrarian take, industry insight, behind-the-scenes, question to audience, how-to narrative
+6. Sound 100% human — match the writing sample's rhythm exactly, vary sentence lengths
 7. Each post must be on a completely different topic
+8. NEVER use numbered lists (1. 2. 3.) or heavy bullet points — write in paragraphs
+9. BANNED phrases: "game changer", "unpopular opinion", "nobody talks about", "hard truth", "trust the process", "level up", "hustle", "consistency is key", "paradigm shift", "move the needle", "crushing it", "built different"
+10. BANNED CTAs: "follow me", "tag someone", "comment below", "share if you agree", "save this post"
+11. If batch instructions are given, incorporate them while respecting the format variety
 
 Respond with ONLY a valid JSON array (no markdown, no explanation):
 [
@@ -55,6 +66,62 @@ Generate all ${count} posts now.`,
   const match = text.match(/\[[\s\S]*\]/)
   if (!match) return []
   try { return JSON.parse(match[0]) } catch { return [] }
+}
+
+async function generatePostFromStory(
+  story: { id: string; raw_text: string },
+  profile: Record<string, unknown>,
+  pillars: string[],
+  instructions?: string,
+  tone?: string,
+): Promise<{ content: string; content_pillar: string; format: string; storyId: string } | null> {
+  const voiceCtx = [
+    profile.voice_fingerprint ? `Voice fingerprint:\n${profile.voice_fingerprint}` : '',
+    profile.writing_sample ? `Writing sample:\n${String(profile.writing_sample).slice(0, 400)}` : '',
+  ].filter(Boolean).join('\n\n')
+
+  const pillar = pillars[Math.floor(Math.random() * pillars.length)]
+  const toneInstruction = tone ? `\nTone: Write in a ${tone.toLowerCase()} tone.` : ''
+  const extraInstructions = instructions?.trim() ? `\nAdditional instructions: ${instructions.trim()}` : ''
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 1500,
+    messages: [{
+      role: 'user',
+      content: `Turn this raw story/experience into a LinkedIn post.
+
+Author: ${profile.name || 'Professional'}, ${profile.role || 'expert'} in ${profile.industry || 'business'}
+Content pillar: ${pillar}
+${voiceCtx}${toneInstruction}${extraInstructions}
+
+Raw story/experience:
+${story.raw_text}
+
+Rules:
+1. Scroll-stopping first line — no generic openers, never start with "I"
+2. Short punchy paragraphs, blank lines between
+3. 150-300 words
+4. Include 5-8 hashtags (mix of large/medium/niche) on the last line
+5. Sound 100% human — match the writing sample's rhythm exactly
+6. Extract the key insight or lesson from the story
+
+Respond with ONLY a valid JSON object (no markdown, no explanation):
+{
+  "content": "<full post text with hashtags>",
+  "content_pillar": "${pillar}",
+  "format": "story"
+}`,
+    }],
+  })
+
+  const text = msg.content[0].type === 'text' ? msg.content[0].text : '{}'
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) return null
+  try {
+    const parsed = JSON.parse(match[0])
+    return { ...parsed, storyId: story.id }
+  } catch { return null }
 }
 
 function buildScheduleSlots(
@@ -81,11 +148,6 @@ function buildScheduleSlots(
   for (let day = startDay; day <= daysInMonth && slots.length < count; day++) {
     // Build the slot time in user's timezone by using a UTC offset calculation
     const slotLocal = new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0)
-    // Convert from user's timezone to UTC for storage
-    const slotUtc = new Date(
-      new Date(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(preferredHour).padStart(2, '0')}:00:00`).toLocaleString('en-US', { timeZone: 'UTC' })
-    )
-    // Use a timezone-aware date string for dedup
     const dateStr = slotLocal.toDateString()
     if (takenDateStrings.has(dateStr)) continue
     const dayName = slotLocal.toLocaleDateString('en-US', { weekday: 'long' })
@@ -159,10 +221,15 @@ export async function POST(request: NextRequest) {
     }, { status: 429 })
   }
 
-  // Honour optional count from client (clamped to remaining balance)
+  // Parse body params
   const body = await request.json().catch(() => ({}))
   const requestedCount = typeof body.count === 'number' && body.count > 0 ? body.count : null
   const postsToGenerate = requestedCount ? Math.min(requestedCount, postsCheck.remaining) : postsCheck.remaining
+  const instructions: string = typeof body.instructions === 'string' ? body.instructions : ''
+  const tone: string = typeof body.tone === 'string' ? body.tone : ''
+  const storyBankCount: number = typeof body.storyBankCount === 'number' && body.storyBankCount > 0
+    ? Math.min(body.storyBankCount, postsToGenerate)
+    : 0
 
   const pillars: string[] = (profile.content_pillars as string[]) || ['Professional Insights', 'Industry Trends', 'Personal Growth']
   const controlPreference: string = (profile.control_preference as string) || 'approve'
@@ -189,19 +256,49 @@ export async function POST(request: NextRequest) {
       .map(p => new Date(p.scheduled_at).toDateString())
   )
 
-  // Generate in batches of 10 to stay within token limits
-  const BATCH_SIZE = 10
-  const allPosts: Array<{ content: string; content_pillar: string; format: string }> = []
-  let batchIdx = 0
+  type BatchPost = { content: string; content_pillar: string; format: string; storyId?: string }
 
-  while (allPosts.length < postsToGenerate) {
-    const remaining = postsToGenerate - allPosts.length
+  // Phase 1: generate posts from story bank (priority)
+  const storyPosts: BatchPost[] = []
+  const usedStoryIds: string[] = []
+
+  if (storyBankCount > 0) {
+    const { data: rawStories } = await supabaseAdmin
+      .from('story_bank')
+      .select('id, raw_text')
+      .eq('user_id', user.id)
+      .eq('status', 'raw')
+      .order('created_at', { ascending: true })
+      .limit(storyBankCount)
+
+    if (rawStories && rawStories.length > 0) {
+      for (const story of rawStories) {
+        const post = await generatePostFromStory(story, profile as Record<string, unknown>, pillars, instructions, tone)
+        if (post) {
+          const { storyId, ...postData } = post
+          storyPosts.push({ ...postData, storyId })
+          usedStoryIds.push(storyId)
+        }
+      }
+    }
+  }
+
+  // Phase 2: generate remaining posts with standard batch generation
+  const regularCount = postsToGenerate - storyPosts.length
+  const BATCH_SIZE = 10
+  const regularPosts: BatchPost[] = []
+
+  let batchIdx = 0
+  while (regularPosts.length < regularCount) {
+    const remaining = regularCount - regularPosts.length
     const batchCount = Math.min(remaining, BATCH_SIZE)
-    const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars)
-    allPosts.push(...batch)
+    const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars, instructions, tone)
+    regularPosts.push(...batch)
     batchIdx++
     if (batch.length === 0) break
   }
+
+  const allPosts = [...storyPosts, ...regularPosts]
 
   if (allPosts.length === 0) {
     return NextResponse.json({ error: 'Failed to generate posts. Please try again.' }, { status: 500 })
@@ -209,18 +306,38 @@ export async function POST(request: NextRequest) {
 
   const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays, takenDateStrings, timezone)
 
+  // Pre-load recent post content for similarity analysis
+  const { data: recentPostsData } = await supabaseAdmin
+    .from('posts')
+    .select('content')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(30)
+  const recentContents = (recentPostsData || []).map(p => p.content).filter(Boolean) as string[]
+
   const postStatus = controlPreference === 'autopilot' ? 'scheduled'
     : controlPreference === 'suggest' ? 'draft'
     : 'pending_approval'
 
-  const insertPayloads = allPosts.map((post, i) => ({
-    user_id: user.id,
-    content: post.content,
-    content_pillar: post.content_pillar || pillars[i % pillars.length],
-    source: 'ai_generated',
-    status: postStatus,
-    scheduled_at: slots[i]?.toISOString() ?? null,
-  }))
+  const insertPayloads = allPosts.map((post, i) => {
+    const scores = analyzeContent(post.content)
+    const similarityScore = calculateSimilarityScore(post.content, recentContents)
+    return {
+      user_id: user.id,
+      content: post.content,
+      content_pillar: post.content_pillar || pillars[i % pillars.length],
+      source: post.storyId ? 'story_bank' : 'ai_generated',
+      story_bank_id: post.storyId ?? null,
+      status: postStatus,
+      scheduled_at: slots[i]?.toISOString() ?? null,
+      spam_score: scores.spam_score,
+      humanity_score: scores.humanity_score,
+      hook_similarity_score: scores.hook_similarity_score,
+      originality_score: scores.originality_score,
+      similarity_score: similarityScore,
+      requires_manual_review: scores.requires_manual_review,
+    }
+  })
 
   const { data: insertedPosts, error: insertError } = await supabaseAdmin
     .from('posts')
@@ -229,6 +346,15 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     return NextResponse.json({ error: 'Failed to save posts: ' + insertError.message }, { status: 500 })
+  }
+
+  // Mark used stories as converted
+  if (usedStoryIds.length > 0) {
+    await supabaseAdmin
+      .from('story_bank')
+      .update({ status: 'converted' })
+      .in('id', usedStoryIds)
+      .eq('user_id', user.id)
   }
 
   // Increment usage: one batch_run + all posts_generated
@@ -256,6 +382,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     postsGenerated: insertedPosts?.length || 0,
+    storyPostsGenerated: usedStoryIds.length,
     monthName,
     nextPostDate,
     controlPreference,

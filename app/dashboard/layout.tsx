@@ -377,6 +377,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (d?.user) setUser(d.user)
       if (d?.profile) setProfile(d.profile)
       if (d?.subscription) setSubscription(d.subscription)
+      const displayName = d?.profile?.name || d?.user?.linkedin_name
+      if (displayName) document.title = `${displayName} — PersonaLink`
     }).catch(() => router.push('/'))
   }, [])
 

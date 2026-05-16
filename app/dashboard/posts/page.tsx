@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { ImageSelector } from '@/components/image-selector'
 import {
   Plus, Zap, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
-  Pencil, Trash2, Sparkles, ImageIcon, X,
+  Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2,
 } from 'lucide-react'
 
 const STATUS_COLOR: Record<string, string> = {
@@ -86,6 +86,15 @@ function PostsContent() {
     await fetch(`/api/posts/${id}/update`, { method: 'DELETE' })
     setPosts(p => p.filter(x => x.id !== id))
     toast('Post deleted')
+  }
+
+  async function approvePost(id: string) {
+    const res = await fetch(`/api/posts/${id}/approve`, { method: 'POST' })
+    const data = await res.json()
+    if (data.error) { toast.error(data.error); return }
+    setPosts(p => p.map(x => x.id === id ? { ...x, status: data.post.status } : x))
+    const label = data.post.status === 'scheduled' ? 'Post approved and scheduled' : 'Post approved'
+    toast.success(label)
   }
 
   async function saveEdit() {
@@ -330,6 +339,14 @@ function PostsContent() {
                   )}
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
+                  {post.status === 'pending_approval' && (
+                    <Button size="sm"
+                      className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] min-w-[36px]"
+                      onClick={() => approvePost(post.id)}>
+                      <CheckCircle2 className="size-3.5" />
+                      <span className="hidden sm:inline">Approve</span>
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px] min-w-[36px]"
                     onClick={() => openEdit(post)}>
                     <Pencil className="size-3.5" />
@@ -385,10 +402,19 @@ function PostsContent() {
                           </span>
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px] shrink-0"
-                        onClick={() => openEdit(post)}>
-                        <Pencil className="size-3.5" /> Edit
-                      </Button>
+                      <div className="flex gap-2 shrink-0">
+                        {post.status === 'pending_approval' && (
+                          <Button size="sm"
+                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px]"
+                            onClick={() => approvePost(post.id)}>
+                            <CheckCircle2 className="size-3.5" /> Approve
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px]"
+                          onClick={() => openEdit(post)}>
+                          <Pencil className="size-3.5" /> Edit
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

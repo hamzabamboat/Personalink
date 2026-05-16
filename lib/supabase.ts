@@ -57,6 +57,11 @@ export type UserProfile = {
   preferred_days: string[] | null
   preferred_post_hour: number
   timezone: string
+  // Trust & compliance
+  trust_score: number
+  risk_score: number
+  flagged_count: number
+  autopilot_eligible: boolean
   created_at: string
   updated_at: string
 }
@@ -83,8 +88,25 @@ export type Post = {
   approval_sent_at: string | null
   failure_reason: string | null
   image_urls: string[] | null
+  // Compliance scores
+  spam_score: number | null
+  humanity_score: number | null
+  hook_similarity_score: number | null
+  originality_score: number | null
+  requires_manual_review: boolean
+  similarity_score: number | null
   created_at: string
   updated_at: string
+}
+
+export type ComplianceEvent = {
+  id: string
+  user_id: string
+  post_id: string | null
+  event_type: string
+  severity: 'low' | 'medium' | 'high'
+  details: Record<string, unknown>
+  created_at: string
 }
 
 export type VoiceNote = {

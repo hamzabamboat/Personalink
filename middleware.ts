@@ -43,6 +43,46 @@ export async function middleware(request: NextRequest) {
 
   const country = request.headers.get('x-vercel-ip-country') ?? 'IN'
 
+  // Redirect logged-in users away from public entry points
+  const isPublicPage = pathname === '/' || pathname === '/upgrade'
+  if (isPublicPage && userId) {
+    // Check if they have any subscription access before bouncing to dashboard
+    const cachedStatus = request.cookies.get('sub_status')?.value
+    if (cachedStatus === 'active' || cachedStatus === 'trial' || cachedStatus === 'access_code') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    // No cached status — do a quick DB check
+    const supabaseQuick = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: userRow } = await supabaseQuick
+      .from('users')
+      .select('subscription_status')
+      .eq('id', userId)
+      .single()
+    if (userRow?.subscription_status === 'access_code') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    const { data: subRow } = await supabaseQuick
+      .from('subscriptions')
+      .select('status, trial_ends_at')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const hasAccess =
+      subRow?.status === 'active' ||
+      ((subRow?.status === 'trial' || subRow?.status === 'trialing') &&
+        !!subRow.trial_ends_at &&
+        new Date(subRow.trial_ends_at) > new Date())
+    if (hasAccess) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    // Logged in but no active subscription — let them see the upgrade page
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/upgrade', request.url))
+    }
+  }
+
   // Only protect dashboard and onboarding
   const isDashboard = pathname.startsWith('/dashboard')
   const isOnboarding = pathname === '/onboarding'
@@ -160,5 +200,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/onboarding', '/upgrade', '/admin/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/onboarding', '/upgrade', '/admin/:path*'],
 }

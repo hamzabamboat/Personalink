@@ -2,13 +2,39 @@ import { verifySignatureAppRouter } from '@upstash/qstash/nextjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { publishToLinkedIn, isTokenExpired } from '@/lib/linkedin-api'
+import { logComplianceEvent } from '@/lib/compliance-events'
+
+// Max auto-published posts per user per day (cadence protection)
+const MAX_AUTOPOSTS_PER_DAY = 2
+
+// Spam score threshold — above this the post must go to manual review
+const SPAM_BLOCK_THRESHOLD = 60
+
+async function countTodayPublished(userId: string): Promise<number> {
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  const { count } = await supabaseAdmin
+    .from('posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'published')
+    .gte('published_at', todayStart.toISOString())
+
+  return count ?? 0
+}
+
+// Add a small random delay variance (0–8 min) so posts don't fire at exact scheduled times
+function jitterMs(): number {
+  return Math.floor(Math.random() * 8 * 60 * 1000)
+}
 
 async function handler(_request: NextRequest) {
   const now = new Date().toISOString()
 
   const { data: posts, error } = await supabaseAdmin
     .from('posts')
-    .select('*, users(*)')
+    .select('*, users(*), user_profiles!inner(control_preference, trust_score, risk_score, autopilot_eligible)')
     .eq('status', 'scheduled')
     .lte('scheduled_at', now)
     .limit(20)
@@ -25,7 +51,14 @@ async function handler(_request: NextRequest) {
         linkedin_token_expires_at: string | null
         linkedin_id: string
       }
+      const profile = post.user_profiles as {
+        control_preference: string | null
+        trust_score: number | null
+        risk_score: number | null
+        autopilot_eligible: boolean | null
+      } | null
 
+      // — Token check —
       if (!user.linkedin_access_token || isTokenExpired(user.linkedin_token_expires_at)) {
         await supabaseAdmin
           .from('posts')
@@ -34,10 +67,76 @@ async function handler(_request: NextRequest) {
         return { id: post.id, status: 'failed', reason: 'token_expired' }
       }
 
+      // — Spam score block —
+      if ((post.spam_score ?? 0) >= SPAM_BLOCK_THRESHOLD) {
+        await supabaseAdmin
+          .from('posts')
+          .update({ status: 'pending_approval', failure_reason: 'High spam score — manual review required' })
+          .eq('id', post.id)
+        await logComplianceEvent(post.user_id, 'post_blocked_spam', 'high', {
+          spam_score: post.spam_score,
+        }, post.id)
+        return { id: post.id, status: 'blocked', reason: 'high_spam_score' }
+      }
+
+      // — Manual review flag —
+      if (post.requires_manual_review) {
+        await supabaseAdmin
+          .from('posts')
+          .update({ status: 'pending_approval', failure_reason: 'Flagged for manual review before publishing' })
+          .eq('id', post.id)
+        await logComplianceEvent(post.user_id, 'post_flagged_review', 'medium', {
+          spam_score: post.spam_score,
+          humanity_score: post.humanity_score,
+        }, post.id)
+        return { id: post.id, status: 'blocked', reason: 'requires_manual_review' }
+      }
+
+      // — Autopilot eligibility check —
+      if (profile?.control_preference === 'autopilot' && profile?.autopilot_eligible === false) {
+        await supabaseAdmin
+          .from('posts')
+          .update({ status: 'pending_approval', failure_reason: 'Account not yet eligible for autopilot — manual approval needed' })
+          .eq('id', post.id)
+        await logComplianceEvent(post.user_id, 'autopilot_blocked', 'medium', {
+          trust_score: profile.trust_score,
+          risk_score: profile.risk_score,
+        }, post.id)
+        return { id: post.id, status: 'blocked', reason: 'autopilot_not_eligible' }
+      }
+
+      // — Trust / risk gate (high risk users blocked from autopilot) —
+      if ((profile?.risk_score ?? 0) >= 70) {
+        await supabaseAdmin
+          .from('posts')
+          .update({ status: 'pending_approval', failure_reason: 'Account risk level too high for automatic publishing' })
+          .eq('id', post.id)
+        await logComplianceEvent(post.user_id, 'autopilot_blocked', 'high', {
+          risk_score: profile?.risk_score,
+        }, post.id)
+        return { id: post.id, status: 'blocked', reason: 'high_risk_account' }
+      }
+
+      // — Posting cadence protection: max 2 auto-posts per day —
+      const todayCount = await countTodayPublished(post.user_id)
+      if (todayCount >= MAX_AUTOPOSTS_PER_DAY) {
+        // Reschedule to next day same hour instead of failing
+        const nextDay = new Date(post.scheduled_at)
+        nextDay.setDate(nextDay.getDate() + 1)
+        await supabaseAdmin
+          .from('posts')
+          .update({ scheduled_at: nextDay.toISOString() })
+          .eq('id', post.id)
+        return { id: post.id, status: 'rescheduled', reason: 'daily_cadence_limit' }
+      }
+
       await supabaseAdmin
         .from('posts')
         .update({ status: 'publishing' })
         .eq('id', post.id)
+
+      // Small time jitter so all posts don't fire at exactly the same second
+      await new Promise(res => setTimeout(res, jitterMs()))
 
       const linkedinPostId = await publishToLinkedIn({
         accessToken: user.linkedin_access_token,
