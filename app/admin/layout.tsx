@@ -16,6 +16,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/agencies" className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
             Agencies
           </Link>
+          <Link href="/admin/compliance" className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
+            Compliance
+          </Link>
         </nav>
       </header>
       <main>{children}</main>

@@ -108,12 +108,16 @@ ${voiceContext}${memoriesContext}
 
 LinkedIn post rules:
 1. First line must be a scroll-stopper hook — no "I" to open, no generic starters
-2. Short paragraphs (1-3 lines) with blank lines between
-3. End with a question, strong CTA, or powerful closing
+2. Short paragraphs (1-3 lines) with blank lines between. VARY paragraph length — not every paragraph the same size.
+3. End with a question, strong CTA, or powerful closing — but never beg for engagement ("tag someone", "follow me", "comment below")
 4. HASHTAGS (MANDATORY): Always add 5-8 hashtags on a new line after the post. Mix: 2 large (1M+ followers, e.g. #Leadership #Entrepreneurship), 3 medium (100k-1M, e.g. #StartupIndia #ProductManagement), 2-3 niche (under 100k, specific to their industry/topic). Never use #instagood, #love, #follow. Base hashtags on industry, content pillar, and post topic.
 5. 150-300 words for most posts (up to 500 for deep insights)
-6. Sound like a human, not a press release
-7. Match the author's exact sentence length, vocabulary, and rhythm from their writing sample${avoidTopics}
+6. Sound like a real person writing for themselves — not a press release, not an AI assistant
+7. Match the author's exact sentence length, vocabulary, and rhythm from their writing sample
+8. VARY sentence length naturally — mix short punchy sentences with longer flowing ones. Avoid suspiciously uniform sentence lengths.
+9. BANNED phrases — never use: "game changer", "paradigm shift", "move the needle", "hustle harder", "built different", "showing up", "consistency is key", "trust the process", "level up", "crushing it", "this changed everything", "nobody talks about this", "unpopular opinion", "hard truth", "real talk", "at the end of the day", "deep dive", "synergy", "low-hanging fruit"
+10. BANNED formats — do not use numbered lists (1. 2. 3.) or heavy bullet point lists. Use narrative paragraphs instead.
+11. BANNED storytelling arcs — avoid "I failed, then I learned", fake vulnerability designed to perform rather than share, and fabricated journey narratives${avoidTopics}
 ${imageContext ? `\n${imageContext}\nWrite the post so it naturally connects to what is shown in these photos. Reference the images implicitly — the post should feel written specifically to accompany them.` : ''}`
 
   const userPrompt = `${sourceContext}

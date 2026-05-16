@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { ImageSelector } from '@/components/image-selector'
 import {
   Plus, Zap, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
-  Pencil, Trash2, Sparkles, ImageIcon, X,
+  Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2,
 } from 'lucide-react'
 
 const STATUS_COLOR: Record<string, string> = {
@@ -95,6 +95,15 @@ function PostsContent() {
     await fetch(`/api/posts/${id}/update`, { method: 'DELETE' })
     setPosts(p => p.filter(x => x.id !== id))
     toast('Post deleted')
+  }
+
+  async function approvePost(id: string) {
+    const res = await fetch(`/api/posts/${id}/approve`, { method: 'POST' })
+    const data = await res.json()
+    if (data.error) { toast.error(data.error); return }
+    setPosts(p => p.map(x => x.id === id ? { ...x, status: data.post.status } : x))
+    const label = data.post.status === 'scheduled' ? 'Post approved and scheduled' : 'Post approved'
+    toast.success(label)
   }
 
   async function saveEdit() {

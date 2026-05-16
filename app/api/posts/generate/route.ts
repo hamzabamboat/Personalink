@@ -1,5 +1,7 @@
+import { analyzeContent } from "@/lib/compliance"
+import { calculateSimilarityScore } from "@/lib/similarity"
+import { logComplianceEvent } from "@/lib/compliance-events"
 import { NextRequest, NextResponse } from 'next/server'
-
 export const maxDuration = 60
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
@@ -184,7 +186,10 @@ export async function POST(request: NextRequest) {
 
   // Save drafts
   const insertedPosts = await Promise.all(
-    validPosts.map(content => {
+    validPosts.map(async content => {
+      const scores = analyzeContent(content)
+      const similarityScore = calculateSimilarityScore(content, recentContents)
+
       const row: Record<string, unknown> = {
         user_id: user.id,
         content,
@@ -193,19 +198,40 @@ export async function POST(request: NextRequest) {
         voice_note_id: voiceNoteId || null,
         story_bank_id: storyBankId || null,
         generation_prompt: topic || transcript?.slice(0, 200) || storyText?.slice(0, 200),
+        spam_score: scores.spam_score,
+        humanity_score: scores.humanity_score,
+        hook_similarity_score: scores.hook_similarity_score,
+        originality_score: scores.originality_score,
+        similarity_score: similarityScore,
+        requires_manual_review: scores.requires_manual_review,
       }
-      // Only include image_urls if there are actual URLs (column may not exist yet)
       if (selectedImageUrls.length) row.image_urls = selectedImageUrls
 
-      return supabaseAdmin
+      const result = await supabaseAdmin
         .from('posts')
         .insert(row)
         .select()
         .single()
-        .then(r => {
-          if (r.error) console.error('[posts/generate] insert error:', r.error.message)
-          return r.data
-        })
+
+      if (result.error) {
+        console.error('[posts/generate] insert error:', result.error.message)
+        return null
+      }
+
+      // Log compliance events for flagged content (non-blocking)
+      if (scores.spam_score >= 40) {
+        logComplianceEvent(user.id, 'high_spam_generation', scores.spam_score >= 60 ? 'high' : 'medium', {
+          spam_score: scores.spam_score,
+          humanity_score: scores.humanity_score,
+          flags: scores.flags,
+        }, result.data?.id)
+      } else if (scores.requires_manual_review) {
+        logComplianceEvent(user.id, 'post_flagged_review', 'low', {
+          flags: scores.flags,
+        }, result.data?.id)
+      }
+
+      return result.data
     })
   )
 
