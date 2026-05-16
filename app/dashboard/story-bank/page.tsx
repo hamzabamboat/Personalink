@@ -450,7 +450,7 @@ export default function StoryBankPage() {
                       {deleting === story.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     </button>
                     <Link
-                      href="/dashboard/generate?tab=story"
+                      href={`/dashboard/generate?tab=story&storyId=${story.id}`}
                       className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
                       style={{
                         height: 30, padding: '0 12px', borderRadius: 'var(--r-sm)',

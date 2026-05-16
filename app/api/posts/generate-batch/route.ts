@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { anthropic } from '@/lib/anthropic'
+import { anthropic, generateLinkedInPosts } from '@/lib/anthropic'
+import { UserProfile } from '@/lib/supabase'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
@@ -189,18 +190,51 @@ export async function POST(request: NextRequest) {
       .map(p => new Date(p.scheduled_at).toDateString())
   )
 
-  // Generate in batches of 10 to stay within token limits
-  const BATCH_SIZE = 10
-  const allPosts: Array<{ content: string; content_pillar: string; format: string }> = []
-  let batchIdx = 0
+  // Step 1: convert queued story bank entries first
+  const { data: pendingStories } = await supabaseAdmin
+    .from('story_bank')
+    .select('id, raw_text')
+    .eq('user_id', user.id)
+    .eq('status', 'raw')
+    .order('created_at', { ascending: true })
+    .limit(postsToGenerate)
 
-  while (allPosts.length < postsToGenerate) {
-    const remaining = postsToGenerate - allPosts.length
-    const batchCount = Math.min(remaining, BATCH_SIZE)
-    const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars)
-    allPosts.push(...batch)
-    batchIdx++
-    if (batch.length === 0) break
+  type PostRow = { content: string; content_pillar: string; format: string; story_bank_id?: string }
+  const allPosts: PostRow[] = []
+  const convertedStoryIds: string[] = []
+
+  for (const story of (pendingStories || []).slice(0, postsToGenerate)) {
+    try {
+      const variants = await generateLinkedInPosts({
+        profile: profile as unknown as UserProfile,
+        storyText: story.raw_text,
+      })
+      if (variants.length > 0) {
+        allPosts.push({
+          content: variants[0],
+          content_pillar: (profile.content_pillars as string[])?.[0] || 'Personal Growth',
+          format: 'story',
+          story_bank_id: story.id,
+        })
+        convertedStoryIds.push(story.id)
+      }
+    } catch { /* skip failed story, continue with rest */ }
+    if (allPosts.length >= postsToGenerate) break
+  }
+
+  // Step 2: fill remaining quota with AI batch generation
+  const aiPostsNeeded = postsToGenerate - allPosts.length
+  if (aiPostsNeeded > 0) {
+    const BATCH_SIZE = 10
+    let batchIdx = 0
+    while (allPosts.length < postsToGenerate) {
+      const remaining = postsToGenerate - allPosts.length
+      const batchCount = Math.min(remaining, BATCH_SIZE)
+      const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars)
+      allPosts.push(...batch)
+      batchIdx++
+      if (batch.length === 0) break
+    }
   }
 
   if (allPosts.length === 0) {
@@ -220,6 +254,7 @@ export async function POST(request: NextRequest) {
     source: 'ai_generated',
     status: postStatus,
     scheduled_at: slots[i]?.toISOString() ?? null,
+    ...(post.story_bank_id ? { story_bank_id: post.story_bank_id } : {}),
   }))
 
   const { data: insertedPosts, error: insertError } = await supabaseAdmin
@@ -231,10 +266,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save posts: ' + insertError.message }, { status: 500 })
   }
 
-  // Increment usage: one batch_run + all posts_generated
+  // Mark converted stories as converted
+  if (convertedStoryIds.length > 0) {
+    await supabaseAdmin.from('story_bank').update({ status: 'converted' }).in('id', convertedStoryIds)
+  }
+
+  // Increment usage: one batch_run + all posts_generated + story_conversions
   await Promise.all([
     incrementUsage(user.id, 'batch_runs'),
     incrementUsage(user.id, 'posts_generated', allPosts.length),
+    convertedStoryIds.length > 0 ? incrementUsage(user.id, 'story_conversions', convertedStoryIds.length) : Promise.resolve(),
     incrementRateLimit(user.id, 'claude_calls'),
     incrementRateLimit(user.id, 'batch_generation'),
     trackAndCheckSpend('claude_sonnet', user.id, { posts: allPosts.length }),
