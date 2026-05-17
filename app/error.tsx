@@ -24,7 +24,8 @@ export default function GlobalError({
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-2">Something went wrong</h1>
         <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-          An unexpected error occurred. Please try refreshing the page. If the problem persists, contact support.
+          An unexpected error occurred. Please try refreshing the page. If the problem persists, email us at{' '}
+          <a href="mailto:support@personalink.in" className="text-blue-500 hover:underline">support@personalink.in</a>.
         </p>
         <div className="flex gap-3 justify-center">
           <Button onClick={reset}>Try again</Button>

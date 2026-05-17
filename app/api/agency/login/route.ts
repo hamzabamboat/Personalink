@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
     if (!agency.is_active) {
-      return NextResponse.json({ error: 'Account is deactivated. Contact support.' }, { status: 403 })
+      return NextResponse.json({ error: 'Account is deactivated. Email support@personalink.in for help.' }, { status: 403 })
     }
     if (!verifyPassword(password, agency.password_hash)) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })

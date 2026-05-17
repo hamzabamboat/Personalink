@@ -1360,13 +1360,17 @@ function HomeContent() {
             <p style={{ marginTop: 16, fontSize: 14, color: 'rgba(255,255,255,.35)', lineHeight: 1.7 }}>
               Your LinkedIn, on autopilot — without sounding like everyone else&apos;s autopilot.
             </p>
+            <a href="mailto:support@personalink.in" style={{ display: 'inline-block', marginTop: 12, fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none', transition: 'color .15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,.7)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,.4)')}
+            >support@personalink.in</a>
           </div>
           {/* Link columns */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
             {[
               { heading: 'Product', links: [['#features', 'Features'], ['#voice', 'Voice engine'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']] },
               { heading: 'Company', links: [['#', 'About'], ['#', 'Blog'], ['#', 'Changelog'], ['#', 'Careers']] },
-              { heading: 'Legal',   links: [['#', 'Privacy'], ['#', 'Terms'], ['#', 'Security'], ['#', 'Contact']] },
+              { heading: 'Legal',   links: [['#', 'Privacy'], ['#', 'Terms'], ['#', 'Security'], ['mailto:support@personalink.in', 'Contact']] },
             ].map(col => (
               <div key={col.heading}>
                 <h4 style={{ fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,.4)', marginBottom: 16, textTransform: 'uppercase' }}>{col.heading}</h4>

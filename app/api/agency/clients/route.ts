@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
   if ((count ?? 0) >= agency.seat_limit) {
     return NextResponse.json(
-      { error: `Seat limit reached (${agency.seat_limit}). Contact us to increase your limit.` },
+      { error: `Seat limit reached (${agency.seat_limit}). Email support@personalink.in to increase your limit.` },
       { status: 403 }
     )
   }

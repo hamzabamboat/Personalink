@@ -96,7 +96,7 @@ export default function UpgradePage() {
             }),
           })
           const verifyData = await verifyRes.json()
-          if (verifyData.error) { toast.error('Payment verification failed. Please contact support.'); setUpgradingPlan(null); return }
+          if (verifyData.error) { toast.error('Payment verification failed. Please email support@personalink.in'); setUpgradingPlan(null); return }
           toast.success(`Welcome to ${plan.label}! Redirecting to your dashboard...`)
           setTimeout(() => { window.location.href = '/dashboard' }, 1500)
         },
