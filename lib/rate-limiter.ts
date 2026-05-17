@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './supabase-admin'
 import { alertHighCallVolume } from './admin-alerts'
+import { isUserBypassed } from './usage-limits'
 
 // Per-user hourly limits
 const HOURLY_LIMITS: Record<string, number> = {
@@ -32,6 +33,8 @@ export interface RateLimitResult {
 }
 
 export async function checkRateLimit(userId: string, feature: string): Promise<RateLimitResult> {
+  if (await isUserBypassed(userId)) return { allowed: true, count: 0, limit: 9999, retryAfterSeconds: 0 }
+
   const limit = HOURLY_LIMITS[feature] ?? 100
   const window = currentHourWindow()
 

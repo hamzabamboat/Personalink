@@ -17,6 +17,7 @@ type UserRow = {
   last_active: string
   posts_total: number
   posts_this_month: number
+  bypass_limits: boolean
 }
 
 type Metrics = {
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [search, setSearch] = useState('')
+  const [togglingBypass, setTogglingBypass] = useState<string | null>(null)
 
   function loadData() {
     setLoading(true)
@@ -103,6 +105,22 @@ export default function AdminDashboard() {
 
   function downloadCSV() {
     window.location.href = '/api/admin/export-csv'
+  }
+
+  async function toggleBypass(userId: string, current: boolean) {
+    setTogglingBypass(userId)
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/bypass`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bypass_limits: !current }),
+      })
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, bypass_limits: !current } : u))
+      }
+    } finally {
+      setTogglingBypass(null)
+    }
   }
 
   async function syncSheets() {
@@ -267,7 +285,7 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
-                  {['Name', 'Email', 'Plan', 'Status', 'Processor', 'Joined', 'Posts Total', 'Posts/Mo', 'Resubs', 'Last Active'].map(h => (
+                  {['Name', 'Email', 'Plan', 'Status', 'Processor', 'Joined', 'Posts Total', 'Posts/Mo', 'Resubs', 'Last Active', 'Unlimited'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                       {h}
                     </th>
@@ -295,11 +313,21 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3 text-slate-700 text-center">{u.posts_this_month}</td>
                     <td className="px-4 py-3 text-slate-700 text-center">{u.subscription_count}</td>
                     <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{fmt(u.last_active)}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleBypass(u.id, u.bypass_limits)}
+                        disabled={togglingBypass === u.id}
+                        title={u.bypass_limits ? 'Revoke unlimited access' : 'Grant unlimited access'}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${u.bypass_limits ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${u.bypass_limits ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="px-4 py-12 text-center text-slate-400 text-sm">
+                    <td colSpan={11} className="px-4 py-12 text-center text-slate-400 text-sm">
                       {search ? 'No users match your search.' : 'No users yet.'}
                     </td>
                   </tr>

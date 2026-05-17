@@ -1,5 +1,30 @@
 import { supabaseAdmin } from './supabase-admin'
 
+// Env var fallback for local dev (no DB round-trip needed)
+const UNLIMITED_USER_IDS = new Set(
+  (process.env.UNLIMITED_USER_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean)
+)
+
+// In-memory cache: userId → { bypassed, expiresAt }
+const bypassCache = new Map<string, { bypassed: boolean; expiresAt: number }>()
+
+export async function isUserBypassed(userId: string): Promise<boolean> {
+  if (UNLIMITED_USER_IDS.has(userId)) return true
+
+  const cached = bypassCache.get(userId)
+  if (cached && cached.expiresAt > Date.now()) return cached.bypassed
+
+  const { data } = await supabaseAdmin
+    .from('user_profiles')
+    .select('bypass_limits')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const bypassed = data?.bypass_limits ?? false
+  bypassCache.set(userId, { bypassed, expiresAt: Date.now() + 60_000 })
+  return bypassed
+}
+
 export const PLAN_LIMITS = {
   starter: {
     posts_generated: 12,
@@ -70,6 +95,8 @@ export async function checkLimit(
   plan: string,
   feature: FeatureKey,
 ): Promise<{ allowed: boolean; used: number; limit: number; remaining: number }> {
+  if (await isUserBypassed(userId)) return { allowed: true, used: 0, limit: 9999, remaining: 9999 }
+
   const limits = getPlanLimits(plan)
   const limit = limits[feature] as number
   const resetAt = getResetAt()

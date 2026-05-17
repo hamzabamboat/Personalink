@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false }),
     supabaseAdmin
       .from('user_profiles')
-      .select('user_id, name, plan, posts_used_this_month, posts_limit'),
+      .select('user_id, name, plan, posts_used_this_month, posts_limit, bypass_limits'),
     supabaseAdmin.from('posts').select('user_id'),
     supabaseAdmin
       .from('subscriptions')
@@ -98,6 +98,7 @@ export async function GET(request: NextRequest) {
       last_active: u.updated_at,
       posts_total: postCountMap[u.id] ?? 0,
       posts_this_month: profile?.posts_used_this_month ?? 0,
+      bypass_limits: profile?.bypass_limits ?? false,
     }
   })
 
