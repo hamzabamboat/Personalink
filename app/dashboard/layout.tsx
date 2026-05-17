@@ -42,6 +42,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AppearanceTrigger } from '@/components/appearance-trigger'
 import { WordMark } from '@/components/word-mark'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { PWAInstallSidebarButton } from '@/components/pwa-install-prompt'
 
 type NavItem = {
   href: string
@@ -315,9 +316,12 @@ function SidebarContent({ user, profile, plan, pathname, collapsed = false }: {
         </div>
       )}
 
+      {/* PWA desktop install */}
+      <PWAInstallSidebarButton collapsed={collapsed} />
+
       {/* Appearance trigger */}
       {!collapsed && (
-        <div className="px-3 pb-3" style={{ borderTop: collapsed ? undefined : '1px solid var(--line)', paddingTop: 12 }}>
+        <div className="px-3 pb-3" style={{ paddingTop: 12 }}>
           <AppearanceTrigger variant="sidebar" />
         </div>
       )}
