@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
       const scores = analyzeContent(content)
       const similarityScore = calculateSimilarityScore(content, recentContents)
 
-      const row: Record<string, unknown> = {
+      const coreRow: Record<string, unknown> = {
         user_id: user.id,
         content,
         status: 'draft',
@@ -202,6 +202,11 @@ export async function POST(request: NextRequest) {
         voice_note_id: voiceNoteId || null,
         story_bank_id: storyBankId || null,
         generation_prompt: topic || transcript?.slice(0, 200) || storyText?.slice(0, 200),
+      }
+      if (selectedImageUrls.length) coreRow.image_urls = selectedImageUrls
+
+      const fullRow = {
+        ...coreRow,
         spam_score: scores.spam_score,
         humanity_score: scores.humanity_score,
         hook_similarity_score: scores.hook_similarity_score,
@@ -209,13 +214,12 @@ export async function POST(request: NextRequest) {
         similarity_score: similarityScore,
         requires_manual_review: scores.requires_manual_review,
       }
-      if (selectedImageUrls.length) row.image_urls = selectedImageUrls
 
-      const result = await supabaseAdmin
-        .from('posts')
-        .insert(row)
-        .select()
-        .single()
+      let result = await supabaseAdmin.from('posts').insert(fullRow).select().single()
+      // Compliance columns may not exist yet — fall back to core columns
+      if (result.error) {
+        result = await supabaseAdmin.from('posts').insert(coreRow).select().single()
+      }
 
       if (result.error) {
         console.error('[posts/generate] insert error:', result.error.message)
