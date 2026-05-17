@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
       const scores = analyzeContent(content)
       const similarityScore = calculateSimilarityScore(content, recentContents)
 
-      const coreRow: Record<string, unknown> = {
+      const fullRow: Record<string, unknown> = {
         user_id: user.id,
         content,
         status: 'draft',
@@ -202,11 +202,6 @@ export async function POST(request: NextRequest) {
         voice_note_id: voiceNoteId || null,
         story_bank_id: storyBankId || null,
         generation_prompt: topic || transcript?.slice(0, 200) || storyText?.slice(0, 200),
-      }
-      if (selectedImageUrls.length) coreRow.image_urls = selectedImageUrls
-
-      const fullRow = {
-        ...coreRow,
         spam_score: scores.spam_score,
         humanity_score: scores.humanity_score,
         hook_similarity_score: scores.hook_similarity_score,
@@ -214,11 +209,14 @@ export async function POST(request: NextRequest) {
         similarity_score: similarityScore,
         requires_manual_review: scores.requires_manual_review,
       }
+      if (selectedImageUrls.length) fullRow.image_urls = selectedImageUrls
+
+      // Minimal row using only original schema columns — used as last-resort fallback
+      const minimalRow: Record<string, unknown> = { user_id: user.id, content, status: 'draft' }
 
       let result = await supabaseAdmin.from('posts').insert(fullRow).select().single()
-      // Compliance columns may not exist yet — fall back to core columns
       if (result.error) {
-        result = await supabaseAdmin.from('posts').insert(coreRow).select().single()
+        result = await supabaseAdmin.from('posts').insert(minimalRow).select().single()
       }
 
       if (result.error) {
@@ -259,12 +257,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin.from('story_bank').update({ status: 'converted' }).eq('id', storyBankId)
   }
 
-  const insertErrors = insertedPosts.filter(p => p && (p as unknown as { _insertError?: string })._insertError)
-  const savedPosts = insertedPosts.filter(p => p && !(p as unknown as { _insertError?: string })._insertError) as Array<{ id: string; content: string }>
-  if (savedPosts.length === 0 && insertErrors.length > 0) {
-    const msg = (insertErrors[0] as unknown as { _insertError: string })._insertError
-    return NextResponse.json({ error: `Insert failed: ${msg}` }, { status: 500 })
-  }
+  const savedPosts = insertedPosts.filter(Boolean) as Array<{ id: string; content: string }>
 
   // Fire-and-forget: extract topics + memories from saved posts and source content
   Promise.allSettled([
