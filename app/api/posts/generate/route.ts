@@ -222,8 +222,8 @@ export async function POST(request: NextRequest) {
       }
 
       if (result.error) {
-        console.error('[posts/generate] insert error:', result.error.message)
-        return null
+        console.error('[posts/generate] insert error:', result.error.message, result.error.code, result.error.details)
+        return { _insertError: result.error.message } as unknown as null
       }
 
       // Log compliance events for flagged content (non-blocking)
@@ -259,7 +259,12 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin.from('story_bank').update({ status: 'converted' }).eq('id', storyBankId)
   }
 
-  const savedPosts = insertedPosts.filter(Boolean) as Array<{ id: string; content: string }>
+  const insertErrors = insertedPosts.filter(p => p && (p as unknown as { _insertError?: string })._insertError)
+  const savedPosts = insertedPosts.filter(p => p && !(p as unknown as { _insertError?: string })._insertError) as Array<{ id: string; content: string }>
+  if (savedPosts.length === 0 && insertErrors.length > 0) {
+    const msg = (insertErrors[0] as unknown as { _insertError: string })._insertError
+    return NextResponse.json({ error: `Insert failed: ${msg}` }, { status: 500 })
+  }
 
   // Fire-and-forget: extract topics + memories from saved posts and source content
   Promise.allSettled([
