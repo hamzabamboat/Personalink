@@ -115,7 +115,7 @@ export default function AgencyDashboardPage() {
         body: JSON.stringify({ clientName: newClientName, email: newClientEmail }),
       })
       const data = await res.json()
-      if (!res.ok) { setAddError(data.error || 'Failed to add client'); return }
+      if (!res.ok) { setAddError(data.detail ? `${data.error}: ${data.detail}` : (data.error || 'Failed to add client')); return }
       setAddOpen(false)
       setNewClientName('')
       setNewClientEmail('')
