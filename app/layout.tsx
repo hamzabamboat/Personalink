@@ -144,7 +144,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0B458B',
+  themeColor: '#2B4DFF',
 }
 
 const fontVars = [

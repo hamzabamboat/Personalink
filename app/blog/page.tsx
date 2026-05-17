@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
+import { WordMark } from '@/components/word-mark'
 
 export const metadata: Metadata = {
   title: 'Blog — LinkedIn Growth Tips | PersonaLink',
@@ -36,53 +36,65 @@ const ARTICLES = [
 
 export default function BlogPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
-        <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
-              <Image src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
-            </div>
+    <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
+      <nav style={{ background: 'color-mix(in srgb, var(--surface) 95%, transparent)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(16px,4vw,32px)', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/">
+            <WordMark icon wordmark iconSize={30} />
           </Link>
-          <div className="flex gap-4 items-center">
-            <Link href="/#pricing" className="text-slate-500 text-sm font-medium hover:text-slate-900">Pricing</Link>
-            <Link href="/blog" className="text-brand text-sm font-semibold">Blog</Link>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <Link href="/#pricing" style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none' }}>Pricing</Link>
+            <Link href="/blog" style={{ fontSize: 14, fontWeight: 600, color: 'var(--pl-accent)', textDecoration: 'none' }}>Blog</Link>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-[860px] mx-auto px-4 md:px-6 py-12 md:py-20">
-        <div className="mb-12">
-          <div className="inline-flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-4">Blog</div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: 'clamp(48px,8vw,80px) clamp(16px,4vw,24px)' }}>
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, letterSpacing: '.06em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 16 }}>// blog</div>
+          <h1 style={{ fontSize: 'clamp(28px,5vw,48px)', fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--ink)', margin: '0 0 16px' }}>
             LinkedIn growth insights for Indian professionals
           </h1>
-          <p className="text-slate-500 text-lg">
+          <p style={{ fontSize: 17, color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>
             Actionable tips on LinkedIn automation, AI content, and personal branding — written for founders, consultants, and professionals in India.
           </p>
         </div>
 
-        <div className="flex flex-col gap-8">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {ARTICLES.map(article => (
             <Link
               key={article.slug}
               href={`/blog/${article.slug}`}
-              className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all p-6 md:p-8 group"
+              style={{
+                background: 'var(--surface)',
+                borderRadius: 16,
+                border: '1px solid var(--line)',
+                padding: 'clamp(20px,4vw,32px)',
+                display: 'block',
+                textDecoration: 'none',
+                transition: 'border-color .2s, box-shadow .2s',
+              }}
+              className="group"
             >
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 {article.tags.map(tag => (
-                  <span key={tag} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-brand/5 text-brand border border-brand/10">
+                  <span key={tag} style={{
+                    fontFamily: 'var(--f-mono)', fontSize: 10.5, letterSpacing: '.04em',
+                    padding: '3px 10px', borderRadius: 999,
+                    background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)',
+                    border: '1px solid color-mix(in oklab, var(--pl-accent) 20%, transparent)',
+                  }}>
                     {tag}
                   </span>
                 ))}
               </div>
-              <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 group-hover:text-brand transition-colors">
+              <h2 style={{ fontSize: 'clamp(17px,2vw,22px)', fontWeight: 500, letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 10px', lineHeight: 1.25 }}>
                 {article.title}
               </h2>
-              <p className="text-slate-500 leading-relaxed mb-4">
+              <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 14px' }}>
                 {article.excerpt}
               </p>
-              <div className="flex items-center gap-3 text-[13px] text-slate-400">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--ink-4)' }}>
                 <span>{article.date}</span>
                 <span>·</span>
                 <span>{article.readTime}</span>
@@ -92,8 +104,10 @@ export default function BlogPage() {
         </div>
       </div>
 
-      <footer className="bg-slate-900 py-10 px-6 text-center mt-20">
-        <p className="text-slate-500 text-[13px]">© 2026 PersonaLink. Your LinkedIn, on autopilot.</p>
+      <footer style={{ background: 'var(--ink)', padding: '40px 24px', textAlign: 'center', marginTop: 80 }}>
+        <p style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'rgba(238,242,251,.45)', letterSpacing: '.04em' }}>
+          © 2026 PersonaLink. Your LinkedIn, on autopilot.
+        </p>
       </footer>
     </div>
   )

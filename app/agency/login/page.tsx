@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { WordMark } from '@/components/word-mark'
 
 export default function AgencyLoginPage() {
   useEffect(() => { document.title = 'Agency Login — PersonaLink' }, [])
@@ -39,24 +39,22 @@ export default function AgencyLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-2xl p-2 shadow-xl">
-            <Image src="/logo-icon.png" alt="PersonaLink" width={48} height={48} className="h-12 w-12" />
-          </div>
+          <WordMark icon wordmark={false} iconSize={48} variant="white" />
         </div>
 
-        <div className="bg-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700">
-          <div className="mb-6 text-center">
-            <h1 className="text-white text-xl font-bold">Agency Login</h1>
-            <p className="text-slate-400 text-sm mt-1">Sign in to manage your client accounts</p>
+        <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 32, border: '1px solid var(--line)', boxShadow: '0 24px 64px -12px rgba(0,0,0,.5)' }}>
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 6px' }}>Agency Login</h1>
+            <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>Sign in to manage your client accounts</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label className="text-slate-300 text-xs font-medium block mb-1.5">Email</label>
+              <label className="db-label">Email</label>
               <input
                 type="email"
                 value={email}
@@ -64,13 +62,13 @@ export default function AgencyLoginPage() {
                 required
                 autoComplete="email"
                 placeholder="agency@example.com"
-                className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
+                className="db-input"
               />
             </div>
 
             <div>
-              <label className="text-slate-300 text-xs font-medium block mb-1.5">Password</label>
-              <div className="relative">
+              <label className="db-label">Password</label>
+              <div style={{ position: 'relative' }}>
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
@@ -78,12 +76,13 @@ export default function AgencyLoginPage() {
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
+                  className="db-input"
+                  style={{ paddingRight: 44 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
                 >
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -91,7 +90,7 @@ export default function AgencyLoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-900/30 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-300">
+              <div style={{ background: 'rgba(185,28,28,.1)', border: '1px solid rgba(185,28,28,.3)', borderRadius: 'var(--r-sm)', padding: '10px 14px', fontSize: 13, color: '#f87171' }}>
                 {error}
               </div>
             )}
@@ -99,7 +98,8 @@ export default function AgencyLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand hover:bg-brand-dark text-white rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+              className="btn-dash btn-dash--lg"
+              style={{ background: 'var(--pl-accent)', color: '#fff', borderColor: 'transparent', marginTop: 4, justifyContent: 'center', opacity: loading ? 0.6 : 1 }}
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -111,9 +111,9 @@ export default function AgencyLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-slate-500 text-xs mt-6">
+        <p style={{ textAlign: 'center', fontFamily: 'var(--f-mono)', fontSize: 12, color: 'rgba(238,242,251,.4)', marginTop: 24 }}>
           Not an agency?{' '}
-          <a href="/" className="text-brand hover:underline">Back to PersonaLink</a>
+          <a href="/" style={{ color: 'var(--pl-accent)', textDecoration: 'none' }}>Back to PersonaLink</a>
         </p>
       </div>
     </div>

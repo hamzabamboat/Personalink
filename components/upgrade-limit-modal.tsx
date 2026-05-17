@@ -85,14 +85,14 @@ function UpgradeModalContent({ feature, plan, used, limit, toastId }: Config) {
       </p>
 
       {nextPlan && benefits.length > 0 && (
-        <div className="bg-[#0B458B]/5 border border-[#0B458B]/10 rounded-xl p-3.5 mb-4">
-          <div className="text-[11px] font-bold text-[#0B458B] uppercase tracking-wider mb-2">
+        <div className="rounded-xl p-3.5 mb-4" style={{ background: 'var(--pl-accent-soft)', border: '1px solid color-mix(in oklab, var(--pl-accent) 20%, transparent)' }}>
+          <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--pl-accent)' }}>
             Upgrade to {PLAN_NAMES[nextPlan]}
           </div>
           <ul className="flex flex-col gap-1.5">
             {benefits.map(b => (
-              <li key={b} className="text-xs text-slate-600 flex items-center gap-2">
-                <Check className="w-3 h-3 text-[#0B458B] shrink-0" strokeWidth={2.5} />
+              <li key={b} className="text-xs flex items-center gap-2" style={{ color: 'var(--ink-2)' }}>
+                <Check className="w-3 h-3 shrink-0" style={{ color: 'var(--pl-accent)' }} strokeWidth={2.5} />
                 {b}
               </li>
             ))}
@@ -105,7 +105,7 @@ function UpgradeModalContent({ feature, plan, used, limit, toastId }: Config) {
           <Link
             href="/dashboard/upgrade"
             onClick={dismiss}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#0B458B] text-white font-bold text-sm hover:opacity-90 transition-opacity"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-white font-bold text-sm hover:opacity-90 transition-opacity" style={{ background: 'var(--pl-accent)' }}
           >
             Upgrade to {PLAN_NAMES[nextPlan]}
             <ArrowRight className="w-4 h-4" />

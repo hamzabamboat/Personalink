@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Bot, CheckCircle2, Lightbulb, Check } from 'lucide-react'
 import { QuarterRings } from '@/components/concentric-rings'
+import { WordMark } from '@/components/word-mark'
 
 const TOTAL_STEPS = 7
 
@@ -149,22 +150,18 @@ export default function OnboardingPage() {
   }))
 
   return (
-    <div className="min-h-screen bg-slate-50 relative">
+    <div className="min-h-screen relative" style={{ background: 'var(--bg)' }}>
       <QuarterRings size={400} color="blue" opacity={0.05} className="fixed bottom-0 right-0 pointer-events-none hidden lg:block" />
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6">
+      <div className="px-4 sm:px-6" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)' }}>
         <div className="max-w-[720px] mx-auto h-16 flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
-              <img src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
-            </div>
-          </div>
-          <span className="text-[13px] text-slate-400">Step {step} of {TOTAL_STEPS}</span>
+          <WordMark icon wordmark iconSize={28} />
+          <span style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--ink-4)', letterSpacing: '.04em' }}>Step {step} of {TOTAL_STEPS}</span>
         </div>
         {/* Progress bar */}
         <div className="max-w-[720px] mx-auto pb-0">
-          <div className="h-[3px] bg-slate-200 rounded-full overflow-hidden">
-            <div className="h-full bg-brand rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--line-2)' }}>
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: 'var(--pl-accent)' }} />
           </div>
         </div>
       </div>

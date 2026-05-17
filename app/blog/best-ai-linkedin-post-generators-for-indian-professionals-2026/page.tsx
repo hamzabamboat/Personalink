@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
+import { WordMark } from '@/components/word-mark'
 
 export const metadata: Metadata = {
   title: 'Best AI LinkedIn Post Generators for Indian Professionals 2026 | PersonaLink',
@@ -15,28 +15,27 @@ export const metadata: Metadata = {
 
 export default function Article2() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
-        <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
-              <Image src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
-            </div>
+    <div className="min-h-screen" style={{ background: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
+      <nav style={{ background: 'color-mix(in srgb, var(--surface) 95%, transparent)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(16px,4vw,32px)', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/">
+            <WordMark icon wordmark iconSize={30} />
           </Link>
-          <Link href="/blog" className="text-slate-500 text-sm font-medium hover:text-slate-900">← Blog</Link>
+          <Link href="/blog" style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none' }}>← Blog</Link>
         </div>
       </nav>
 
       <article className="max-w-[720px] mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="flex flex-wrap gap-2 mb-6">
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">AI LinkedIn Manager India</span>
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">Product Review</span>
+          {['AI LinkedIn Manager India', 'Product Review'].map(tag => (
+            <span key={tag} style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, letterSpacing: '.04em', padding: '3px 10px', borderRadius: 999, background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', border: '1px solid color-mix(in oklab, var(--pl-accent) 20%, transparent)' }}>{tag}</span>
+          ))}
         </div>
 
-        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight leading-tight">
+        <h1 style={{ fontSize: 'clamp(26px,4vw,38px)', fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1.1, color: 'var(--ink)', margin: '0 0 12px' }}>
           Best AI LinkedIn post generators for Indian professionals 2026
         </h1>
-        <p className="text-slate-400 text-sm mb-10">April 2026 · 7 min read</p>
+        <p style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--ink-4)', letterSpacing: '.04em', marginBottom: 40 }}>April 2026 · 7 min read</p>
 
         <div className="prose prose-slate max-w-none text-slate-600 leading-[1.8]">
           <p className="text-lg text-slate-700 font-medium mb-6">
@@ -95,18 +94,18 @@ export default function Article2() {
             At ₹999-4,999/month, an AI LinkedIn manager pays for itself with a single warm lead or partnership. The question isn't whether it's worth it — it's which tool fits your workflow and budget.
           </p>
 
-          <div className="mt-12 p-6 bg-blue-50 border border-blue-100 rounded-2xl">
-            <h3 className="font-bold text-blue-900 mb-2">Try PersonaLink free for 7 days</h3>
-            <p className="text-blue-700 text-sm mb-4">The AI LinkedIn manager built for Indian professionals. No credit card required to start.</p>
-            <Link href="/" className="inline-flex items-center gap-2 bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-800 transition-colors">
+          <div style={{ marginTop: 48, padding: 24, background: 'var(--pl-accent-soft)', border: '1px solid color-mix(in oklab, var(--pl-accent) 25%, transparent)', borderRadius: 16 }}>
+            <h3 style={{ fontWeight: 500, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.02em' }}>Try PersonaLink free for 7 days</h3>
+            <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 16 }}>The AI LinkedIn manager built for Indian professionals. No credit card required to start.</p>
+            <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--pl-accent)', color: '#fff', padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
               Start free trial →
             </Link>
           </div>
         </div>
       </article>
 
-      <footer className="bg-slate-900 py-10 px-6 text-center mt-8">
-        <p className="text-slate-500 text-[13px]">© 2026 PersonaLink. Your LinkedIn, on autopilot.</p>
+      <footer style={{ background: 'var(--ink)', padding: '40px 24px', textAlign: 'center', marginTop: 32 }}>
+        <p style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'rgba(238,242,251,.45)', letterSpacing: '.04em' }}>© 2026 PersonaLink. Your LinkedIn, on autopilot.</p>
       </footer>
     </div>
   )

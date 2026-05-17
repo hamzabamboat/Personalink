@@ -92,7 +92,7 @@ export function PWAInstallPrompt() {
               {!isIOS && (
                 <button
                   onClick={install}
-                  className="flex-1 bg-[#0B458B] text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-[#083672] transition-colors"
+                  className="flex-1 bg-[var(--pl-accent)] text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-[#1e3a8a] transition-colors"
                 >
                   Install app
                 </button>

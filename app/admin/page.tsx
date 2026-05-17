@@ -200,7 +200,7 @@ export default function AdminDashboard() {
           <button
             onClick={syncSheets}
             disabled={syncing}
-            className="whitespace-nowrap px-5 py-2.5 bg-[#0B458B] text-white text-sm font-bold rounded-lg hover:bg-[#0a3a75] disabled:opacity-50 transition-colors flex items-center gap-2 self-start sm:self-auto"
+            className="whitespace-nowrap px-5 py-2.5 bg-brand text-white text-sm font-bold rounded-lg hover:bg-brand-dark disabled:opacity-50 transition-colors flex items-center gap-2 self-start sm:self-auto"
           >
             {syncing ? (
               <>
@@ -268,7 +268,7 @@ export default function AdminDashboard() {
             <button
               onClick={loadData}
               disabled={loading}
-              className="px-3 py-2 sm:py-1.5 bg-[#0B458B] text-white text-xs font-semibold rounded-lg hover:bg-[#0a3a75] disabled:opacity-50 transition-colors"
+              className="px-3 py-2 sm:py-1.5 bg-brand text-white text-xs font-semibold rounded-lg hover:bg-brand-dark disabled:opacity-50 transition-colors"
             >
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>

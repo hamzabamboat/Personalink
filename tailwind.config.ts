@@ -59,11 +59,11 @@ const config: Config = {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        // Legacy colors — still used by admin/agency/onboarding pages
+        // Brand electric blue — used by admin/agency/onboarding pages
         brand: {
-          DEFAULT: "#0B458B",
-          dark: "#083670",
-          light: "#e8f0fb",
+          DEFAULT: "#2B4DFF",
+          dark: "#1e3a8a",
+          light: "#e8edff",
         },
         pro: {
           DEFAULT: "#7c3aed",

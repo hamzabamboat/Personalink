@@ -26,16 +26,25 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-      <div className="bg-slate-800 rounded-2xl p-8 w-full max-w-sm shadow-2xl">
-        <div className="mb-6 text-center">
-          <div className="flex justify-center mb-3">
-            <div className="bg-white rounded-xl px-4 py-2 logo-always-white">
-              <img src="/logo-text.png" alt="PersonaLink" width={206} height={32} className="h-8 w-auto" />
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 32, width: '100%', maxWidth: 360, border: '1px solid var(--line)', boxShadow: '0 24px 64px -12px rgba(0,0,0,.5)' }}>
+        <div style={{ marginBottom: 24, textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+            <div style={{ width: 40, height: 40, background: 'var(--pl-accent)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="22" height="22" viewBox="0 0 100 100">
+                <g transform="translate(50 50) rotate(10)" fill="#ffffff">
+                  <path d="M 0 -42 C 4 -28 4 -12 0 0 C -4 -12 -4 -28 0 -42 Z" />
+                  <path d="M 0 -42 C 4 -28 4 -12 0 0 C -4 -12 -4 -28 0 -42 Z" transform="rotate(60)" />
+                  <path d="M 0 -42 C 4 -28 4 -12 0 0 C -4 -12 -4 -28 0 -42 Z" transform="rotate(120)" />
+                  <path d="M 0 -42 C 4 -28 4 -12 0 0 C -4 -12 -4 -28 0 -42 Z" transform="rotate(180)" />
+                  <path d="M 0 -42 C 4 -28 4 -12 0 0 C -4 -12 -4 -28 0 -42 Z" transform="rotate(240)" />
+                  <path d="M 0 -42 C 4 -28 4 -12 0 0 C -4 -12 -4 -28 0 -42 Z" transform="rotate(300)" />
+                </g>
+              </svg>
             </div>
           </div>
-          <h1 className="text-white font-bold text-xl">Admin Access</h1>
-          <p className="text-slate-400 text-sm mt-1">PersonaLink internal dashboard</p>
+          <h1 style={{ color: 'var(--ink)', fontWeight: 500, fontSize: 20, letterSpacing: '-0.025em', margin: '0 0 4px' }}>Admin Access</h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>PersonaLink internal dashboard</p>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="relative">

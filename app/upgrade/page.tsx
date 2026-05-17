@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Loader2, Check, CheckCircle2 } from 'lucide-react'
 import { ConcentricRings } from '@/components/concentric-rings'
+import { WordMark } from '@/components/word-mark'
 
 export default function UpgradePage() {
   const router = useRouter()
@@ -60,7 +61,7 @@ export default function UpgradePage() {
 
   const PLANS = [
     { id: 'starter', label: 'Starter', price: currencyInfo.starter, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#0B458B', popular: true },
+    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#2B4DFF', popular: true },
     { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
   ]
 
@@ -167,8 +168,8 @@ export default function UpgradePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="size-6 animate-spin text-slate-400" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <Loader2 className="size-6 animate-spin" style={{ color: 'var(--ink-4)' }} />
       </div>
     )
   }
@@ -176,18 +177,17 @@ export default function UpgradePage() {
   return (
     <>
       {processor === 'razorpay' && <Script src="https://checkout.razorpay.com/v1/checkout.js" />}
-      <div className="min-h-screen bg-slate-50">
-        <div className="bg-white border-b border-slate-200 px-6">
+      <div className="min-h-screen" style={{ background: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
+        <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)' }} className="px-6">
           <div className="max-w-[860px] mx-auto h-16 flex items-center justify-between">
-            <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
-              <img src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
-            </div>
+            <WordMark icon wordmark iconSize={30} />
             <button
               onClick={async () => {
                 await fetch('/api/auth/logout', { method: 'POST' })
                 window.location.href = '/'
               }}
-              className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+              style={{ fontSize: 13, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f-sans)' }}
+              className="hover:opacity-70 transition-opacity"
             >
               Sign out
             </button>
@@ -196,11 +196,12 @@ export default function UpgradePage() {
 
         <div className="max-w-[860px] mx-auto px-4 py-12">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-full px-4 py-1.5 text-[13px] font-semibold mb-4">
+            <div className="pl-eyebrow" style={{ marginBottom: 16 }}>
+              <span className="pl-eyebrow__dot" />
               Your trial or subscription has ended
             </div>
-            <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Choose your plan to continue</h1>
-            <p className="text-slate-500">Start your 7-day free trial — no charge until it ends. Cancel anytime.</p>
+            <h1 style={{ fontSize: 'clamp(24px,3vw,32px)', fontWeight: 500, letterSpacing: '-0.035em', color: 'var(--ink)', margin: '0 0 8px' }}>Choose your plan to continue</h1>
+            <p style={{ fontSize: 14, color: 'var(--ink-3)' }}>Start your 7-day free trial — no charge until it ends. Cancel anytime.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -228,15 +229,15 @@ export default function UpgradePage() {
                     <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: plan.color }}>
                       {plan.label}
                     </div>
-                    <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-0.04em', color: 'var(--ink)' }}>
                       {currencyInfo.symbol}{plan.price.toLocaleString()}
-                      <span className="text-sm font-normal text-slate-400">/mo</span>
+                      <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink-4)' }}>/mo</span>
                     </div>
-                    <div className="text-xs text-slate-400 mb-5 mt-0.5">{plan.posts} posts/month</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 20, marginTop: 2 }}>{plan.posts} posts/month</div>
                   </div>
                   <div className="flex flex-col gap-2.5 mb-6 flex-1">
                     {plan.features.map(f => (
-                      <div key={f} className="flex items-start gap-2.5 text-[13px] text-slate-600">
+                      <div key={f} className="flex items-start gap-2.5 text-[13px]" style={{ color: 'var(--ink-2)' }}>
                         <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: plan.color + '18' }}>
                           <Check className="w-2.5 h-2.5" style={{ color: plan.color }} strokeWidth={2.5} />
                         </div>
@@ -262,11 +263,11 @@ export default function UpgradePage() {
           </div>
 
           {/* Access code section */}
-          <div className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 max-w-md mx-auto">
+          <div className="mt-8 p-5 max-w-md mx-auto" style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--line)' }}>
             {!showCodeField ? (
               <button
                 onClick={() => setShowCodeField(true)}
-                className="text-sm text-slate-400 hover:text-brand transition-colors underline underline-offset-2 w-full text-center"
+                style={{ fontSize: 13, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', width: '100%', fontFamily: 'var(--f-sans)' }}
               >
                 Have an access code? Enter it here
               </button>
@@ -313,7 +314,7 @@ export default function UpgradePage() {
             )}
           </div>
 
-          <p className="text-center text-xs text-slate-400 mt-6">
+          <p style={{ textAlign: 'center', fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginTop: 24, letterSpacing: '.04em' }}>
             Card required to start trial. No charge for 7 days. Cancel any time from Settings.
           </p>
         </div>

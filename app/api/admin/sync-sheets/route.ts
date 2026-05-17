@@ -5,7 +5,7 @@ import { google, sheets_v4 } from 'googleapis'
 export const maxDuration = 60
 
 const PLAN_PRICE: Record<string, number> = { starter: 999, standard: 2499, pro: 4999 }
-const H_BG = { red: 11 / 255, green: 69 / 255, blue: 139 / 255 }   // #0B458B
+const H_BG = { red: 43 / 255, green: 77 / 255, blue: 255 / 255 }   // #2B4DFF
 const ALT_BG = { red: 240 / 255, green: 245 / 255, blue: 1 }        // #F0F5FF
 const WHITE = { red: 1, green: 1, blue: 1 }
 const GREEN = { red: 0.133, green: 0.545, blue: 0.133 }
