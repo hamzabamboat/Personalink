@@ -523,8 +523,8 @@ function GenerateContent() {
       {/* ── Page header ── */}
       <div className="db-screen__head">
         <div>
-          <div className="db-screen__eyebrow">// 01 — Generate</div>
-          <h1 className="db-screen__title">Generate a <em>post</em></h1>
+          <div className="db-screen__eyebrow">// Generate</div>
+          <h1 className="db-screen__title">A draft, <em>in your voice — in under thirty seconds.</em></h1>
         </div>
         <div className="db-screen__actions">
           <Link href="/dashboard/posts" className="btn-dash btn-dash--outline">
@@ -544,10 +544,10 @@ function GenerateContent() {
       {/* ── Tabs ── */}
       <div className="gen-tabs">
         {([
-          { id: 'prompt', label: 'From a prompt', icon: Brain },
-          { id: 'voice',  label: 'Voice note',    icon: Mic,      badge: plan === 'starter' ? 'STD+' : undefined },
-          { id: 'story',  label: 'Story bank',     icon: BookOpen },
-          { id: 'bulk',   label: 'Bulk',           icon: Sparkles },
+          { id: 'prompt', label: 'From a prompt',      icon: Brain },
+          { id: 'voice',  label: 'From a voice note', icon: Mic,      badge: plan === 'starter' ? 'STD+' : undefined },
+          { id: 'story',  label: 'From your story bank', icon: BookOpen },
+          { id: 'bulk',   label: 'Bulk · plan a month',  icon: Sparkles },
         ] as const).map(({ id, label, icon: Icon, badge }) => (
           <button key={id} onClick={() => setTab(id as Tab)} className={`gtab${tab === id ? ' is-on' : ''}`}>
             <Icon size={14} /> {label}

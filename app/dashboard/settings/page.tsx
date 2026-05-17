@@ -262,8 +262,10 @@ function SettingsContent() {
   return (
     <div className="p-3 sm:p-4 md:p-7 max-w-[700px]">
       <div className="mb-6 md:mb-8">
-        <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>Settings</h1>
-        <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>// manage your account and preferences</p>
+        <div className="db-screen__eyebrow">// Settings</div>
+        <h1 className="db-screen__title">
+          The boring stuff, <em>kept quiet.</em>
+        </h1>
       </div>
 
       {/* ── Profile ── */}

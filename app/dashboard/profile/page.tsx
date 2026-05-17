@@ -112,20 +112,15 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-7">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span style={{ fontSize: 11, fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '0.04em' }}>
-              // Voice fingerprint · v{hasFingerprint ? '8' : '0'} · {hasFingerprint ? 'trained' : 'not yet trained'}
-            </span>
+          <div className="db-screen__eyebrow">
             <span style={{
-              fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 'var(--r-full)',
-              background: hasFingerprint ? '#059669' + '18' : '#f59e0b' + '18',
-              color: hasFingerprint ? '#059669' : '#d97706',
-              border: '1px solid ' + (hasFingerprint ? '#05966930' : '#f59e0b30'),
-            }}>
-              {hasFingerprint ? 'active' : 'pending'}
-            </span>
+              display: 'inline-block', width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+              background: hasFingerprint ? '#059669' : '#f59e0b',
+              boxShadow: hasFingerprint ? '0 0 0 3px rgba(5,150,105,.15)' : '0 0 0 3px rgba(245,158,11,.15)',
+            }} />
+            // Voice fingerprint · {hasFingerprint ? 'refreshed last week' : 'not yet trained'}
           </div>
-          <h1 style={{ fontFamily: 'var(--f-serif)', fontStyle: 'italic', fontWeight: 700, fontSize: 28, color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1.15 }}>
+          <h1 className="db-screen__title">
             How we hear <em>you.</em>
           </h1>
         </div>

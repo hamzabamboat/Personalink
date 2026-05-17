@@ -450,7 +450,7 @@ function Topbar({ pathname, user }: { pathname: string; user: User | null }) {
       {/* New post */}
       <Link href="/dashboard/generate"
         className="flex items-center gap-1.5 h-8 px-3.5 rounded-md text-[13px] font-semibold text-white transition-all hover:opacity-90"
-        style={{ background: 'var(--pl-accent)', fontFamily: 'var(--f-sans)' }}>
+        style={{ background: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
         <Plus size={14} strokeWidth={2.5} />
         New post
       </Link>

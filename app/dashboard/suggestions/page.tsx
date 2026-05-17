@@ -39,6 +39,7 @@ export default function SuggestionsPage() {
   const [repurposing, setRepurposing] = useState(false)
   const [plan, setPlan] = useState('starter')
   const [userId, setUserId] = useState<string | null>(null)
+  const [firstName, setFirstName] = useState('')
   const [ideasAge, setIdeasAge] = useState<string | null>(null)
   const [ideasFresh, setIdeasFresh] = useState(true)
 
@@ -58,6 +59,7 @@ export default function SuggestionsPage() {
         if (cancelled) return
         setPlan(profile?.plan || 'starter')
         setUserId(user.id)
+        setFirstName(user.linkedin_name?.split(' ')[0] || profile?.name?.split(' ')[0] || 'you')
         const [suggestionsRes, postsRes] = await Promise.all([
           fetch('/api/suggestions/refresh'),
           supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }).limit(10),
@@ -136,22 +138,12 @@ export default function SuggestionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6">
         <div>
-          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
-            Trending Ideas
-          </h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p style={{ fontSize: 13, color: 'var(--ink-4)' }}>Fresh ideas tailored to your industry and voice</p>
-            {ideasAge && (
-              <span style={{
-                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-full)',
-                background: ideasFresh ? '#059669' + '18' : '#f59e0b' + '18',
-                color: ideasFresh ? '#059669' : '#d97706',
-                border: '1px solid ' + (ideasFresh ? '#059669' + '30' : '#f59e0b' + '30'),
-              }}>
-                {generating ? 'Refreshing…' : `Generated ${ideasAge}`}
-              </span>
-            )}
+          <div className="db-screen__eyebrow">
+            // Trending in your industry{ideasAge ? ` · refreshed ${ideasAge}` : ''}
           </div>
+          <h1 className="db-screen__title">
+            Five fresh angles, <em>picked for the {firstName} who&apos;d post them.</em>
+          </h1>
         </div>
         <button
           onClick={refreshSuggestions}

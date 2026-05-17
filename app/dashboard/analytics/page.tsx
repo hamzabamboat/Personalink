@@ -205,8 +205,9 @@ export default function AnalyticsPage() {
   if (plan === 'starter') {
     return (
       <div className="p-3 sm:p-4 md:p-7 max-w-2xl">
-        <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 24 }}>
-          Analytics
+        <div className="db-screen__eyebrow">// Last 30 days</div>
+        <h1 className="db-screen__title" style={{ marginBottom: 24 }}>
+          What your audience <em>actually said back.</em>
         </h1>
         <div className="flex flex-col items-center justify-center py-16 text-center"
           style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}>
@@ -270,10 +271,10 @@ export default function AnalyticsPage() {
     <div className="p-3 sm:p-4 md:p-7 max-w-4xl">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
-            Analytics
+          <div className="db-screen__eyebrow">// Last 30 days</div>
+          <h1 className="db-screen__title" style={{ marginBottom: 4 }}>
+            What your audience <em>actually said back.</em>
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>// your LinkedIn performance at a glance</p>
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-2">

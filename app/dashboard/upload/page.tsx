@@ -318,12 +318,10 @@ export default function UploadPage() {
   return (
     <div className="p-3 sm:p-4 md:p-8 max-w-[900px]">
       <div className="mb-6">
-        <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
-          Image Library
+        <div className="db-screen__eyebrow">// Image library · {images.length} asset{images.length !== 1 ? 's' : ''}</div>
+        <h1 className="db-screen__title">
+          Visuals, <em>cleanly attached.</em>
         </h1>
-        <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-          // upload photos — AI analyses them for hooks, mood, and topics
-        </p>
       </div>
 
       <PhotoIdeasSection plan={plan} />

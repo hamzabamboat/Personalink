@@ -154,18 +154,16 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
-            Calendar
+          <div className="db-screen__eyebrow">// Calendar · {MONTH_NAMES[month]} {year}</div>
+          <h1 className="db-screen__title">
+            The shape <em>of your voice this month.</em>
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-            // {posts.length} post{posts.length !== 1 ? 's' : ''} this month
-          </p>
         </div>
         <Link
           href="/dashboard/generate"
           className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
           style={{
-            background: 'var(--pl-accent)', color: '#fff',
+            background: 'var(--ink)', color: '#fff',
             borderRadius: 'var(--r-sm)', padding: '7px 14px',
             fontSize: 13, fontWeight: 600,
           }}

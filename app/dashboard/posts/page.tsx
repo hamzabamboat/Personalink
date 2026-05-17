@@ -299,9 +299,9 @@ function PostsContent() {
       {/* Page header */}
       <div className="db-screen__head">
         <div>
-          <p className="db-screen__eyebrow">// 02 — Posts</p>
+          <p className="db-screen__eyebrow">// All posts</p>
           <h1 className="db-screen__title">
-            Your <em>content</em> queue
+            Everything you've shipped <em>or are about to.</em>
           </h1>
         </div>
         <div className="db-screen__actions">

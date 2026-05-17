@@ -193,24 +193,22 @@ export default function StoryBankPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
-            Story Bank
+          <div className="db-screen__eyebrow">// Story bank · {stories.length} {stories.length === 1 ? 'entry' : 'entries'}</div>
+          <h1 className="db-screen__title">
+            Your raw material, <em>tagged and ready.</em>
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>
-            Dump raw experiences here — AI turns them into authentic posts in your next batch.
-          </p>
         </div>
         <button
           onClick={() => { setShowForm(v => !v); setInputMode('text') }}
           className="flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80"
           style={{
-            background: 'var(--pl-accent)', color: '#fff',
+            background: 'var(--ink)', color: '#fff',
             borderRadius: 'var(--r-sm)', padding: '7px 14px',
             fontSize: 13, fontWeight: 600,
           }}
         >
           <Plus className="w-4 h-4" />
-          Add Story
+          + New story
         </button>
       </div>
 
