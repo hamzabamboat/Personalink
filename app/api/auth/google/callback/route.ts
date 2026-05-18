@@ -72,23 +72,69 @@ export async function GET(request: NextRequest) {
 
     const profile = await profileResponse.json()
 
-    // First try to find by google_id
+    const normalizedEmail = profile.email?.toLowerCase() ?? null
+
+    // 1. Try to find by google_id
     let { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('google_id', profile.sub)
       .maybeSingle()
 
-    // If not found by google_id, find by email (user may have signed up via LinkedIn)
-    if (!existingUser && profile.email) {
+    // 2. If found by google_id but they have no subscription, check whether another
+    //    account with the same email has one — this rescues users where a prior Google
+    //    login created an orphan duplicate before this email-merge fix was in place.
+    if (existingUser && normalizedEmail) {
+      const { data: orphanSub } = await supabaseAdmin
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', existingUser.id)
+        .maybeSingle()
+
+      if (!orphanSub) {
+        const { data: realUser } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .ilike('email', normalizedEmail)
+          .neq('id', existingUser.id)
+          .maybeSingle()
+
+        if (realUser) {
+          const { data: realSub } = await supabaseAdmin
+            .from('subscriptions')
+            .select('id')
+            .eq('user_id', realUser.id)
+            .maybeSingle()
+
+          if (realSub) {
+            // Orphan has no subscription; the real account does. Re-link google_id.
+            console.log('[google/callback] merging orphan', existingUser.id, '→ real account', realUser.id)
+            await Promise.all([
+              supabaseAdmin
+                .from('users')
+                .update({ google_id: profile.sub, updated_at: new Date().toISOString() })
+                .eq('id', realUser.id),
+              supabaseAdmin
+                .from('users')
+                .update({ google_id: null, updated_at: new Date().toISOString() })
+                .eq('id', existingUser.id),
+            ])
+            existingUser = realUser
+          }
+        }
+      }
+    }
+
+    // 3. If not found by google_id, do a case-insensitive email lookup so that
+    //    e.g. "User@gmail.com" (Google) matches "user@gmail.com" (LinkedIn signup).
+    if (!existingUser && normalizedEmail) {
       const { data: userByEmail } = await supabaseAdmin
         .from('users')
         .select('id')
-        .eq('email', profile.email)
+        .ilike('email', normalizedEmail)
         .maybeSingle()
 
       if (userByEmail) {
-        // Link Google account to existing user
         await supabaseAdmin
           .from('users')
           .update({ google_id: profile.sub, updated_at: new Date().toISOString() })
@@ -105,7 +151,7 @@ export async function GET(request: NextRequest) {
         .insert({
           google_id: profile.sub,
           auth_provider: 'google',
-          email: profile.email,
+          email: normalizedEmail,
           linkedin_name: profile.name,
           linkedin_picture: profile.picture,
           updated_at: new Date().toISOString(),

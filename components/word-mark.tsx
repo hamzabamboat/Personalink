@@ -6,8 +6,8 @@ interface WordMarkProps {
   /** show "Persona" + italic serif "Link." wordmark */
   wordmark?: boolean
   iconSize?: number
-  /** 'default' = electric blue mark in white chip; 'bare' = mark only, no chip; 'white' = white mark on electric bg */
-  variant?: 'default' | 'bare' | 'white'
+  /** 'default' = electric blue mark in white chip; 'bare' = mark only, no chip; 'white' = white mark on electric bg; 'dark' = white mark + white text for dark backgrounds */
+  variant?: 'default' | 'bare' | 'white' | 'dark'
   className?: string
 }
 
@@ -43,8 +43,8 @@ export function WordMark({ icon = true, wordmark = true, iconSize = 34, variant 
           >
             <Mark size={Math.round(iconSize * 0.7)} color="#ffffff" />
           </span>
-        ) : variant === 'bare' ? (
-          <Mark size={iconSize} color="var(--pl-accent)" />
+        ) : variant === 'bare' || variant === 'dark' ? (
+          <Mark size={iconSize} color={variant === 'dark' ? '#ffffff' : 'var(--pl-accent)'} />
         ) : (
           <span
             className="inline-flex items-center justify-center flex-shrink-0"
@@ -68,7 +68,7 @@ export function WordMark({ icon = true, wordmark = true, iconSize = 34, variant 
             fontWeight: 500,
             fontSize: 17,
             letterSpacing: '-0.025em',
-            color: 'var(--ink)',
+            color: variant === 'dark' ? '#ffffff' : 'var(--ink)',
             lineHeight: 1,
           }}
         >
@@ -78,7 +78,7 @@ export function WordMark({ icon = true, wordmark = true, iconSize = 34, variant 
               fontFamily: 'var(--f-display)',
               fontStyle: 'italic',
               fontWeight: 500,
-              color: 'var(--pl-accent)',
+              color: variant === 'dark' ? 'rgba(255,255,255,.65)' : 'var(--pl-accent)',
               marginLeft: 1,
               letterSpacing: '-0.005em',
             }}
