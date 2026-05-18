@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
+import { syncPostToCalendar, removePostFromCalendar } from '@/lib/google-calendar'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return PATCH(request, { params })
@@ -36,6 +37,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Fire-and-forget: sync to Google Calendar if scheduled_at changed
+    if (scheduled_at !== undefined) {
+      if (scheduled_at && data.content) {
+        syncPostToCalendar(user.id, {
+          id: data.id,
+          content: data.content,
+          scheduled_at: data.scheduled_at,
+          google_calendar_event_id: data.google_calendar_event_id ?? null,
+        })
+      } else if (!scheduled_at && data.google_calendar_event_id) {
+        // Post was unscheduled — remove from calendar
+        removePostFromCalendar(user.id, {
+          id: data.id,
+          google_calendar_event_id: data.google_calendar_event_id,
+        })
+      }
+    }
+
     return NextResponse.json({ post: data })
   } catch (error) {
     console.error('[posts update]', error)
@@ -51,8 +71,22 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params
     if (!id) return NextResponse.json({ error: 'Post ID required' }, { status: 400 })
 
+    // Fetch the event ID before deleting so we can clean up Google Calendar
+    const { data: post } = await supabaseAdmin
+      .from('posts')
+      .select('google_calendar_event_id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
     const { error } = await supabaseAdmin.from('posts').delete().eq('id', id).eq('user_id', user.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Fire-and-forget: remove from Google Calendar if event exists
+    if (post?.google_calendar_event_id) {
+      removePostFromCalendar(user.id, { id, google_calendar_event_id: post.google_calendar_event_id })
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[posts delete]', error)

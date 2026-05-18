@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ImageSelector } from '@/components/image-selector'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Sparkles, ChevronLeft, ChevronRight, Plus, X, CalendarDays, Pencil, Clock, ImageIcon } from 'lucide-react'
+import { Sparkles, ChevronLeft, ChevronRight, Plus, X, CalendarDays, Pencil, Clock, ImageIcon, RefreshCw } from 'lucide-react'
 import { AiImageButton } from '@/components/ai-image-button'
 
 function utcToLocalInput(utcString: string): string {
@@ -60,6 +60,29 @@ export default function CalendarPage() {
   const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [plan, setPlan] = useState('starter')
+  const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
+  const [gcalSyncing, setGcalSyncing] = useState(false)
+
+  // Check for ?gcal= query param on mount and show toasts
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const gcal = params.get('gcal')
+    if (gcal === 'connected') {
+      toast.success('Google Calendar connected!')
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (gcal === 'error') {
+      toast.error('Could not connect Google Calendar. Please try again.')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  // Check Google Calendar connection status
+  useEffect(() => {
+    fetch('/api/calendar/google/status')
+      .then(r => r.json())
+      .then(d => setGcalConnected(!!d.connected))
+      .catch(() => setGcalConnected(false))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -82,6 +105,31 @@ export default function CalendarPage() {
     load()
     return () => { cancelled = true }
   }, [year, month])
+
+  async function syncAllToGcal() {
+    setGcalSyncing(true)
+    try {
+      const res = await fetch('/api/calendar/google/sync', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Sync failed')
+      toast.success(data.synced > 0 ? `Synced ${data.synced} post${data.synced !== 1 ? 's' : ''} to Google Calendar` : 'No upcoming posts to sync')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Sync failed')
+    } finally {
+      setGcalSyncing(false)
+    }
+  }
+
+  async function disconnectGcal() {
+    try {
+      const res = await fetch('/api/calendar/google/disconnect', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to disconnect')
+      setGcalConnected(false)
+      toast.success('Google Calendar disconnected')
+    } catch {
+      toast.error('Failed to disconnect Google Calendar')
+    }
+  }
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) } else setMonth(m => m - 1)
@@ -180,6 +228,96 @@ export default function CalendarPage() {
           </Link>
         </div>
       </div>
+
+      {/* Google Calendar banner */}
+      {gcalConnected === false && (
+        <div
+          className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            {/* Google Calendar icon */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="17" rx="2" fill="#fff" stroke="#dadce0" strokeWidth="1.5"/>
+              <rect x="3" y="8" width="18" height="2.5" fill="#4285F4"/>
+              <rect x="7" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
+              <rect x="15" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
+              <text x="12" y="19" textAnchor="middle" fontSize="7" fontWeight="700" fill="#4285F4" fontFamily="Arial">
+                {new Date().getDate()}
+              </text>
+            </svg>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Sync with Google Calendar</p>
+              <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>See your scheduled posts directly in Google Calendar</p>
+            </div>
+          </div>
+          <a
+            href="/api/auth/google-calendar"
+            className="shrink-0 transition-opacity hover:opacity-80"
+            style={{
+              background: 'var(--pl-accent)', color: '#fff',
+              borderRadius: 'var(--r-sm)', padding: '6px 14px',
+              fontSize: 12, fontWeight: 600, textDecoration: 'none',
+            }}
+          >
+            Connect
+          </a>
+        </div>
+      )}
+
+      {gcalConnected === true && (
+        <div
+          className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="17" rx="2" fill="#fff" stroke="#dadce0" strokeWidth="1.5"/>
+              <rect x="3" y="8" width="18" height="2.5" fill="#4285F4"/>
+              <rect x="7" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
+              <rect x="15" y="2" width="2" height="4" rx="1" fill="#4285F4"/>
+              <text x="12" y="19" textAnchor="middle" fontSize="7" fontWeight="700" fill="#4285F4" fontFamily="Arial">
+                {new Date().getDate()}
+              </text>
+            </svg>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                Google Calendar connected
+                <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#10b981', background: '#10b98118', border: '1px solid #10b98130', borderRadius: 99, padding: '1px 7px', verticalAlign: 'middle' }}>
+                  ● Active
+                </span>
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>Posts auto-sync when scheduled or rescheduled</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={syncAllToGcal}
+              disabled={gcalSyncing}
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+              style={{
+                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                padding: '6px 12px', fontSize: 12, fontWeight: 500, color: 'var(--ink-2)',
+                background: 'var(--surface-2)', opacity: gcalSyncing ? 0.6 : 1,
+              }}
+            >
+              <RefreshCw className={`w-3 h-3 ${gcalSyncing ? 'animate-spin' : ''}`} />
+              {gcalSyncing ? 'Syncing…' : 'Sync all'}
+            </button>
+            <button
+              onClick={disconnectGcal}
+              className="transition-opacity hover:opacity-80"
+              style={{
+                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                padding: '6px 12px', fontSize: 12, fontWeight: 500, color: 'var(--ink-4)',
+                background: 'transparent',
+              }}
+            >
+              Disconnect
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Calendar card */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>

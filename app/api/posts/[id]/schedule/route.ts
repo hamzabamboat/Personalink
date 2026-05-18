@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
+import { syncPostToCalendar } from '@/lib/google-calendar'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -43,6 +44,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Fire-and-forget: sync to Google Calendar if user has it connected
+    syncPostToCalendar(user.id, {
+      id: data.id,
+      content: data.content,
+      scheduled_at: data.scheduled_at,
+      google_calendar_event_id: data.google_calendar_event_id ?? null,
+    })
+
     return NextResponse.json({ post: data })
   } catch (err) {
     console.error('[posts/schedule]', err)
