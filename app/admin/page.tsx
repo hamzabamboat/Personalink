@@ -85,6 +85,7 @@ export default function AdminDashboard() {
   const [syncMsg, setSyncMsg] = useState('')
   const [search, setSearch] = useState('')
   const [togglingBypass, setTogglingBypass] = useState<string | null>(null)
+  const [deletingUser, setDeletingUser] = useState<string | null>(null)
 
   function loadData() {
     setLoading(true)
@@ -121,6 +122,22 @@ export default function AdminDashboard() {
       }
     } finally {
       setTogglingBypass(null)
+    }
+  }
+
+  async function deleteUser(userId: string, email: string) {
+    if (!confirm(`Permanently delete account for ${email}?\n\nThis cannot be undone. All their posts, data, and profile will be removed.`)) return
+    setDeletingUser(userId)
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
+      const d = await res.json()
+      if (res.ok) {
+        setUsers(prev => prev.filter(u => u.id !== userId))
+      } else {
+        alert(`Failed to delete: ${d.error}`)
+      }
+    } finally {
+      setDeletingUser(null)
     }
   }
 
@@ -286,7 +303,7 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
-                  {['Name', 'Email', 'Plan', 'Status', 'Processor', 'Joined', 'Posts Total', 'Posts/Mo', 'Resubs', 'Last Active', 'Unlimited'].map(h => (
+                  {['Name', 'Email', 'Plan', 'Status', 'Processor', 'Joined', 'Posts Total', 'Posts/Mo', 'Resubs', 'Last Active', 'Unlimited', ''].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                       {h}
                     </th>
@@ -324,11 +341,23 @@ export default function AdminDashboard() {
                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${u.bypass_limits ? 'translate-x-4' : 'translate-x-1'}`} />
                       </button>
                     </td>
+                    <td className="px-4 py-3">
+                      {u.subscription_status !== 'active' && u.subscription_status !== 'trialing' && (
+                        <button
+                          onClick={() => deleteUser(u.id, u.email)}
+                          disabled={deletingUser === u.id}
+                          title="Delete account permanently"
+                          className="px-2.5 py-1 text-[11px] font-semibold text-red-600 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors whitespace-nowrap"
+                        >
+                          {deletingUser === u.id ? 'Deleting…' : 'Delete'}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-12 text-center text-slate-400 text-sm">
+                    <td colSpan={12} className="px-4 py-12 text-center text-slate-400 text-sm">
                       {search ? 'No users match your search.' : 'No users yet.'}
                     </td>
                   </tr>
