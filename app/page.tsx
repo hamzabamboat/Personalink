@@ -69,7 +69,7 @@ function AnimatedPost() {
   }, [fullText])
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: 440 }}>
+    <div className="pl-animated-post" style={{ position: 'relative', width: '100%', maxWidth: 440 }}>
       {/* Ghost cards behind */}
       <div style={{
         position: 'absolute', inset: 0, borderRadius: 20,
@@ -85,7 +85,7 @@ function AnimatedPost() {
       }} />
 
       {/* Floating chip A — top-right */}
-      <div style={{
+      <div className="pl-float-chip-a" style={{
         position: 'absolute', top: -18, right: -10, zIndex: 10,
         background: 'var(--surface)', border: '1px solid var(--line)',
         borderRadius: 'var(--r-pill)', padding: '6px 12px',
@@ -98,7 +98,7 @@ function AnimatedPost() {
       </div>
 
       {/* Floating chip B — bottom-left */}
-      <div style={{
+      <div className="pl-float-chip-b" style={{
         position: 'absolute', bottom: 52, left: -16, zIndex: 10,
         background: 'var(--pl-accent)', borderRadius: 'var(--r-pill)', padding: '6px 12px',
         fontFamily: 'var(--f-mono)', fontSize: 11, color: '#fff',
@@ -194,7 +194,7 @@ function VoiceBars() {
     <ul ref={ref} style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {VOICE_DIMS.map((d, i) => (
         <li key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 13, color: 'var(--ink-3)', minWidth: 160, fontFamily: 'var(--f-sans)' }}>{d.label}</span>
+          <span className="pl-voice-label" style={{ fontSize: 13, color: 'var(--ink-3)', minWidth: 160, fontFamily: 'var(--f-sans)' }}>{d.label}</span>
           <span style={{ flex: 1, height: 6, background: 'var(--surface-3)', borderRadius: 'var(--r-pill)', overflow: 'hidden' }}>
             <span style={{
               display: 'block', height: '100%', borderRadius: 'var(--r-pill)',
@@ -255,7 +255,7 @@ function HomeContent() {
   )
 
   return (
-    <div style={{ background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
+    <div className="pl-landing" style={{ background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
 
       {/* ── Nav ── */}
       <header
@@ -387,7 +387,7 @@ function HomeContent() {
           backgroundSize: '28px 28px',
         }} />
 
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto', padding: '0 var(--pad)', paddingTop: 'clamp(60px,10vw,100px)', paddingBottom: 'clamp(60px,10vw,120px)', position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'clamp(40px,6vw,72px)', alignItems: 'center' }}>
+        <div style={{ maxWidth: 'var(--max)', margin: '0 auto', padding: '0 var(--pad)', paddingTop: 'clamp(60px,10vw,100px)', paddingBottom: 'clamp(60px,10vw,120px)', position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 'clamp(40px,6vw,72px)', alignItems: 'center' }}>
 
           {/* Left copy */}
           <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}>
@@ -464,7 +464,7 @@ function HomeContent() {
 
             {/* CTAs */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-              <button onClick={handleLinkedInAuth} style={{
+              <button onClick={handleLinkedInAuth} className="pl-hero-cta-btn" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 9,
                 height: 52, padding: '0 26px', borderRadius: 'var(--r-md)',
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
@@ -537,14 +537,14 @@ function HomeContent() {
       {/* ── Stats ── */}
       <FadeUp>
         <section style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', padding: 'clamp(40px,6vw,72px) var(--pad)' }}>
-          <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 0 }}>
+          <div className="pl-stats-grid" style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 0 }}>
             {[
               { num: '3200', suffix: '+', label: 'posts shipped\nin customer voices' },
               { num: '98',   suffix: '%', label: 'avg. tone-match\nagainst original writing' },
               { num: '6',    suffix: '×', label: 'median profile-view lift\nin first 60 days' },
               { num: '10',   suffix: 'min', label: 'setup, from sign-in\nto first scheduled post' },
             ].map((s, i) => (
-              <div key={i} style={{
+              <div key={i} className="pl-stat-item" style={{
                 textAlign: 'center', padding: 'clamp(24px,4vw,40px) 20px',
                 borderRight: i < 3 ? '1px solid var(--line)' : 'none',
               }}>
@@ -604,7 +604,7 @@ function HomeContent() {
               },
             ].map((item, i) => (
               <FadeUp key={item.step} delay={i * 0.1}>
-                <div style={{
+                <div className="pl-workflow-item" style={{
                   padding: 'clamp(24px,4vw,36px)',
                   borderLeft: i > 0 ? '1px solid var(--line)' : 'none',
                   position: 'relative',
@@ -976,7 +976,7 @@ function HomeContent() {
           <FadeUp delay={0.15}>
             <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--sh-2)' }}>
               {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid var(--line)' }}>
+              <div className="pl-comparison-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid var(--line)' }}>
                 <div style={{ padding: '14px 20px', borderRight: '1px solid var(--line)' }}>
                   <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginBottom: 4 }}>// Generic AI</div>
                   <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#ef4444' }}>tone match · 41%</div>
@@ -987,8 +987,8 @@ function HomeContent() {
                 </div>
               </div>
               {/* Body */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ padding: '20px', borderRight: '1px solid var(--line)', background: '#fef2f2' }}>
+              <div className="pl-comparison-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                <div className="pl-comparison-col-left" style={{ padding: '20px', borderRight: '1px solid var(--line)', background: '#fef2f2' }}>
                   <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.7, marginBottom: 16, fontStyle: 'italic' }}>
                     &ldquo;In today&apos;s rapidly evolving landscape, leveraging strategic insights is paramount. Here are 5 key takeaways from my recent meeting…&rdquo;
                   </p>
@@ -1049,9 +1049,9 @@ function HomeContent() {
                 ))}
               </div>
               {/* Content grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))' }}>
+              <div className="pl-sample-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))' }}>
                 {/* Left: input */}
-                <div style={{ padding: '24px 28px', borderRight: '1px solid var(--line)' }}>
+                <div className="pl-sample-left" style={{ padding: '24px 28px', borderRight: '1px solid var(--line)' }}>
                   <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginBottom: 16 }}>// you say —</div>
                   <p style={{ fontFamily: 'var(--f-mono)', fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.7, marginBottom: 24, animation: 'fadeSwap .4s ease' }}>
                     {SAMPLES[activeSample].input}
@@ -1423,7 +1423,7 @@ function HomeContent() {
 
       {/* ── Footer ── */}
       <footer style={{ background: '#050813', borderTop: '1px solid rgba(255,255,255,.06)', padding: 'clamp(48px,6vw,72px) var(--pad) 0' }}>
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'clamp(40px,6vw,80px)', paddingBottom: 'clamp(40px,5vw,64px)' }}>
+        <div className="pl-footer-inner" style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'clamp(40px,6vw,80px)', paddingBottom: 'clamp(40px,5vw,64px)' }}>
           {/* Brand */}
           <div style={{ maxWidth: 280 }}>
             <WordMark variant="dark" />
@@ -1436,7 +1436,7 @@ function HomeContent() {
             >support@personalink.in</a>
           </div>
           {/* Link columns */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
+          <div className="pl-footer-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
             {[
               { heading: 'Product', links: [['#features', 'Features'], ['#voice', 'Voice engine'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']] },
               { heading: 'Company', links: [['#', 'About'], ['#', 'Blog'], ['#', 'Changelog'], ['#', 'Careers']] },

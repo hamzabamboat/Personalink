@@ -447,6 +447,44 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   background-color: white !important;
 }
 
+/* ── Landing page: mobile responsive ── */
+@media (max-width: 640px) {
+  /* Prevent floating chips from causing horizontal scroll */
+  .pl-landing { overflow-x: hidden; }
+
+  /* Hide decorative absolute-positioned chips — they overflow off-screen */
+  .pl-float-chip-a, .pl-float-chip-b { display: none; }
+
+  /* Hero CTA button — full width on small screens */
+  .pl-hero-cta-btn { width: 100% !important; justify-content: center !important; }
+
+  /* VoiceBars label — tighter so bars don't get squeezed out */
+  .pl-voice-label { min-width: 110px !important; }
+
+  /* Stats — remove right borders when stacked, add bottom dividers */
+  .pl-stat-item { border-right: none !important; border-bottom: 1px solid var(--line) !important; }
+  .pl-stats-grid > .pl-stat-item:last-child { border-bottom: none !important; }
+
+  /* Workflow strip — remove left borders when items stack vertically */
+  .pl-workflow-item { border-left: none !important; border-top: 1px solid var(--line); }
+  .pl-workflow-item:first-child { border-top: none; }
+
+  /* Voice comparison card — stack Generic AI / PersonaLink columns */
+  .pl-comparison-header { grid-template-columns: 1fr !important; }
+  .pl-comparison-header > div:first-child { border-right: none !important; border-bottom: 1px solid var(--line); }
+  .pl-comparison-body { grid-template-columns: 1fr !important; }
+  .pl-comparison-col-left { border-right: none !important; border-bottom: 1px solid var(--line) !important; }
+
+  /* Sample transformation — stack input / output panes */
+  .pl-sample-grid { grid-template-columns: 1fr !important; }
+  .pl-sample-left { border-right: none !important; border-bottom: 1px solid var(--line) !important; }
+
+  /* Footer — stack brand block above link columns */
+  .pl-footer-inner { grid-template-columns: 1fr !important; gap: 32px !important; }
+  /* Footer links — 2 cols instead of 3 on mobile */
+  .pl-footer-links { grid-template-columns: 1fr 1fr !important; }
+}
+
 /* ── Landing page aliases ── */
 :root {
   --accent: var(--pl-accent);
