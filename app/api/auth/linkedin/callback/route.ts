@@ -105,17 +105,51 @@ export async function GET(request: NextRequest) {
       return response
     }
 
-    const isNew = !(await supabaseAdmin
+    // Look up existing user by linkedin_id first, then fall back to email
+    // (handles the case where user previously signed up via Google with the same email)
+    let existingUser = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('linkedin_id', profile.sub)
       .maybeSingle()
-      .then(r => r.data))
+      .then(r => r.data)
 
-    const { data: user, error: dbError } = await supabaseAdmin
-      .from('users')
-      .upsert(
-        {
+    if (!existingUser && profile.email) {
+      existingUser = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('email', profile.email)
+        .maybeSingle()
+        .then(r => r.data)
+    }
+
+    const isNew = !existingUser
+
+    let user: Record<string, unknown> | null = null
+    let dbError: unknown = null
+
+    if (existingUser) {
+      // Update existing user's LinkedIn credentials
+      const result = await supabaseAdmin
+        .from('users')
+        .update({
+          linkedin_id: profile.sub,
+          linkedin_name: profile.name,
+          linkedin_picture: profile.picture,
+          linkedin_access_token: accessToken,
+          linkedin_token_expires_at: expiresAt.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingUser.id)
+        .select()
+        .single()
+      user = result.data
+      dbError = result.error
+    } else {
+      // Insert new user
+      const result = await supabaseAdmin
+        .from('users')
+        .insert({
           linkedin_id: profile.sub,
           linkedin_name: profile.name,
           email: profile.email,
@@ -123,11 +157,12 @@ export async function GET(request: NextRequest) {
           linkedin_access_token: accessToken,
           linkedin_token_expires_at: expiresAt.toISOString(),
           updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'linkedin_id' }
-      )
-      .select()
-      .single()
+        })
+        .select()
+        .single()
+      user = result.data
+      dbError = result.error
+    }
 
     if (dbError) throw dbError
 
@@ -264,9 +299,8 @@ export async function GET(request: NextRequest) {
     response.cookies.delete('linkedin_oauth_state')
     return response
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[linkedin/callback] unhandled error:', msg, err)
-    const res = NextResponse.redirect(`${APP_URL}/?error=oauth_failed&detail=${encodeURIComponent(msg)}`)
+    console.error('[linkedin/callback] unhandled error:', err)
+    const res = NextResponse.redirect(`${APP_URL}/?error=oauth_failed`)
     res.cookies.delete('linkedin_oauth_state')
     res.cookies.delete('agency_oauth_client_user_id')
     return res
