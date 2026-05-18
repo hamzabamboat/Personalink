@@ -243,9 +243,33 @@ export const PLAN_LIMITS: Record<string, { posts: number; price: number; label: 
 }
 
 export const PLAN_FEATURES = {
-  starter: ['AI generation', 'Scheduling', 'Story bank', 'Trends & suggestions', 'Image posts', 'LinkedIn Score'],
-  standard: ['Everything in Starter', 'Voice notes', 'Analytics dashboard', 'Monthly image brief'],
-  pro: ['Everything in Standard', 'Repurpose engine', 'Competitor tracking', 'Bulk generate 30 days', 'Team mode (3 profiles)', 'Priority AI generation'],
+  starter: [
+    'AI generation in your voice',
+    'Story bank · 10 entries · 5 conversions',
+    'Trend refreshes · 5/month',
+    'Image uploads · 10/month',
+    'Profile analyses · 2/month',
+    'Batch generation · 1 run/month',
+  ],
+  standard: [
+    'Everything in Starter, plus —',
+    'Voice notes → post · 8/month',
+    'AI image generations · 3/month',
+    'Story bank · 30 entries · 10 conversions',
+    'Image uploads · 30/month',
+    'Profile analyses · 4/month',
+    'Batch runs · 2/month',
+  ],
+  pro: [
+    'Everything in Standard, plus —',
+    'Repurpose engine · 10 runs/month',
+    'Voice notes · 20/month · 60 min',
+    'AI image generations · 10/month',
+    'Story bank · 60 entries · 20 conversions',
+    'Image uploads · 80/month',
+    'Profile analyses · 8/month',
+    'Batch runs · 4/month',
+  ],
 }
 
 export const CONTENT_PILLARS = [

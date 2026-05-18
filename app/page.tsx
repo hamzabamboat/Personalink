@@ -1237,15 +1237,15 @@ function HomeContent() {
             {[
               {
                 id: 'starter', name: 'Starter', posts: '12 posts per month', popular: false,
-                features: ['AI generation in your voice', 'Smart scheduling', 'Story bank · 100 entries', 'Weekly trend radar', 'Image posts', 'LinkedIn Score'],
+                features: ['AI generation in your voice', 'Story bank · 10 entries · 5 conversions', 'Trend refreshes · 5/month', 'Image uploads · 10/month', 'Profile analyses · 2/month', 'Batch generation · 1 run/month'],
               },
               {
                 id: 'standard', name: 'Standard', posts: '20 posts per month', popular: true,
-                features: ['Everything in Starter, plus —', 'Voice-note → post', 'Analytics dashboard', 'Monthly image brief', 'Priority queue', 'Advanced tone controls'],
+                features: ['Everything in Starter, plus —', 'Voice notes → post · 8/month', 'AI image generations · 3/month', 'Story bank · 30 entries · 10 conversions', 'Image uploads · 30/month', 'Batch runs · 2/month'],
               },
               {
                 id: 'pro', name: 'Pro', posts: '30 posts per month', popular: false,
-                features: ['Everything in Standard, plus —', 'Repurpose engine', 'Competitor tracking', 'Bulk generate 30 days', 'Team mode · 3 profiles', 'Priority AI generation'],
+                features: ['Everything in Standard, plus —', 'Repurpose engine · 10 runs/month', 'Voice notes · 20/month · 60 min', 'AI image generations · 10/month', 'Story bank · 60 entries · 20 conversions', 'Batch runs · 4/month'],
               },
             ].map(plan => {
               const price = plan.id === 'starter' ? currency.starter : plan.id === 'standard' ? currency.standard : currency.pro
