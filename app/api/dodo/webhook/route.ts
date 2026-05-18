@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getPostHogClient } from '@/lib/posthog-server'
 import crypto from 'crypto'
 
 function verifyDodoWebhook(rawBody: string, headers: Headers): boolean {
@@ -137,10 +138,12 @@ export async function POST(request: NextRequest) {
     case 'payment.succeeded':
     case 'subscription.active':
       await activateAccount()
+      if (userId) getPostHogClient().capture({ distinctId: userId, event: 'dodo_subscription_activated', properties: { processor: 'dodo', plan, subscription_id: subscriptionId, amount, currency } })
       break
 
     case 'subscription.cancelled':
       await deactivateAccount()
+      if (userId) getPostHogClient().capture({ distinctId: userId, event: 'dodo_subscription_cancelled', properties: { processor: 'dodo', plan, subscription_id: subscriptionId } })
       break
 
     case 'subscription.failed':

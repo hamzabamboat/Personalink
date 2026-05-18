@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendWelcomeEmail } from '@/lib/email'
 import { runProfileAnalysis } from '@/lib/profile-analyzer'
 import { TRIAL_DAYS } from '@/lib/razorpay'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
@@ -205,13 +206,34 @@ export async function GET(request: NextRequest) {
     // Check if user has completed onboarding
     const { data: existingProfile } = await supabaseAdmin
       .from('user_profiles')
-      .select('onboarding_completed_at')
+      .select('onboarding_completed_at, role')
       .eq('user_id', user.id)
       .maybeSingle()
 
     const redirectTo = isNew || !existingProfile?.onboarding_completed_at
       ? `${APP_URL}/onboarding`
       : `${APP_URL}/dashboard`
+
+    const country = request.headers.get('x-vercel-ip-country') ?? null
+    const posthog = getPostHogClient()
+    posthog.identify({
+      distinctId: user.id,
+      properties: {
+        email: user.email,
+        name: user.linkedin_name,
+        linkedin_id: user.linkedin_id,
+        $set: {
+          profession: existingProfile?.role ?? null,
+          country,
+          signup_date: isNew ? new Date().toISOString() : (user as Record<string, unknown>).created_at ?? null,
+        },
+      },
+    })
+    posthog.capture({
+      distinctId: user.id,
+      event: isNew ? 'user_signed_up' : 'user_logged_in',
+      properties: { provider: 'linkedin', is_new_user: isNew },
+    })
 
     const response = NextResponse.redirect(redirectTo)
     response.cookies.set('session_user_id', user.id, {

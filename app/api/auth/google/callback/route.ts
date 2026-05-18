@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
@@ -118,24 +119,57 @@ export async function GET(request: NextRequest) {
       userId = existingUser.id
     }
 
-    const { data: userProfile } = await supabaseAdmin
-      .from('user_profiles')
-      .select('onboarding_completed_at')
-      .eq('user_id', userId)
-      .maybeSingle()
+    const [{ data: userProfile }, { data: sub }] = await Promise.all([
+      supabaseAdmin
+        .from('user_profiles')
+        .select('onboarding_completed_at, role')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('subscriptions')
+        .select('status, trial_ends_at')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ])
 
     const redirectTo = !userProfile?.onboarding_completed_at
       ? `${APP_URL}/onboarding`
       : `${APP_URL}/dashboard`
 
+    const isNew = !existingUser
+    const country = request.headers.get('x-vercel-ip-country') ?? null
+    const posthog = getPostHogClient()
+    posthog.identify({
+      distinctId: userId,
+      properties: {
+        email: profile.email,
+        name: profile.name,
+        $set: { profession: userProfile?.role ?? null, country, signup_date: isNew ? new Date().toISOString() : null },
+      },
+    })
+    posthog.capture({
+      distinctId: userId,
+      event: isNew ? 'google_user_signed_up' : 'google_user_logged_in',
+      properties: { provider: 'google', is_new_user: isNew },
+    })
+
     const response = NextResponse.redirect(redirectTo)
-    response.cookies.set('session_user_id', userId, {
+    const cookieOpts = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30,
+      sameSite: 'lax' as const,
       path: '/',
-    })
+    }
+    response.cookies.set('session_user_id', userId, { ...cookieOpts, maxAge: 60 * 60 * 24 * 30 })
+    if (sub?.status === 'active') {
+      response.cookies.set('sub_status', 'active', { ...cookieOpts, maxAge: 60 * 60 })
+    } else if (
+      (sub?.status === 'trial' || sub?.status === 'trialing') &&
+      sub.trial_ends_at &&
+      new Date(sub.trial_ends_at) > new Date()
+    ) {
+      response.cookies.set('sub_status', 'trial', { ...cookieOpts, maxAge: 60 * 60 * 24 * 8 })
+    }
     response.cookies.delete('google_oauth_state')
     return response
   } catch (err) {

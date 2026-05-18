@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import posthog from 'posthog-js'
 import { PLAN_FEATURES } from '@/lib/supabase'
 import { ChevronLeft, Check, BarChart3, Mic, Repeat2, Zap, Users, CheckCircle2 } from 'lucide-react'
 
@@ -164,6 +165,7 @@ function UpgradeContent() {
                   href="/dashboard/settings?tab=plan"
                   className="flex items-center justify-center w-full transition-opacity hover:opacity-80"
                   style={{ background: plan.color, color: '#fff', borderRadius: 'var(--r-sm)', padding: '10px 16px', fontSize: 14, fontWeight: 600 }}
+                  onClick={() => posthog.capture('upgrade_click', { plan: plan.id, current_plan: currentPlan, feature_gate: feature || null })}
                 >
                   Upgrade to {plan.label}
                 </Link>

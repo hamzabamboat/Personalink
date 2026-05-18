@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import posthog from 'posthog-js'
 import { supabase, StoryBank, Post } from '@/lib/supabase'
 import { PostCard, PostCardSkeleton } from '@/components/post-card'
 import { ImageSelector } from '@/components/image-selector'
@@ -14,6 +15,20 @@ import {
   CheckCircle2, ArrowRight, Brain,
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length
+  const dp: number[] = Array.from({ length: n + 1 }, (_, i) => i)
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0]; dp[0] = i
+    for (let j = 1; j <= n; j++) {
+      const temp = dp[j]
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1])
+      prev = temp
+    }
+  }
+  return dp[n]
+}
 
 const LOADING_MESSAGES = [
   'Researching your industry...',
@@ -478,7 +493,11 @@ function GenerateContent() {
       const res = await fetch('/api/posts/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       let data: Record<string, unknown>
       try { data = await res.json() } catch { setError('Server error — could not parse response.'); return }
-      if (data.error) { setError(data.error === 'trial_exhausted' ? 'Post limit reached. Upgrade to continue.' : data.error as string); return }
+      if (data.error) {
+        if (data.error === 'trial_exhausted') { posthog.capture('post_generation_limit_reached', { reason: 'trial_exhausted' }); setError('Post limit reached. Upgrade to continue.') }
+        else { setError(data.error as string) }
+        return
+      }
       const posts = data.posts as Array<{ id: string; content: string }> | undefined
       if (!posts?.length) { setError('No posts generated. Please try again.'); return }
       setGeneratedPosts(posts)
@@ -487,8 +506,11 @@ function GenerateContent() {
     finally { clearInterval(interval); setLoading(false) }
   }
 
+  const originalDraftRef = useRef<string>('')
+
   function selectPost(post: { id: string; content: string }) {
     setSelectedPost(post); setEditContent(post.content); setActionResult(''); setScheduleDate(''); setImageSuggestions([]); setUploadedImageUrl('')
+    originalDraftRef.current = post.content
     fetchImageSuggestions(post.content)
   }
 
@@ -504,6 +526,11 @@ function GenerateContent() {
   async function schedulePost() {
     if (!selectedPost || !scheduleDate) return
     setScheduling(true)
+    const original = originalDraftRef.current
+    if (original && editContent !== original) {
+      const dist = levenshtein(original, editContent)
+      posthog.capture('post_edited_before_publish', { post_id: selectedPost.id, edit_percent: Math.round((dist / original.length) * 100) })
+    }
     await fetch(`/api/posts/${selectedPost.id}/update`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: editContent, image_url: uploadedImageUrl || undefined }) })
     const res = await fetch(`/api/posts/${selectedPost.id}/schedule`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scheduledAt: scheduleDate }) })
     const data = await res.json()
@@ -894,7 +921,7 @@ function GenerateContent() {
             <div className="gen-card gen-card--out">
               <div className="oc-head">
                 <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>// edit &amp; schedule</span>
-                <button onClick={() => setSelectedPost(null)} className="btn-dash btn-dash--ghost btn-dash--sm">
+                <button onClick={() => { posthog.capture('post_skipped', { post_id: selectedPost.id }); setSelectedPost(null) }} className="btn-dash btn-dash--ghost btn-dash--sm">
                   <ArrowLeft size={12} /> Choose different
                 </button>
               </div>

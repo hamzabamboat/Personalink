@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { publishToLinkedIn, isTokenExpired } from '@/lib/linkedin-api'
 import { logComplianceEvent } from '@/lib/compliance-events'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 // Max auto-published posts per user per day (cadence protection)
 const MAX_AUTOPOSTS_PER_DAY = 2
@@ -138,12 +139,25 @@ async function handler(_request: NextRequest) {
       // Small time jitter so all posts don't fire at exactly the same second
       await new Promise(res => setTimeout(res, jitterMs()))
 
-      const linkedinPostId = await publishToLinkedIn({
-        accessToken: user.linkedin_access_token,
-        linkedinId: user.linkedin_id,
-        content: post.content,
-        imageUrls: post.image_urls || undefined,
-      })
+      let linkedinPostId: string
+      try {
+        linkedinPostId = await publishToLinkedIn({
+          accessToken: user.linkedin_access_token,
+          linkedinId: user.linkedin_id,
+          content: post.content,
+          imageUrls: post.image_urls || undefined,
+        })
+      } catch (publishErr) {
+        const errMsg = publishErr instanceof Error ? publishErr.message : String(publishErr)
+        const codeMatch = errMsg.match(/error (\d{3})/)
+        await supabaseAdmin.from('posts').update({ status: 'failed', failure_reason: errMsg }).eq('id', post.id)
+        getPostHogClient().capture({
+          distinctId: post.user_id,
+          event: 'post_publish_failed',
+          properties: { post_id: post.id, error_code: codeMatch ? codeMatch[1] : 'unknown', error_message: errMsg },
+        })
+        return { id: post.id, status: 'failed', reason: errMsg }
+      }
 
       await supabaseAdmin
         .from('posts')
@@ -153,6 +167,12 @@ async function handler(_request: NextRequest) {
           published_at: new Date().toISOString(),
         })
         .eq('id', post.id)
+
+      getPostHogClient().capture({
+        distinctId: post.user_id,
+        event: 'post_published',
+        properties: { post_id: post.id, linkedin_post_id: linkedinPostId, scheduled_at: post.scheduled_at },
+      })
 
       return { id: post.id, status: 'published' }
     })

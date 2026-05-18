@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhookSignature } from '@/lib/razorpay'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 // Razorpay sends webhooks as JSON with x-razorpay-signature header
 export async function POST(request: NextRequest) {
@@ -118,6 +119,15 @@ export async function POST(request: NextRequest) {
         .update({ plan: planFromNotes, posts_limit: 0, updated_at: now })
         .eq('user_id', resolvedUserId)
     }
+  }
+
+  if (resolvedUserId && (newStatus === 'active' || newStatus === 'cancelled')) {
+    const planFromNotes = (subEntity.notes as Record<string, string> | undefined)?.plan || 'standard'
+    getPostHogClient().capture({
+      distinctId: resolvedUserId,
+      event: newStatus === 'active' ? 'subscription_activated' : 'subscription_cancelled',
+      properties: { processor: 'razorpay', subscription_id: razorpaySubId, plan: planFromNotes, razorpay_event: event.event },
+    })
   }
 
   console.log(`Razorpay webhook: ${event.event} → sub ${razorpaySubId} → ${newStatus}`)

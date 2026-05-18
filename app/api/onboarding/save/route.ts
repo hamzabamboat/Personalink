@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { analyzeVoiceFingerprint } from '@/lib/anthropic'
 import { PLAN_LIMITS } from '@/lib/supabase'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,6 +54,12 @@ export async function POST(request: NextRequest) {
     }, { onConflict: 'user_id' })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  getPostHogClient().capture({
+    distinctId: user.id,
+    event: 'onboarding_completed',
+    properties: { plan, industry, role, content_pillars, control_preference },
+  })
 
   return NextResponse.json({ success: true })
   } catch (err) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getRazorpay, PLAN_IDS, PLAN_AMOUNTS, TRIAL_DAYS } from '@/lib/razorpay'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 
 export async function POST(request: NextRequest) {
@@ -57,6 +58,12 @@ export async function POST(request: NextRequest) {
       },
       { onConflict: 'user_id' }
     )
+
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'subscription_started',
+      properties: { plan: planId, amount: PLAN_AMOUNTS[planId], trial_days: TRIAL_DAYS, processor: 'razorpay', subscription_id: subscription.id },
+    })
 
     return NextResponse.json({
       subscription_id: subscription.id,
