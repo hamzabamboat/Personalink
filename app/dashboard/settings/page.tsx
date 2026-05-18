@@ -23,6 +23,12 @@ import {
   Lightbulb,
   Check,
   ArrowRight,
+  Zap,
+  Copy,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Trash2,
 } from 'lucide-react'
 
 function SettingsContent() {
@@ -46,6 +52,13 @@ function SettingsContent() {
   const [activatingCode, setActivatingCode] = useState(false)
   const planRef = useRef<HTMLDivElement>(null)
 
+  // Zapier integration state
+  const [zapierHasKey, setZapierHasKey] = useState(false)
+  const [zapierKeyPreview, setZapierKeyPreview] = useState<string | null>(null)
+  const [zapierNewKey, setZapierNewKey] = useState<string | null>(null)
+  const [zapierShowKey, setZapierShowKey] = useState(false)
+  const [zapierLoading, setZapierLoading] = useState(false)
+
   useEffect(() => {
     const match = document.cookie.match(/user_country=([^;]+)/)
     if (match) setUserCountry(match[1])
@@ -62,6 +75,16 @@ function SettingsContent() {
         setUser(data.user)
         setProfile(data.profile || {})
         if (data.subscription) setSubscription(data.subscription)
+
+        // Load Zapier key status
+        try {
+          const zRes = await fetch('/api/integrations/zapier/key')
+          const zData = await zRes.json()
+          if (!cancelled) {
+            setZapierHasKey(zData.hasKey)
+            setZapierKeyPreview(zData.keyPreview)
+          }
+        } catch { /* non-fatal */ }
       } catch {
         /* non-fatal */
       } finally {
@@ -200,6 +223,43 @@ function SettingsContent() {
     const current = (profile.preferred_days as string[]) || []
     if (current.includes(d)) setProfile(f => ({ ...f, preferred_days: current.filter((x: string) => x !== d) }))
     else setProfile(f => ({ ...f, preferred_days: [...current, d] }))
+  }
+
+  async function generateZapierKey() {
+    setZapierLoading(true)
+    setZapierNewKey(null)
+    try {
+      const res = await fetch('/api/integrations/zapier/key', { method: 'POST' })
+      const data = await res.json()
+      if (data.error) { toast.error(data.error); return }
+      setZapierNewKey(data.key)
+      setZapierHasKey(true)
+      setZapierKeyPreview(`plk_...${data.key.slice(-6)}`)
+      setZapierShowKey(true)
+      toast.success('API key generated — copy it now, it won\'t be shown again.')
+    } catch {
+      toast.error('Failed to generate key.')
+    } finally {
+      setZapierLoading(false)
+    }
+  }
+
+  async function revokeZapierKey() {
+    if (!confirm('Revoke this API key? Any active Zaps using it will stop working.')) return
+    setZapierLoading(true)
+    try {
+      const res = await fetch('/api/integrations/zapier/key', { method: 'DELETE' })
+      const data = await res.json()
+      if (data.error) { toast.error(data.error); return }
+      setZapierHasKey(false)
+      setZapierKeyPreview(null)
+      setZapierNewKey(null)
+      toast.success('API key revoked.')
+    } catch {
+      toast.error('Failed to revoke key.')
+    } finally {
+      setZapierLoading(false)
+    }
   }
 
   async function deleteAccount() {
@@ -639,6 +699,190 @@ function SettingsContent() {
               </div>
             ))}
             <SaveButton label="Save Notification Preferences" />
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* ── Zapier Integration ── */}
+      <section className="mb-8">
+        <SectionLabel>Connect with Zapier</SectionLabel>
+        <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-5 flex items-start gap-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="size-10 rounded-xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center shrink-0">
+              <Zap className="size-5 text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <div className="font-semibold text-slate-900 dark:text-slate-100 text-[15px] mb-1">Automate your content pipeline</div>
+              <p className="text-[13px] text-slate-500 leading-relaxed">
+                Connect PersonaLink to 7,000+ apps. When a deal closes, a podcast goes live, or a milestone hits — a draft appears in your queue automatically, written in your voice.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {['HubSpot', 'Typeform', 'Notion', 'Slack', 'Google Sheets', 'Calendly'].map(app => (
+                  <span key={app} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{app}</span>
+                ))}
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">+ thousands more</span>
+              </div>
+            </div>
+          </div>
+
+          <CardContent className="pt-6 flex flex-col gap-8">
+
+            {/* Step 1 — API Key */}
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <div className="size-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-[12px] font-bold shrink-0">1</div>
+                <div className="w-px flex-1 bg-slate-100 dark:bg-slate-800 min-h-[16px]" />
+              </div>
+              <div className="flex-1 pb-2">
+                <div className="font-semibold text-slate-900 dark:text-slate-100 text-[13px] mb-1 mt-0.5">Generate your API key</div>
+                <p className="text-[12.5px] text-slate-500 mb-3">This key authenticates Zapier with your PersonaLink account. Keep it secret.</p>
+
+                {zapierNewKey ? (
+                  <div className="flex flex-col gap-2 mb-3">
+                    <div className="text-[11.5px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1.5">
+                      <span className="inline-block size-1.5 rounded-full bg-amber-500" />
+                      Copy this key now — it won&apos;t be shown again
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-[12px] bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-300 font-mono truncate">
+                        {zapierShowKey ? zapierNewKey : zapierNewKey.replace(/./g, '•')}
+                      </code>
+                      <Button size="sm" variant="outline" className="shrink-0 border-slate-200 dark:border-slate-700" onClick={() => setZapierShowKey(v => !v)}>
+                        {zapierShowKey ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                      </Button>
+                      <Button size="sm" variant="outline" className="shrink-0 border-slate-200 dark:border-slate-700" onClick={() => { navigator.clipboard.writeText(zapierNewKey!); toast.success('Key copied!') }}>
+                        <Copy className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : zapierHasKey ? (
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+                      <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />
+                      <code className="text-[12px] text-slate-500 font-mono">{zapierKeyPreview ?? 'plk_••••••••••••••••••••••••••••••••••••'}</code>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant={zapierHasKey ? 'outline' : 'default'}
+                    disabled={zapierLoading}
+                    onClick={generateZapierKey}
+                    className={zapierHasKey ? 'border-slate-200 dark:border-slate-700 gap-1.5' : 'gap-1.5 bg-orange-500 hover:bg-orange-600 text-white border-0'}
+                  >
+                    {zapierLoading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                    {zapierHasKey ? 'Regenerate key' : 'Generate API key'}
+                  </Button>
+                  {zapierHasKey && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={zapierLoading}
+                      onClick={revokeZapierKey}
+                      className="border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700 hover:border-red-300 gap-1.5"
+                    >
+                      <Trash2 className="size-3.5" />
+                      Revoke
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2 — Create a Zap */}
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <div className="size-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-[12px] font-bold shrink-0">2</div>
+                <div className="w-px flex-1 bg-slate-100 dark:bg-slate-800 min-h-[16px]" />
+              </div>
+              <div className="flex-1 pb-2">
+                <div className="font-semibold text-slate-900 dark:text-slate-100 text-[13px] mb-1 mt-0.5">Create a Zap on zapier.com</div>
+                <p className="text-[12.5px] text-slate-500 mb-3">Go to <span className="font-medium text-slate-600 dark:text-slate-400">zapier.com → Create Zap</span>. Choose any trigger that makes sense for you:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { trigger: 'HubSpot', event: 'Deal stage changed to "Closed Won"', topic: '"Just closed a $50k deal with [Company]"' },
+                    { trigger: 'Typeform', event: 'New form response submitted', topic: '"Customer said: {{answer_1}}"' },
+                    { trigger: 'Google Sheets', event: 'New row added to spreadsheet', topic: '"New milestone: {{metric}} hit {{value}}"' },
+                    { trigger: 'Calendly', event: 'Invitee created (speaking gig booked)', topic: '"Just confirmed a talk at {{event_name}}"' },
+                  ].map(ex => (
+                    <div key={ex.trigger} className="rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2.5">
+                      <div className="text-[11.5px] font-semibold text-slate-700 dark:text-slate-300 mb-0.5">{ex.trigger}</div>
+                      <div className="text-[11px] text-slate-400 leading-relaxed">{ex.event}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3 — Configure the action */}
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <div className="size-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-[12px] font-bold shrink-0">3</div>
+                <div className="w-px flex-1 bg-slate-100 dark:bg-slate-800 min-h-[16px]" />
+              </div>
+              <div className="flex-1 pb-2">
+                <div className="font-semibold text-slate-900 dark:text-slate-100 text-[13px] mb-1 mt-0.5">Add a &ldquo;Webhooks by Zapier&rdquo; action</div>
+                <p className="text-[12.5px] text-slate-500 mb-3">Search for <span className="font-medium text-slate-600 dark:text-slate-400">Webhooks by Zapier</span> as the action app, then select <span className="font-medium text-slate-600 dark:text-slate-400">POST</span>. Fill in these fields:</p>
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="grid grid-cols-[100px_1fr] text-[12px]">
+                      <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-900 font-medium text-slate-500 border-b border-slate-100 dark:border-slate-800">URL</div>
+                      <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <code className="font-mono text-slate-600 dark:text-slate-400 text-[11.5px] truncate">
+                          {(process.env.NEXT_PUBLIC_APP_URL || 'https://app.personalink.ai') + '/api/zapier/webhook'}
+                        </code>
+                        <Button size="sm" variant="ghost" className="shrink-0 size-6 p-0 text-slate-400 hover:text-slate-700" onClick={() => { navigator.clipboard.writeText((process.env.NEXT_PUBLIC_APP_URL || 'https://app.personalink.ai') + '/api/zapier/webhook'); toast.success('URL copied!') }}>
+                          <Copy className="size-3" />
+                        </Button>
+                      </div>
+                      <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-900 font-medium text-slate-500 border-b border-slate-100 dark:border-slate-800">Payload type</div>
+                      <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400">json</div>
+                      <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-900 font-medium text-slate-500 border-b border-slate-100 dark:border-slate-800">Headers</div>
+                      <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <code className="font-mono text-slate-600 dark:text-slate-400 text-[11.5px]">Authorization: Bearer <span className="text-orange-500">{zapierKeyPreview ?? '<your-api-key>'}</span></code>
+                        {zapierHasKey && zapierNewKey && (
+                          <Button size="sm" variant="ghost" className="shrink-0 size-6 p-0 text-slate-400 hover:text-slate-700" onClick={() => { navigator.clipboard.writeText(`Bearer ${zapierNewKey}`); toast.success('Header value copied!') }}>
+                            <Copy className="size-3" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-900 font-medium text-slate-500">Data</div>
+                      <div className="px-3 py-2.5">
+                        <pre className="font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-pre leading-relaxed">{`topic: "We just closed our Series A"
+context: "Keep it short and punchy"`}</pre>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-slate-400">
+                    The <code className="text-slate-500 font-mono">topic</code> field is what PersonaLink writes about — map it to a dynamic field from your trigger (e.g. deal name, form answer). The <code className="text-slate-500 font-mono">context</code> field is optional extra instructions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 4 — Test & activate */}
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <div className="size-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-[12px] font-bold shrink-0">4</div>
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-slate-900 dark:text-slate-100 text-[13px] mb-1 mt-0.5">Test and activate</div>
+                <p className="text-[12.5px] text-slate-500 mb-3">Click <span className="font-medium text-slate-600 dark:text-slate-400">Test step</span> in Zapier. If successful you&apos;ll get a <code className="text-[11.5px] font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">200</code> response with the draft details. Then turn your Zap on — every future trigger will drop a draft into your PersonaLink queue.</p>
+                <div className="rounded-lg border border-green-100 dark:border-green-900/40 bg-green-50/50 dark:bg-green-950/10 px-3 py-2.5">
+                  <div className="text-[11.5px] font-semibold text-green-700 dark:text-green-400 mb-1">Example successful response</div>
+                  <pre className="font-mono text-[11px] text-green-700/80 dark:text-green-400/80 whitespace-pre leading-relaxed overflow-x-auto">{`{
+  "id": "post_abc123",
+  "status": "draft",
+  "content": "Three months ago we had nothing but a deck...",
+  "review_url": "https://app.personalink.ai/dashboard/posts"
+}`}</pre>
+                </div>
+              </div>
+            </div>
+
           </CardContent>
         </Card>
       </section>
