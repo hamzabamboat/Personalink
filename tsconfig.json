@@ -38,6 +38,9 @@
     "next.config.js"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "__checks__",
+    "checkly.config.ts",
+    "playwright.checks.config.ts"
   ]
 }
