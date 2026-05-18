@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ImageSelector } from '@/components/image-selector'
+import { AiImageButton } from '@/components/ai-image-button'
 import {
   Plus, Zap, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
   Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2,
@@ -198,6 +199,8 @@ function PostsContent() {
         onSelect={imgs => setEditImages(imgs)}
         maxSelect={4}
         alreadySelected={editImages.map(i => i.id)}
+        plan={plan}
+        postContent={editContent}
       />
 
       <Dialog open={!!editingPost} onOpenChange={(open) => { if (!open) setEditingPost(null) }}>
@@ -305,6 +308,7 @@ function PostsContent() {
           </h1>
         </div>
         <div className="db-screen__actions">
+          <AiImageButton plan={plan} postContent={editContent} />
           {plan === 'pro' && (
             <button onClick={bulkGenerate} className="btn-dash btn-dash--outline">
               <Zap />

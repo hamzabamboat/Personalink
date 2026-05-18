@@ -5,7 +5,7 @@ import { PostImage } from '@/lib/supabase'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { Check, Loader2, Image as ImageIcon, CloudUpload } from 'lucide-react'
+import { Check, Loader2, Image as ImageIcon, CloudUpload, Wand2, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 const MOOD_COLORS: Record<string, string> = {
@@ -24,6 +24,9 @@ interface Props {
   maxSelect?: number
   alreadySelected?: string[]
   onHookSelect?: (hook: string) => void
+  plan?: string
+  postContent?: string
+  defaultTab?: 'library' | 'ai'
 }
 
 function ImageGrid({
@@ -108,16 +111,149 @@ function ImageGrid({
   )
 }
 
+function AiGenerateTab({
+  postContent,
+  onSelect,
+  onClose,
+}: {
+  postContent: string
+  onSelect: (images: PostImage[]) => void
+  onClose: () => void
+}) {
+  const [generating, setGenerating] = useState(false)
+  const [generatedImage, setGeneratedImage] = useState<PostImage | null>(null)
+  const [remaining, setRemaining] = useState<number | null>(null)
+  const [error, setError] = useState('')
+  const [prompt, setPrompt] = useState('')
+
+  async function generate() {
+    setGenerating(true)
+    setError('')
+    setGeneratedImage(null)
+
+    try {
+      const res = await fetch('/api/images/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postContent }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Generation failed')
+        return
+      }
+
+      setGeneratedImage(data.image)
+      setRemaining(data.remaining)
+      setPrompt(data.prompt || '')
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  function useImage() {
+    if (generatedImage) {
+      onSelect([generatedImage])
+      onClose()
+    }
+  }
+
+  return (
+    <div className="flex flex-col h-full gap-4">
+      <div className="text-sm text-slate-500 leading-relaxed">
+        AI generates a professional image tailored to your post content using DALL-E 3. The image will be saved to your photo library.
+      </div>
+
+      {remaining !== null && (
+        <div className="text-[12px] text-slate-400">
+          {remaining} generation{remaining !== 1 ? 's' : ''} remaining this month
+        </div>
+      )}
+
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          {error}
+          {error.includes('Upgrade') && (
+            <Link href="/dashboard/settings?tab=plan" className="ml-1 font-semibold underline">
+              Upgrade →
+            </Link>
+          )}
+        </div>
+      )}
+
+      {generatedImage ? (
+        <div className="flex flex-col gap-3 flex-1">
+          <div className="relative aspect-square rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={generatedImage.public_url} alt="AI generated" className="w-full h-full object-cover" />
+            <div className="absolute top-2 left-2">
+              <span className="text-[10px] font-bold bg-brand text-white px-2 py-0.5 rounded-full">AI Generated</span>
+            </div>
+          </div>
+
+          {prompt && (
+            <div className="text-[11px] text-slate-400 italic line-clamp-2">
+              Prompt: {prompt}
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-auto">
+            <Button onClick={useImage} className="flex-1 gap-2">
+              <Check className="w-4 h-4" /> Use This Image
+            </Button>
+            <Button variant="outline" onClick={generate} disabled={generating} className="gap-1.5">
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              Regenerate
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          {generating ? (
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="relative w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-brand animate-spin" />
+              </div>
+              <div className="text-sm text-slate-500">Generating your image…<br /><span className="text-[12px] text-slate-400">This takes about 10–15 seconds</span></div>
+            </div>
+          ) : (
+            <>
+              <div className="w-20 h-20 rounded-2xl bg-slate-50 flex items-center justify-center">
+                <Sparkles className="w-8 h-8 text-slate-300" />
+              </div>
+              <Button onClick={generate} className="gap-2 px-6">
+                <Wand2 className="w-4 h-4" /> Generate Image
+              </Button>
+              <div className="text-[12px] text-slate-400 text-center max-w-xs">
+                AI will analyse your post and create a professional LinkedIn image automatically
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SelectorContent({
   onClose,
   onSelect,
   maxSelect = 4,
   alreadySelected = [],
   onHookSelect,
+  plan = 'starter',
+  postContent = '',
+  defaultTab = 'library',
 }: Omit<Props, 'open'>) {
   const [images, setImages] = useState<PostImage[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string[]>(alreadySelected)
+  const [tab, setTab] = useState<'library' | 'ai'>(defaultTab)
+
+  const canGenerateAi = plan === 'standard' || plan === 'pro'
 
   const loadImages = useCallback(async () => {
     const res = await fetch('/api/images')
@@ -144,44 +280,67 @@ function SelectorContent({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-1 text-sm text-slate-500">
-        <span>{selected.length} selected / {maxSelect} max</span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto min-h-0 pb-2">
-        <ImageGrid images={images} selected={selected} maxSelect={maxSelect} onToggle={toggle} loading={loading} />
-      </div>
-
-      {allHooks.length > 0 && (
-        <div className="border-t border-slate-100 pt-3 mt-3">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Suggested angles from your photos</div>
-          <div className="flex flex-wrap gap-1.5">
-            {allHooks.map((hook, i) => (
-              <button
-                key={i}
-                onClick={() => { onHookSelect?.(hook); onClose() }}
-                className="text-[12px] bg-slate-50 text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-brand/40 hover:bg-brand-light/30 hover:text-brand transition-all text-left"
-              >
-                {hook}
-              </button>
-            ))}
-          </div>
+      {canGenerateAi && (
+        <div className="flex gap-1 mb-3 bg-slate-50 rounded-lg p-1 shrink-0">
+          <button
+            onClick={() => setTab('library')}
+            className={`flex-1 text-[13px] font-medium py-1.5 rounded-md transition-all ${tab === 'library' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            My Library
+          </button>
+          <button
+            onClick={() => setTab('ai')}
+            className={`flex-1 text-[13px] font-medium py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${tab === 'ai' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <Wand2 className="w-3.5 h-3.5" /> Generate with AI
+          </button>
         </div>
       )}
 
-      <div className="pt-3 border-t border-slate-100 mt-3">
-        <Button onClick={handleUse} disabled={selected.length === 0} className="w-full gap-2">
-          Use Selected ({selected.length})
-        </Button>
-        <Link href="/dashboard/upload" className="block text-center text-[12px] text-slate-400 hover:text-brand mt-2 transition-colors">
-          Upload new photos →
-        </Link>
-      </div>
+      {tab === 'ai' && canGenerateAi ? (
+        <AiGenerateTab postContent={postContent} onSelect={onSelect} onClose={onClose} />
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-1 text-sm text-slate-500 shrink-0">
+            <span>{selected.length} selected / {maxSelect} max</span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto min-h-0 pb-2">
+            <ImageGrid images={images} selected={selected} maxSelect={maxSelect} onToggle={toggle} loading={loading} />
+          </div>
+
+          {allHooks.length > 0 && (
+            <div className="border-t border-slate-100 pt-3 mt-3 shrink-0">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Suggested angles from your photos</div>
+              <div className="flex flex-wrap gap-1.5">
+                {allHooks.map((hook, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { onHookSelect?.(hook); onClose() }}
+                    className="text-[12px] bg-slate-50 text-slate-600 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-brand/40 hover:bg-brand-light/30 hover:text-brand transition-all text-left"
+                  >
+                    {hook}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-3 border-t border-slate-100 mt-3 shrink-0">
+            <Button onClick={handleUse} disabled={selected.length === 0} className="w-full gap-2">
+              Use Selected ({selected.length})
+            </Button>
+            <Link href="/dashboard/upload" className="block text-center text-[12px] text-slate-400 hover:text-brand mt-2 transition-colors">
+              Upload new photos →
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
-export function ImageSelector({ open, onClose, onSelect, maxSelect = 4, alreadySelected = [], onHookSelect }: Props) {
+export function ImageSelector({ open, onClose, onSelect, maxSelect = 4, alreadySelected = [], onHookSelect, plan = 'starter', postContent = '', defaultTab = 'library' }: Props) {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -199,7 +358,7 @@ export function ImageSelector({ open, onClose, onSelect, maxSelect = 4, alreadyS
             <SheetTitle>Select Photos</SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-hidden">
-            <SelectorContent onClose={onClose} onSelect={onSelect} maxSelect={maxSelect} alreadySelected={alreadySelected} onHookSelect={onHookSelect} />
+            <SelectorContent onClose={onClose} onSelect={onSelect} maxSelect={maxSelect} alreadySelected={alreadySelected} onHookSelect={onHookSelect} plan={plan} postContent={postContent} defaultTab={defaultTab} />
           </div>
         </SheetContent>
       </Sheet>
@@ -213,7 +372,7 @@ export function ImageSelector({ open, onClose, onSelect, maxSelect = 4, alreadyS
           <DialogTitle>Select Photos</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-hidden">
-          <SelectorContent onClose={onClose} onSelect={onSelect} maxSelect={maxSelect} alreadySelected={alreadySelected} onHookSelect={onHookSelect} />
+          <SelectorContent onClose={onClose} onSelect={onSelect} maxSelect={maxSelect} alreadySelected={alreadySelected} onHookSelect={onHookSelect} plan={plan} postContent={postContent} defaultTab={defaultTab} />
         </div>
       </DialogContent>
     </Dialog>

@@ -7,6 +7,7 @@ import {
   BookOpen, Plus, Sparkles, Trash2, Save, Loader2,
   Mic, Upload, SquareIcon, CheckCircle2, Clock, RefreshCw, AlertTriangle,
 } from 'lucide-react'
+import { AiImageButton } from '@/components/ai-image-button'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -46,6 +47,7 @@ export default function StoryBankPage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [transcript, setTranscript] = useState('')
   const [micPermission, setMicPermission] = useState<MicPermission>('unknown')
+  const [plan, setPlan] = useState('starter')
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -73,6 +75,7 @@ export default function StoryBankPage() {
   useEffect(() => {
     fetchStories()
     checkMicPermission()
+    fetch('/api/me').then(r => r.json()).then(d => { if (d.profile?.plan) setPlan(d.profile.plan) }).catch(() => {})
   }, [checkMicPermission])
 
   async function fetchStories() {
@@ -198,18 +201,21 @@ export default function StoryBankPage() {
             Your raw material, <em>tagged and ready.</em>
           </h1>
         </div>
-        <button
-          onClick={() => { setShowForm(v => !v); setInputMode('text') }}
-          className="flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80"
-          style={{
-            background: 'var(--ink)', color: '#fff',
-            borderRadius: 'var(--r-sm)', padding: '7px 14px',
-            fontSize: 13, fontWeight: 600,
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          + New story
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <AiImageButton plan={plan} />
+          <button
+            onClick={() => { setShowForm(v => !v); setInputMode('text') }}
+            className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            style={{
+              background: 'var(--ink)', color: '#fff',
+              borderRadius: 'var(--r-sm)', padding: '7px 14px',
+              fontSize: 13, fontWeight: 600,
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            + New story
+          </button>
+        </div>
       </div>
 
       {/* Add story form */}

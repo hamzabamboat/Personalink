@@ -37,6 +37,7 @@ export const PLAN_LIMITS = {
     story_conversions: 5,
     batch_runs: 1,
     repurpose_runs: 0,
+    ai_image_generations: 0,
   },
   standard: {
     posts_generated: 20,
@@ -49,6 +50,7 @@ export const PLAN_LIMITS = {
     story_conversions: 10,
     batch_runs: 2,
     repurpose_runs: 0,
+    ai_image_generations: 3,
   },
   pro: {
     posts_generated: 30,
@@ -61,6 +63,7 @@ export const PLAN_LIMITS = {
     story_conversions: 20,
     batch_runs: 4,
     repurpose_runs: 10,
+    ai_image_generations: 10,
   },
 } as const
 
@@ -78,6 +81,7 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   story_conversions: 'Story Conversions',
   batch_runs: 'Batch Generation Runs',
   repurpose_runs: 'Repurpose Runs',
+  ai_image_generations: 'AI Image Generations',
 }
 
 export function getResetAt(): string {

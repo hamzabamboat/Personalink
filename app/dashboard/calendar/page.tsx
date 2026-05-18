@@ -9,6 +9,7 @@ import { ImageSelector } from '@/components/image-selector'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Sparkles, ChevronLeft, ChevronRight, Plus, X, CalendarDays, Pencil, Clock, ImageIcon } from 'lucide-react'
+import { AiImageButton } from '@/components/ai-image-button'
 
 function utcToLocalInput(utcString: string): string {
   if (!utcString) return ''
@@ -58,6 +59,7 @@ export default function CalendarPage() {
   const [editImages, setEditImages] = useState<PostImage[]>([])
   const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [plan, setPlan] = useState('starter')
 
   useEffect(() => {
     let cancelled = false
@@ -66,7 +68,8 @@ export default function CalendarPage() {
       try {
         const meRes = await fetch('/api/me')
         if (!meRes.ok) return
-        const { user } = await meRes.json()
+        const { user, profile } = await meRes.json()
+        if (!cancelled && profile?.plan) setPlan(profile.plan)
         if (!user || cancelled) return
         const monthParam = `${year}-${String(month + 1).padStart(2, '0')}`
         const res = await fetch(`/api/posts?scheduled_month=${monthParam}&order=scheduled_at`)
@@ -149,6 +152,8 @@ export default function CalendarPage() {
         onSelect={imgs => setEditImages(imgs)}
         maxSelect={4}
         alreadySelected={editImages.map(i => i.id)}
+        plan={plan}
+        postContent={editingPost?.content || ''}
       />
 
       {/* Header */}
@@ -159,18 +164,21 @@ export default function CalendarPage() {
             The shape <em>of your voice this month.</em>
           </h1>
         </div>
-        <Link
-          href="/dashboard/generate"
-          className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
-          style={{
-            background: 'var(--ink)', color: '#fff',
-            borderRadius: 'var(--r-sm)', padding: '7px 14px',
-            fontSize: 13, fontWeight: 600,
-          }}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add post
-        </Link>
+        <div className="flex items-center gap-2">
+          <AiImageButton plan={plan} postContent={editingPost?.content || ''} />
+          <Link
+            href="/dashboard/generate"
+            className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            style={{
+              background: 'var(--ink)', color: '#fff',
+              borderRadius: 'var(--r-sm)', padding: '7px 14px',
+              fontSize: 13, fontWeight: 600,
+            }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add post
+          </Link>
+        </div>
       </div>
 
       {/* Calendar card */}

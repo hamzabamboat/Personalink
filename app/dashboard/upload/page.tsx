@@ -8,6 +8,7 @@ import {
   CloudUpload, CheckCircle2, X, Trash2, Loader2, Image as ImageIcon,
   ExternalLink, Lightbulb, RefreshCw, Lock, Zap, Camera,
 } from 'lucide-react'
+import { AiImageButton } from '@/components/ai-image-button'
 
 const MOOD_CSS: Record<string, { bg: string; color: string }> = {
   professional:        { bg: 'rgba(10,102,194,0.10)',  color: '#0A66C2' },
@@ -317,11 +318,17 @@ export default function UploadPage() {
 
   return (
     <div className="p-3 sm:p-4 md:p-8 max-w-[900px]">
-      <div className="mb-6">
-        <div className="db-screen__eyebrow">// Image library · {images.length} asset{images.length !== 1 ? 's' : ''}</div>
-        <h1 className="db-screen__title">
-          Visuals, <em>cleanly attached.</em>
-        </h1>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <div className="db-screen__eyebrow">// Image library · {images.length} asset{images.length !== 1 ? 's' : ''}</div>
+          <h1 className="db-screen__title">
+            Visuals, <em>cleanly attached.</em>
+          </h1>
+        </div>
+        <AiImageButton
+          plan={plan}
+          onSelect={img => { if (img.length) setImages(prev => [img[0], ...prev]) }}
+        />
       </div>
 
       <PhotoIdeasSection plan={plan} />

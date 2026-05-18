@@ -403,6 +403,32 @@ Respond ONLY with a valid JSON array (empty array if nothing notable):
   }
 }
 
+export async function craftDallePrompt(postContent: string, industry: string): Promise<string> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 300,
+    messages: [{
+      role: 'user',
+      content: `Create a DALL-E 3 image generation prompt for a LinkedIn post. The image must be professional, photorealistic, and suitable for a business social network.
+
+Post content (first 400 chars): "${postContent.slice(0, 400)}"
+Industry: ${industry}
+
+Rules:
+- Photorealistic style, professional lighting
+- No text or words in the image
+- No faces or identifiable people (avoid copyright/likeness issues)
+- Focus on concepts, environments, objects, or abstract visual metaphors
+- LinkedIn-appropriate (business context)
+- Describe scene, composition, lighting, and mood specifically
+
+Respond with ONLY the prompt string, nothing else.`,
+    }],
+  })
+
+  return msg.content[0].type === 'text' ? msg.content[0].text.trim() : `Professional ${industry} workplace scene, photorealistic, soft natural lighting, no people, clean composition`
+}
+
 export async function extractTopicsFromPost(content: string): Promise<string[]> {
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',

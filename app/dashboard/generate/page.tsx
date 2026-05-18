@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase, StoryBank, Post } from '@/lib/supabase'
 import { PostCard, PostCardSkeleton } from '@/components/post-card'
 import { ImageSelector } from '@/components/image-selector'
+import { AiImageButton } from '@/components/ai-image-button'
 import { PostImage } from '@/lib/supabase'
 import {
   Loader2, Mic, MicOff, FolderOpen, Sparkles, CalendarClock, Mail,
@@ -527,6 +528,7 @@ function GenerateContent() {
           <h1 className="db-screen__title">A draft, <em>in your voice — in under thirty seconds.</em></h1>
         </div>
         <div className="db-screen__actions">
+          <AiImageButton plan={plan} postContent={topic} onSelect={imgs => setSelectedImages(imgs)} />
           <Link href="/dashboard/posts" className="btn-dash btn-dash--outline">
             <ArrowLeft size={13} /> All Posts
           </Link>
@@ -671,7 +673,8 @@ function GenerateContent() {
 
               <ImageSelector open={imageSelectorOpen} onClose={() => setImageSelectorOpen(false)}
                 onSelect={imgs => setSelectedImages(imgs)} maxSelect={4}
-                alreadySelected={selectedImages.map(i => i.id)} onHookSelect={hook => setTopic(hook)} />
+                alreadySelected={selectedImages.map(i => i.id)} onHookSelect={hook => setTopic(hook)}
+                plan={plan} postContent={topic} />
             </div>
           )}
 
