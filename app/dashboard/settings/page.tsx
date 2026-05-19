@@ -129,6 +129,11 @@ function SettingsContent() {
         })
         const data = await res.json()
         if (data.error) { toast.error('Error: ' + data.error); setUpgradingPlan(null); return }
+        if (data.upgraded) {
+          toast.success('Plan upgraded successfully!')
+          setTimeout(() => { window.location.href = '/dashboard?upgraded=1' }, 1500)
+          return
+        }
         window.location.href = data.checkout_url
       } catch {
         toast.error('Something went wrong. Please try again.')
@@ -554,7 +559,7 @@ function SettingsContent() {
           {plan !== 'pro' && (
             <>
               <div className="text-[13px] font-bold text-slate-900 dark:text-slate-100 px-0.5 mt-1">Upgrade your plan</div>
-              {PLANS.filter(p => p.id !== plan).map(p => (
+              {PLANS.filter(p => PLANS.findIndex(x => x.id === p.id) > PLANS.findIndex(x => x.id === plan)).map(p => (
                 <Card key={p.id} className="shadow-sm rounded-2xl" style={{ borderColor: p.color + '30' }}>
                   <CardContent className="pt-5">
                     <div className="flex justify-between items-start mb-4">

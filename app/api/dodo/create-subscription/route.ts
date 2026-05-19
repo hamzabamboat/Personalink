@@ -20,12 +20,23 @@ export async function POST(request: NextRequest) {
   // Fetch the existing subscription to check trial status
   const { data: existingSub } = await supabaseAdmin
     .from('subscriptions')
-    .select('status, trial_ends_at')
+    .select('status, trial_ends_at, dodo_subscription_id')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (existingSub?.status === 'active') {
-    return NextResponse.json({ error: 'Already subscribed' }, { status: 409 })
+  if (existingSub?.status === 'active' && existingSub.dodo_subscription_id) {
+    // Existing active subscriber — change their plan instead of creating a new subscription
+    const dodo = getDodo()
+    await dodo.subscriptions.changePlan(existingSub.dodo_subscription_id, {
+      product_id: planConfig.productId,
+      proration_billing_mode: 'prorated_immediately',
+      quantity: 1,
+    })
+    await supabaseAdmin
+      .from('subscriptions')
+      .update({ currency, updated_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+    return NextResponse.json({ upgraded: true, plan, currency })
   }
 
   // Allow checkout when the trial has expired; block if it's still running
