@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendApprovalEmail } from '@/lib/email'
 
-// Runs every 30 minutes via Vercel cron.
-// Finds posts that are scheduled to go live in 60–120 minutes and haven't
-// had an approval email sent yet, then fires one email per post.
+// Runs once daily at 3:00 AM UTC (8:30 AM IST) via Vercel cron.
+// Sends approval emails for all pending posts scheduled to go live within
+// the next 24 hours that haven't had an email sent yet.
+// Users get their approval email in the morning, well before posting time.
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
@@ -13,10 +14,10 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date()
-  const windowStart = new Date(now.getTime() + 60 * 60 * 1000)  // 1 hour from now
-  const windowEnd   = new Date(now.getTime() + 2 * 60 * 60 * 1000) // 2 hours from now
+  const windowStart = now  // include posts scheduled from now onward
+  const windowEnd   = new Date(now.getTime() + 24 * 60 * 60 * 1000) // up to 24 hours out
 
-  // Find pending_approval posts whose scheduled time falls in the 1–2 hr window
+  // Find pending_approval posts scheduled within the next 24 hours
   const { data: posts, error } = await supabaseAdmin
     .from('posts')
     .select('id, user_id, content, approval_token, scheduled_at')
