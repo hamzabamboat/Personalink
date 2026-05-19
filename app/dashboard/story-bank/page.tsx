@@ -194,23 +194,18 @@ export default function StoryBankPage() {
   return (
     <div className="p-3 sm:p-4 md:p-7 max-w-[820px]">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="db-screen__head">
         <div>
           <div className="db-screen__eyebrow">// Story bank · {stories.length} {stories.length === 1 ? 'entry' : 'entries'}</div>
           <h1 className="db-screen__title">
             Your raw material, <em>tagged and ready.</em>
           </h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="db-screen__actions">
           <AiImageButton plan={plan} />
           <button
             onClick={() => { setShowForm(v => !v); setInputMode('text') }}
-            className="flex items-center gap-2 transition-opacity hover:opacity-80"
-            style={{
-              background: 'var(--ink)', color: '#fff',
-              borderRadius: 'var(--r-sm)', padding: '7px 14px',
-              fontSize: 13, fontWeight: 600,
-            }}
+            className="btn-dash btn-dash--primary"
           >
             <Plus className="w-4 h-4" />
             + New story

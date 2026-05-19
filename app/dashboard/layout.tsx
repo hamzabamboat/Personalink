@@ -585,8 +585,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Topbar pathname={pathname} user={user} />
 
         {/* Mobile top bar */}
-        <div className="md:hidden h-[54px] flex items-center justify-between px-4 shrink-0"
-          style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}>
+        <div className="md:hidden safe-pt flex items-center justify-between px-4 shrink-0"
+          style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', boxShadow: 'var(--sh-1)', minHeight: 54 }}>
           <Link href="/dashboard">
             <WordMark icon wordmark={false} iconSize={30} />
           </Link>

@@ -770,13 +770,13 @@ function HomeContent() {
               <li key={step.n}>
                 {i > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '0 0 40px' }} />}
                 <FadeUp>
-                  <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 'clamp(20px,4vw,48px)', alignItems: 'center', paddingBottom: 40 }}>
+                  <div className="pl-step-row" style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 'clamp(20px,4vw,48px)', alignItems: 'center', paddingBottom: 40 }}>
                     <div style={{ fontFamily: 'var(--f-mono)', fontSize: 28, fontWeight: 500, color: 'var(--pl-accent)', lineHeight: 1 }}>{step.n}</div>
                     <div>
                       <h3 style={{ fontWeight: 600, fontSize: 'clamp(16px,2vw,20px)', color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 10 }}>{step.title}</h3>
                       <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 440 }}>{step.desc}</p>
                     </div>
-                    <div style={{ width: 'clamp(180px,22vw,260px)', flexShrink: 0 }}>{step.art}</div>
+                    <div className="pl-step-art" style={{ width: 'clamp(180px,22vw,260px)', flexShrink: 0 }}>{step.art}</div>
                   </div>
                 </FadeUp>
               </li>

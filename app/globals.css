@@ -362,6 +362,10 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   .hide-desktop { display: none !important; }
 }
 
+/* Top safe area for notched phones */
+.safe-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
 /* Bottom nav safe area for notched phones */
 .safe-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -483,6 +487,50 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   .pl-footer-inner { grid-template-columns: 1fr !important; gap: 32px !important; }
   /* Footer links — 2 cols instead of 3 on mobile */
   .pl-footer-links { grid-template-columns: 1fr 1fr !important; }
+
+  /* How it works steps — collapse 3-col grid; art moves to its own full-width row */
+  .pl-step-row { grid-template-columns: 48px 1fr !important; row-gap: 16px !important; }
+  .pl-step-art { grid-column: 1 / -1; width: 100% !important; }
+
+  /* Animated post card — clip rotated ghost cards so they don't overflow viewport */
+  .pl-animated-post { overflow: hidden; border-radius: 20px; }
+
+  /* ── Dashboard: page header ── */
+  .db-screen { padding: 16px !important; }
+  .db-screen__head { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; margin-bottom: 20px !important; }
+  .db-screen__head > div:first-child { flex: none !important; width: 100%; }
+  .db-screen__actions { width: 100%; }
+  .db-screen__actions > * { flex: 1; justify-content: center; }
+  .db-screen__title { font-size: 22px !important; line-height: 1.2 !important; }
+  .db-screen__eyebrow { white-space: normal !important; max-width: 100%; }
+
+  /* Dashboard: filter bar — stack tabs above controls */
+  .filter-bar { flex-direction: column; align-items: stretch !important; gap: 10px !important; }
+  .filter-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 0; }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .ft { padding: 6px 10px !important; font-size: 12px !important; white-space: nowrap; }
+  .filter-controls { width: 100%; }
+  .filter-controls .db-input { width: 100% !important; }
+  .filter-controls .chip-btn { flex: 1; justify-content: center; }
+
+  /* Posts table — collapse to card layout on mobile */
+  .pt-row--head { display: none !important; }
+  .pt-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding: 14px 16px !important;
+  }
+  /* Hide platform, impressions, engagement columns */
+  .pt-row > *:nth-child(3),
+  .pt-row > *:nth-child(5),
+  .pt-row > *:nth-child(6) { display: none !important; }
+  /* Status badge — inline */
+  .pt-row > *:nth-child(4) { align-self: flex-start; }
+  /* Date — de-emphasise */
+  .pt-row > *:nth-child(2) { font-size: 11.5px !important; color: var(--ink-4) !important; }
+  /* Actions — row */
+  .pt-more { flex-direction: row !important; }
 }
 
 /* ── Landing page aliases ── */

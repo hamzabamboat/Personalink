@@ -205,23 +205,18 @@ export default function CalendarPage() {
       />
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="db-screen__head">
         <div>
           <div className="db-screen__eyebrow">// Calendar · {MONTH_NAMES[month]} {year}</div>
           <h1 className="db-screen__title">
             The shape <em>of your voice this month.</em>
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="db-screen__actions">
           <AiImageButton plan={plan} postContent={editingPost?.content || ''} />
           <Link
             href="/dashboard/generate"
-            className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
-            style={{
-              background: 'var(--ink)', color: '#fff',
-              borderRadius: 'var(--r-sm)', padding: '7px 14px',
-              fontSize: 13, fontWeight: 600,
-            }}
+            className="btn-dash btn-dash--primary"
           >
             <Plus className="w-3.5 h-3.5" />
             Add post

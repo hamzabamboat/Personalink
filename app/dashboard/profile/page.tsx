@@ -161,7 +161,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Avatar + name */}
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', minWidth: 0 }}>
             <div style={{
               width: 52, height: 52, borderRadius: '50%',
               background: 'linear-gradient(135deg, var(--accent), var(--accent-2))',
@@ -170,7 +170,7 @@ export default function ProfilePage() {
             }}>
               {initials}
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <strong style={{ display: 'block', fontSize: 15, color: 'var(--ink)', fontWeight: 600 }}>
                 {profile?.name || 'Your Name'}
               </strong>
@@ -178,7 +178,7 @@ export default function ProfilePage() {
                 {[profile?.role, profile?.company].filter(Boolean).join(' · ') || 'Add your role'}
               </span>
               {profile?.linkedin_url && (
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {profile.linkedin_url.replace('https://', '').replace('http://', '')}
                 </span>
               )}
@@ -212,11 +212,11 @@ export default function ProfilePage() {
           background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)',
           padding: '20px', display: 'flex', flexDirection: 'column', gap: 16,
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10.5, fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', padding: '3px 8px', background: 'var(--surface-2)', borderRadius: 'var(--r-sm)' }}>
               Voice dimensions
             </span>
-            <span style={{ fontSize: 10.5, fontFamily: 'var(--f-mono)', color: hasFingerprint ? '#059669' : 'var(--ink-4)' }}>
+            <span style={{ fontSize: 10.5, fontFamily: 'var(--f-mono)', color: hasFingerprint ? '#059669' : 'var(--ink-4)', whiteSpace: 'nowrap' }}>
               match · {hasFingerprint ? `${matchScore}%` : 'n/a'}
             </span>
           </div>
