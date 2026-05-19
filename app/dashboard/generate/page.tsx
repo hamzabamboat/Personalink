@@ -972,7 +972,7 @@ function GenerateContent() {
               <div className="oc-foot" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <input type="datetime-local" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
-                    min={new Date().toISOString().slice(0, 16)} className="db-input" style={{ flex: 1, minWidth: 160 }} />
+                    min={new Date(Date.now() + 30 * 60 * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} className="db-input" style={{ flex: 1, minWidth: 160 }} />
                   <button onClick={schedulePost} disabled={scheduling || !scheduleDate} className="btn-dash btn-dash--primary">
                     {scheduling ? <><Loader2 size={13} className="animate-spin" /> Scheduling...</> : <><CalendarClock size={13} /> Schedule</>}
                   </button>

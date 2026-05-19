@@ -502,7 +502,7 @@ export default function CalendarPage() {
                               <Clock className="w-3 h-3" /> Reschedule time
                             </div>
                             <Input type="datetime-local" value={editTime} onChange={e => setEditTime(e.target.value)}
-                              min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                              min={new Date(Date.now() + 30 * 60 * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                               className="text-[13px] h-8"
                               style={{ background: 'var(--bg)', border: '1px solid var(--line)', color: 'var(--ink)' }} />
                             <p style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 4 }}>Your local timezone</p>

@@ -23,6 +23,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Content must be a string' }, { status: 400 })
     }
 
+    if (scheduled_at) {
+      const minAllowed = new Date(Date.now() + 30 * 60 * 1000)
+      if (new Date(scheduled_at) < minAllowed) {
+        return NextResponse.json({ error: 'Posts must be scheduled at least 30 minutes from now' }, { status: 400 })
+      }
+    }
+
     const updatePayload: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (content !== undefined) updatePayload.content = content
     if (scheduled_at !== undefined) updatePayload.scheduled_at = scheduled_at || null

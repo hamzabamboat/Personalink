@@ -129,10 +129,11 @@ function PostsContent() {
       body: JSON.stringify(body),
     })
     const data = await res.json()
+    setSaving(false)
+    if (data.error) { toast.error(data.error); return }
     if (data.post) {
       setPosts(p => p.map(x => x.id === editingPost.id ? { ...x, ...data.post } : x))
     }
-    setSaving(false)
     setEditingPost(null)
     toast.success('Post updated')
   }
@@ -266,7 +267,7 @@ function PostsContent() {
               type="datetime-local"
               value={editSchedule}
               onChange={e => setEditSchedule(e.target.value)}
-              min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+              min={new Date(Date.now() + 30 * 60 * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
               style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--ink)', borderRadius: 'var(--r-sm)' }}
             />
             <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>Time is in your local timezone</p>

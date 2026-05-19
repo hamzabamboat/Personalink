@@ -12,8 +12,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json().catch(() => null)
     const scheduledAt = body?.scheduledAt
 
-    if (!scheduledAt || new Date(scheduledAt) <= new Date()) {
-      return NextResponse.json({ error: 'scheduledAt must be a future date' }, { status: 400 })
+    const minAllowed = new Date(Date.now() + 30 * 60 * 1000)
+    if (!scheduledAt || new Date(scheduledAt) < minAllowed) {
+      return NextResponse.json({ error: 'Posts must be scheduled at least 30 minutes from now' }, { status: 400 })
     }
 
     const { data: post } = await supabaseAdmin
