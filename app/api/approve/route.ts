@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const { data: post, error } = await supabaseAdmin
       .from('posts')
-      .select('id, status')
+      .select('id, status, scheduled_at')
       .eq('approval_token', token)
       .single()
 
@@ -29,9 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date().toISOString()
+    // Keep the pre-assigned scheduled_at; only fall back to now if none was set
+    const scheduledAt = post.scheduled_at ?? now
     const update =
       action === 'approve'
-        ? { status: 'scheduled', scheduled_at: now, updated_at: now }
+        ? { status: 'scheduled', scheduled_at: scheduledAt, updated_at: now }
         : { status: 'rejected', updated_at: now }
 
     await supabaseAdmin

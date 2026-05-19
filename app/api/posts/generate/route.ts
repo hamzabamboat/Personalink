@@ -10,6 +10,8 @@ import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
+import { buildScheduleSlots } from '@/lib/scheduling'
+import { syncPostToCalendar } from '@/lib/google-calendar'
 
 export async function POST(request: NextRequest) {
   try {
@@ -188,16 +190,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Generation failed — response too short. Please try again.' }, { status: 500 })
   }
 
-  // Save drafts
+  // Compute auto-schedule slots for the generated posts
+  const now = new Date()
+  const preferredHour = profile.preferred_post_hour ?? 9
+  const preferredDays: string[] = Array.isArray(profile.preferred_days)
+    ? profile.preferred_days
+    : ['Monday', 'Wednesday', 'Friday']
+  const timezone = profile.timezone || 'Asia/Kolkata'
+
+  // Find dates already taken by existing scheduled/pending posts
+  const { data: existingScheduled } = await supabaseAdmin
+    .from('posts')
+    .select('scheduled_at')
+    .eq('user_id', user.id)
+    .in('status', ['scheduled', 'pending_approval'])
+    .not('scheduled_at', 'is', null)
+
+  const takenDateStrings = new Set<string>(
+    (existingScheduled || [])
+      .map((p: { scheduled_at: string }) => new Date(p.scheduled_at).toDateString())
+      .filter(Boolean)
+  )
+
+  const slots = buildScheduleSlots(now, validPosts.length, preferredHour, preferredDays, takenDateStrings, timezone)
+
+  // Save posts — each gets its own pre-assigned scheduled slot
   const insertedPosts = await Promise.all(
-    validPosts.map(async content => {
+    validPosts.map(async (content, idx) => {
       const scores = analyzeContent(content)
       const similarityScore = calculateSimilarityScore(content, recentContents)
+      const scheduledAt = slots[idx]?.toISOString() ?? null
 
       const fullRow: Record<string, unknown> = {
         user_id: user.id,
         content,
-        status: 'draft',
+        status: 'pending_approval',
+        scheduled_at: scheduledAt,
         source: voiceNoteId ? 'voice_note' : storyBankId ? 'story_bank' : 'ai_generated',
         voice_note_id: voiceNoteId || null,
         story_bank_id: storyBankId || null,
@@ -212,7 +240,7 @@ export async function POST(request: NextRequest) {
       if (selectedImageUrls.length) fullRow.image_urls = selectedImageUrls
 
       // Minimal row using only original schema columns — used as last-resort fallback
-      const minimalRow: Record<string, unknown> = { user_id: user.id, content, status: 'draft' }
+      const minimalRow: Record<string, unknown> = { user_id: user.id, content, status: 'pending_approval', scheduled_at: scheduledAt }
 
       let result = await supabaseAdmin.from('posts').insert(fullRow).select().single()
       if (result.error) {
@@ -235,6 +263,16 @@ export async function POST(request: NextRequest) {
         logComplianceEvent(user.id, 'post_flagged_review', 'low', {
           flags: scores.flags,
         }, result.data?.id)
+      }
+
+      // Sync to Google Calendar immediately (non-blocking)
+      if (scheduledAt && result.data) {
+        syncPostToCalendar(user.id, {
+          id: result.data.id,
+          content: result.data.content,
+          scheduled_at: scheduledAt,
+          google_calendar_event_id: null,
+        })
       }
 
       return result.data

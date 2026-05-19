@@ -14,19 +14,41 @@ export async function sendApprovalEmail({
   userName,
   postContent,
   approvalToken,
+  scheduledAt,
 }: {
   to: string
   userName: string
   postContent: string
   approvalToken: string
+  scheduledAt?: string | null
 }) {
   const approveUrl = `${APP_URL}/approve/${approvalToken}?action=approve`
   const rejectUrl = `${APP_URL}/approve/${approvalToken}?action=reject`
 
+  const scheduleLabel = scheduledAt
+    ? new Date(scheduledAt).toLocaleString('en-IN', {
+        weekday: 'long', day: 'numeric', month: 'long',
+        hour: '2-digit', minute: '2-digit', hour12: true,
+        timeZone: 'Asia/Kolkata',
+      })
+    : null
+
+  const scheduleBanner = scheduleLabel
+    ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:24px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:18px;">📅</span>
+        <div>
+          <p style="margin:0;font-size:13px;font-weight:600;color:#1e40af;">Scheduled to post on</p>
+          <p style="margin:0;font-size:14px;color:#1d4ed8;">${scheduleLabel} IST</p>
+        </div>
+      </div>`
+    : ''
+
   return resend().emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `Your LinkedIn post is ready for approval`,
+    subject: scheduleLabel
+      ? `Approve your LinkedIn post — going live ${scheduleLabel} IST`
+      : `Your LinkedIn post is ready for approval`,
     html: `
 <!DOCTYPE html>
 <html>
@@ -46,6 +68,8 @@ export async function sendApprovalEmail({
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">Your post is ready, ${userName.split(' ')[0]}!</h1>
       <p style="margin:0 0 24px;color:#64748b;font-size:15px;">Review your AI-generated LinkedIn post below and approve or reject it.</p>
 
+      ${scheduleBanner}
+
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:28px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
           <div style="width:8px;height:8px;background:#0A66C2;border-radius:50%;"></div>
@@ -56,7 +80,7 @@ export async function sendApprovalEmail({
 
       <div style="display:flex;gap:12px;margin-bottom:24px;">
         <a href="${approveUrl}" style="flex:1;display:block;text-align:center;background:#0A66C2;color:white;text-decoration:none;padding:14px 20px;border-radius:8px;font-weight:600;font-size:15px;">
-          Approve &amp; Schedule
+          Approve &amp; Post
         </a>
         <a href="${rejectUrl}" style="flex:1;display:block;text-align:center;background:white;color:#64748b;text-decoration:none;padding:14px 20px;border-radius:8px;font-weight:600;font-size:15px;border:1px solid #e2e8f0;">
           Reject
@@ -72,7 +96,7 @@ export async function sendApprovalEmail({
 </body>
 </html>
     `,
-    text: `Your LinkedIn post is ready for approval!\n\n${postContent}\n\nApprove: ${approveUrl}\nReject: ${rejectUrl}`,
+    text: `Your LinkedIn post is ready for approval!${scheduleLabel ? `\n\nScheduled: ${scheduleLabel} IST` : ''}\n\n${postContent}\n\nApprove: ${approveUrl}\nReject: ${rejectUrl}`,
   })
 }
 

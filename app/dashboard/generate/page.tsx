@@ -328,8 +328,8 @@ function GenerateContent() {
   const [tab, setTab] = useState<Tab>(initTab)
   const [topic, setTopic] = useState(initIdea ? decodeURIComponent(initIdea) : initPrompt ? decodeURIComponent(initPrompt) : '')
   const [additionalContext, setAdditionalContext] = useState('')
-  const [generatedPosts, setGeneratedPosts] = useState<Array<{ id: string; content: string }>>([])
-  const [selectedPost, setSelectedPost] = useState<{ id: string; content: string } | null>(null)
+  const [generatedPosts, setGeneratedPosts] = useState<Array<{ id: string; content: string; scheduled_at?: string | null }>>([])
+  const [selectedPost, setSelectedPost] = useState<{ id: string; content: string; scheduled_at?: string | null } | null>(null)
   const [editContent, setEditContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -508,7 +508,7 @@ function GenerateContent() {
 
   const originalDraftRef = useRef<string>('')
 
-  function selectPost(post: { id: string; content: string }) {
+  function selectPost(post: { id: string; content: string; scheduled_at?: string | null }) {
     setSelectedPost(post); setEditContent(post.content); setActionResult(''); setScheduleDate(''); setImageSuggestions([]); setUploadedImageUrl('')
     originalDraftRef.current = post.content
     fetchImageSuggestions(post.content)
@@ -908,6 +908,14 @@ function GenerateContent() {
                     <span style={{ color: 'var(--accent)', fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>Option {i + 1}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink-4)' }}>Select <ArrowRight size={11} /></span>
                   </div>
+                  {post.scheduled_at && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', marginBottom: 4 }}>
+                      <CalendarClock size={12} style={{ color: '#2563eb', flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: '#1d4ed8', fontWeight: 500 }}>
+                        Scheduled: {new Date(post.scheduled_at).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at {new Date(post.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </span>
+                    </div>
+                  )}
                   <div className="oc-post">
                     <p>{post.content}</p>
                   </div>
@@ -930,6 +938,22 @@ function GenerateContent() {
                 <textarea value={editContent} onChange={e => setEditContent(e.target.value)}
                   className="g-textarea" style={{ minHeight: 220 }} />
               </div>
+
+              {/* Scheduled date banner */}
+              {selectedPost?.scheduled_at && actionResult !== 'scheduled' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 'var(--r-sm)', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                  <CalendarClock size={14} style={{ color: '#2563eb', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Auto-scheduled to post</div>
+                    <div style={{ fontSize: 12, color: '#1d4ed8' }}>
+                      {new Date(selectedPost.scheduled_at).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      {' at '}
+                      {new Date(selectedPost.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      {' · Approval email sent 1–2 hrs before'}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {actionResult === 'scheduled' && (
                 <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, background: '#ecfdf5', color: '#059669', border: '1px solid #6ee7b7' }}>
@@ -954,7 +978,7 @@ function GenerateContent() {
                   </button>
                 </div>
                 <button onClick={sendApproval} className="btn-dash btn-dash--outline" style={{ width: '100%', justifyContent: 'center' }}>
-                  <Mail size={13} /> Send Approval Email
+                  <Mail size={13} /> Send Approval Email Now
                 </button>
               </div>
 

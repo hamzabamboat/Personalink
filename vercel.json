@@ -1,1 +1,8 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/cron/send-approvals",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}

@@ -33,6 +33,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       userName: user.linkedin_name || 'there',
       postContent: post.content,
       approvalToken: post.approval_token!,
+      scheduledAt: post.scheduled_at ?? null,
     })
 
     return NextResponse.json({ success: true })
