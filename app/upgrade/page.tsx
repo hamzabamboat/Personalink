@@ -198,9 +198,9 @@ export default function UpgradePage() {
           <div className="text-center mb-10">
             <div className="pl-eyebrow" style={{ marginBottom: 16 }}>
               <span className="pl-eyebrow__dot" />
-              Your trial or subscription has ended
+              Start your 7-day free trial
             </div>
-            <h1 style={{ fontSize: 'clamp(24px,3vw,32px)', fontWeight: 500, letterSpacing: '-0.035em', color: 'var(--ink)', margin: '0 0 8px' }}>Choose your plan to continue</h1>
+            <h1 style={{ fontSize: 'clamp(24px,3vw,32px)', fontWeight: 500, letterSpacing: '-0.035em', color: 'var(--ink)', margin: '0 0 8px' }}>Choose your plan to get started</h1>
             <p style={{ fontSize: 14, color: 'var(--ink-3)' }}>Start your 7-day free trial — no charge until it ends. Cancel anytime.</p>
           </div>
 
