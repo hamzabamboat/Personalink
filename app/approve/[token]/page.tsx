@@ -45,7 +45,7 @@ function ApproveContent() {
   const Icon = cfg.icon
 
   const message = status === 'loading' ? 'Please wait...'
-    : status === 'success' && isApprove ? 'Your post has been approved and is ready to publish. Head to your dashboard to schedule it.'
+    : status === 'success' && isApprove ? 'Your post has been approved and scheduled for publishing. It will be posted to LinkedIn shortly.'
     : status === 'success' ? 'Your post has been rejected and will not be published.'
     : status === 'already_done' ? `This post has already been ${result}.`
     : result

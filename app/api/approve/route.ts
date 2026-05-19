@@ -28,13 +28,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const newStatus = action === 'approve' ? 'approved' : 'rejected'
+    const now = new Date().toISOString()
+    const update =
+      action === 'approve'
+        ? { status: 'scheduled', scheduled_at: now, updated_at: now }
+        : { status: 'rejected', updated_at: now }
+
     await supabaseAdmin
       .from('posts')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update(update)
       .eq('id', post.id)
 
-    return NextResponse.json({ success: true, status: newStatus })
+    return NextResponse.json({ success: true, status: update.status })
   } catch (err) {
     console.error('[approve]', err)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
