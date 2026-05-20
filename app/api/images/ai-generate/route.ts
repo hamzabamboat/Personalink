@@ -54,21 +54,16 @@ export async function POST(request: NextRequest) {
     const dallePrompt = await craftDallePrompt(postContent, industry)
 
     const response = await openai.images.generate({
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       prompt: dallePrompt,
       n: 1,
       size: '1024x1024',
-      quality: 'standard',
-      response_format: 'url',
+      quality: 'medium',
     })
 
-    const imageUrl = response.data?.[0]?.url
-    if (!imageUrl) return NextResponse.json({ error: 'Image generation failed' }, { status: 500 })
-
-    // Download the generated image (OpenAI URLs expire after ~1 hour)
-    const imgRes = await fetch(imageUrl)
-    if (!imgRes.ok) return NextResponse.json({ error: 'Failed to download generated image' }, { status: 500 })
-    const buffer = Buffer.from(await imgRes.arrayBuffer())
+    const b64 = response.data?.[0]?.b64_json
+    if (!b64) return NextResponse.json({ error: 'Image generation failed' }, { status: 500 })
+    const buffer = Buffer.from(b64, 'base64')
 
     const storagePath = `${user.id}/ai-${Date.now()}-${crypto.randomUUID()}.png`
     const { error: uploadError } = await supabaseAdmin.storage
