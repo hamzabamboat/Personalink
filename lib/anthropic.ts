@@ -514,7 +514,7 @@ Respond ONLY with a valid JSON array (empty array if nothing notable):
 
 export async function craftDallePrompt(postContent: string, industry: string): Promise<string> {
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 300,
     messages: [{
       role: 'user',
