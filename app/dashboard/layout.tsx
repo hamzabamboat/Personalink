@@ -37,6 +37,7 @@ import {
   Menu,
   Upload,
   Plus,
+  Wand2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppearanceTrigger } from '@/components/appearance-trigger'
@@ -75,8 +76,9 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Account',
     items: [
-      { href: '/dashboard/profile',     label: 'Voice & profile', icon: UserIcon },
-      { href: '/dashboard/settings',    label: 'Settings',        icon: Settings },
+      { href: '/dashboard/profile',         label: 'Voice & profile',    icon: UserIcon },
+      { href: '/dashboard/profile-improve', label: 'Profile Beautifier', icon: Wand2, minPlan: 'standard', badge: 'ai' as const },
+      { href: '/dashboard/settings',        label: 'Settings',           icon: Settings },
     ],
   },
 ]
@@ -89,12 +91,13 @@ const BOTTOM_NAV_ITEMS = [
 ]
 
 const MORE_ITEMS = [
-  { href: '/dashboard/posts',       label: 'My Posts',       icon: FileText },
-  { href: '/dashboard/suggestions', label: 'Trending Ideas', icon: Lightbulb },
-  { href: '/dashboard/analytics',   label: 'Analytics',      icon: BarChart3 },
-  { href: '/dashboard/upload',      label: 'Image Library',  icon: ImageIcon },
-  { href: '/dashboard/profile',     label: 'Voice & Profile',icon: UserIcon },
-  { href: '/dashboard/settings',    label: 'Settings',       icon: Settings },
+  { href: '/dashboard/posts',           label: 'My Posts',           icon: FileText },
+  { href: '/dashboard/suggestions',     label: 'Trending Ideas',     icon: Lightbulb },
+  { href: '/dashboard/analytics',       label: 'Analytics',          icon: BarChart3 },
+  { href: '/dashboard/upload',          label: 'Image Library',      icon: ImageIcon },
+  { href: '/dashboard/profile',         label: 'Voice & Profile',    icon: UserIcon },
+  { href: '/dashboard/profile-improve', label: 'Profile Beautifier', icon: Wand2 },
+  { href: '/dashboard/settings',        label: 'Settings',           icon: Settings },
 ]
 
 function planRank(plan: string) {
@@ -521,8 +524,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       '/dashboard/analytics':    'Analytics — PersonaLink',
       '/dashboard/suggestions':  'Trending Ideas — PersonaLink',
       '/dashboard/upload':       'Image Library — PersonaLink',
-      '/dashboard/profile':      'Voice & Profile — PersonaLink',
-      '/dashboard/settings':     'Settings — PersonaLink',
+      '/dashboard/profile':         'Voice & Profile — PersonaLink',
+      '/dashboard/profile-improve': 'Profile Beautifier — PersonaLink',
+      '/dashboard/settings':        'Settings — PersonaLink',
       '/dashboard/upgrade':      'Upgrade — PersonaLink',
     }
     document.title = titles[pathname] ?? 'PersonaLink'
