@@ -148,9 +148,7 @@ export async function middleware(request: NextRequest) {
       // If we cleared the cookie here, the next request would lack a session,
       // potentially causing a redirect chain.
       const res = NextResponse.next()
-      if (!request.cookies.get('user_country')) {
-        res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
-      }
+      res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
       return res
     }
 
@@ -200,9 +198,7 @@ export async function middleware(request: NextRequest) {
 
   if (!isDashboard && !isOnboarding) {
     const res = NextResponse.next()
-    if (!request.cookies.get('user_country')) {
-      res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
-    }
+    res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
     return res
   }
 
@@ -223,9 +219,7 @@ export async function middleware(request: NextRequest) {
   // ── Onboarding just needs a session ───────────────────────────────────────
   if (isOnboarding) {
     const res = NextResponse.next()
-    if (!request.cookies.get('user_country')) {
-      res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
-    }
+    res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
     return res
   }
 
@@ -350,9 +344,7 @@ export async function middleware(request: NextRequest) {
 
   // Valid subscription — let through and refresh the cache
   const res = NextResponse.next()
-  if (!request.cookies.get('user_country')) {
-    res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
-  }
+  res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
   const cookieOpts = {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
