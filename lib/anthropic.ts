@@ -286,6 +286,115 @@ Respond ONLY with a valid JSON object exactly like this:
   }
 }
 
+export type BeautifyProfileResult = {
+  new_headline: string
+  new_about: string
+  suggested_skills: string[]
+  profile_photo_brief: string
+  banner_brief: string
+  improvement_notes: string[]
+  score_before: number
+  score_after: number
+  breakdown_before: Record<string, { score: number; max: number; tip: string }>
+  breakdown_after: Record<string, { score: number; max: number; tip: string }>
+}
+
+export async function beautifyLinkedInProfile(input: {
+  name?: string
+  currentHeadline?: string
+  currentAbout?: string
+  currentSkills?: string[]
+  role?: string
+  industry?: string
+  company?: string
+  voiceFingerprint?: string
+  writingSample?: string
+}): Promise<BeautifyProfileResult> {
+  const { name, currentHeadline, currentAbout, currentSkills, role, industry, company, voiceFingerprint, writingSample } = input
+
+  const profileContext = [
+    name && `Name: ${name}`,
+    role && `Role/Title: ${role}`,
+    industry && `Industry: ${industry}`,
+    company && `Company: ${company}`,
+  ].filter(Boolean).join('\n')
+
+  const currentProfileSection = [
+    currentHeadline ? `Current headline: "${currentHeadline}"` : 'Current headline: Not provided',
+    currentAbout ? `Current about/bio:\n"${currentAbout.slice(0, 1000)}"` : 'Current about/bio: Not provided',
+    currentSkills?.length ? `Current skills: ${currentSkills.join(', ')}` : 'Current skills: Not provided',
+  ].join('\n\n')
+
+  const voiceSection = voiceFingerprint
+    ? `\nVoice fingerprint (match this tone in the About section):\n${voiceFingerprint}`
+    : writingSample
+    ? `\nWriting sample (match this voice):\n"${writingSample.slice(0, 400)}"`
+    : ''
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 3000,
+    messages: [{
+      role: 'user',
+      content: `You are a LinkedIn profile optimisation expert. Rewrite this person's LinkedIn profile to maximise recruiter discovery, inbound opportunities, and professional credibility.
+
+Person context:
+${profileContext}
+${voiceSection}
+
+Current profile:
+${currentProfileSection}
+
+Generate an optimised profile. Return ONLY a valid JSON object with exactly these fields:
+{
+  "score_before": <integer 0-100, honest score of current profile>,
+  "score_after": <integer 0-100, projected score of your rewritten profile>,
+  "breakdown_before": {
+    "headline": { "score": <0-20>, "max": 20, "tip": "<what's weak>" },
+    "about": { "score": <0-20>, "max": 20, "tip": "<what's weak>" },
+    "completeness": { "score": <0-20>, "max": 20, "tip": "<what's missing>" },
+    "consistency": { "score": <0-20>, "max": 20, "tip": "<voice/brand issue>" },
+    "engagement": { "score": <0-20>, "max": 20, "tip": "<why it won't attract people>" }
+  },
+  "breakdown_after": {
+    "headline": { "score": <0-20>, "max": 20, "tip": "<what was improved>" },
+    "about": { "score": <0-20>, "max": 20, "tip": "<what was improved>" },
+    "completeness": { "score": <0-20>, "max": 20, "tip": "<what was added>" },
+    "consistency": { "score": <0-20>, "max": 20, "tip": "<how voice is consistent now>" },
+    "engagement": { "score": <0-20>, "max": 20, "tip": "<why it will attract people>" }
+  },
+  "new_headline": "<optimised headline — max 220 chars, keyword-rich, value-driven, specific>",
+  "new_about": "<full rewritten About section — 250-350 words, first person, compelling story arc, ends with a clear CTA, matches the person's voice>",
+  "suggested_skills": ["<skill 1>", "<skill 2>", "...", "<up to 20 skills>"],
+  "profile_photo_brief": "<2-3 sentences describing the ideal LinkedIn profile photo: framing, background, attire, expression, lighting>",
+  "banner_brief": "<2-3 sentences describing the ideal LinkedIn banner image: concept, colours, text overlay if any, mood>",
+  "improvement_notes": ["<1-sentence explanation of change 1>", "<change 2>", "<change 3>"]
+}`,
+    }],
+  })
+
+  try {
+    const text = msg.content[0].type === 'text' ? msg.content[0].text : '{}'
+    const stripped = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim()
+    const match = stripped.match(/\{[\s\S]*\}/)
+    if (!match) throw new Error('No JSON found')
+    return JSON.parse(match[0]) as BeautifyProfileResult
+  } catch {
+    return {
+      new_headline: currentHeadline || '',
+      new_about: currentAbout || '',
+      suggested_skills: currentSkills || [],
+      profile_photo_brief: '',
+      banner_brief: '',
+      improvement_notes: [],
+      score_before: 40,
+      score_after: 70,
+      breakdown_before: {},
+      breakdown_after: {},
+    }
+  }
+}
+
 export async function generateImageSuggestions(postContent: string, industry: string): Promise<Array<{ icon: string; suggestion: string; why: string }>> {
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5',

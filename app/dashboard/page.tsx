@@ -14,6 +14,7 @@ import {
   Edit3,
   Send,
   Calendar,
+  Wand2,
 } from 'lucide-react'
 import { showUpgradeModal } from '@/components/upgrade-limit-modal'
 import { DisplayHeading } from '@/components/display-heading'
@@ -462,6 +463,19 @@ function DashboardContent() {
             <RefreshCw size={13} className={reanalysing ? 'animate-spin' : ''} />
             {reanalysing ? 'Analysing...' : 'Analyse Profile'}
           </button>
+
+          <Link
+            href="/dashboard/profile-improve"
+            className="w-full py-2 px-3 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-opacity hover:opacity-80"
+            style={{ background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'var(--f-sans)' }}
+          >
+            <Wand2 size={13} strokeWidth={2} />
+            Beautify Profile
+          </Link>
+
+          <p style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, color: 'var(--ink-4)', lineHeight: 1.5, textAlign: 'center', marginTop: 2 }}>
+            Rewrites headline · bio · skills<br />photo brief · before/after score
+          </p>
         </div>
 
         {/* This Month — span 4 */}

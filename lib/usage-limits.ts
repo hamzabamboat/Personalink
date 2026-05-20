@@ -29,6 +29,7 @@ export const PLAN_LIMITS = {
   starter: {
     posts_generated: 12,
     profile_analyses: 2,
+    profile_beautifications: 0,
     voice_transcriptions: 0,
     voice_minutes: 0,
     image_uploads: 10,
@@ -42,6 +43,7 @@ export const PLAN_LIMITS = {
   standard: {
     posts_generated: 20,
     profile_analyses: 4,
+    profile_beautifications: 1,
     voice_transcriptions: 8,
     voice_minutes: 16,
     image_uploads: 30,
@@ -55,6 +57,7 @@ export const PLAN_LIMITS = {
   pro: {
     posts_generated: 30,
     profile_analyses: 8,
+    profile_beautifications: 2,
     voice_transcriptions: 20,
     voice_minutes: 60,
     image_uploads: 80,
@@ -73,6 +76,7 @@ export type FeatureKey = keyof typeof PLAN_LIMITS.starter
 export const FEATURE_LABELS: Record<FeatureKey, string> = {
   posts_generated: 'Post Generations',
   profile_analyses: 'Profile Analyses',
+  profile_beautifications: 'Profile Beautifications',
   voice_transcriptions: 'Voice Transcriptions',
   voice_minutes: 'Voice Minutes',
   image_uploads: 'Image Uploads',

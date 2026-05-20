@@ -6,6 +6,7 @@ export type User = {
   linkedin_name: string | null
   email: string | null
   linkedin_picture: string | null
+  linkedin_headline: string | null
   linkedin_access_token: string | null
   linkedin_token_expires_at: string | null
   subscription_status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'access_code'
@@ -57,6 +58,9 @@ export type UserProfile = {
   preferred_days: string[] | null
   preferred_post_hour: number
   timezone: string
+  // Profile beautifier inputs
+  current_about: string | null
+  current_skills: string[] | null
   // Trust & compliance
   trust_score: number
   risk_score: number

@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
     }
 
     const profile = await profileResponse.json()
+    // LinkedIn OIDC may include headline in non-standard fields — capture if present
+    const linkedinHeadline: string | undefined = profile.headline ?? profile.job_title ?? undefined
 
     // Agency client LinkedIn setup: link credentials to existing client user record
     const agencyClientUserId = request.cookies.get('agency_oauth_client_user_id')?.value
@@ -88,6 +90,7 @@ export async function GET(request: NextRequest) {
           linkedin_name: profile.name,
           email: profile.email ?? undefined,
           linkedin_picture: profile.picture ?? undefined,
+          ...(linkedinHeadline ? { linkedin_headline: linkedinHeadline } : {}),
           linkedin_access_token: accessToken,
           linkedin_token_expires_at: expiresAt.toISOString(),
           updated_at: new Date().toISOString(),
@@ -136,6 +139,7 @@ export async function GET(request: NextRequest) {
           linkedin_id: profile.sub,
           linkedin_name: profile.name,
           linkedin_picture: profile.picture,
+          ...(linkedinHeadline ? { linkedin_headline: linkedinHeadline } : {}),
           linkedin_access_token: accessToken,
           linkedin_token_expires_at: expiresAt.toISOString(),
           updated_at: new Date().toISOString(),
@@ -154,6 +158,7 @@ export async function GET(request: NextRequest) {
           linkedin_name: profile.name,
           email: profile.email,
           linkedin_picture: profile.picture,
+          ...(linkedinHeadline ? { linkedin_headline: linkedinHeadline } : {}),
           linkedin_access_token: accessToken,
           linkedin_token_expires_at: expiresAt.toISOString(),
           updated_at: new Date().toISOString(),
