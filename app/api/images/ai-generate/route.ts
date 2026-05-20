@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (dbError || !imageRow) return NextResponse.json({ error: 'DB insert failed' }, { status: 500 })
+    if (dbError || !imageRow) return NextResponse.json({ error: 'DB insert failed', detail: dbError?.message }, { status: 500 })
 
     await incrementUsage(user.id, 'ai_image_generations')
 
