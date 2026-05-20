@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
   const userIds = [...new Set(posts.map((p: { user_id: string }) => p.user_id))]
   const { data: users } = await supabaseAdmin
     .from('users')
-    .select('id, email, linkedin_name')
+    .select('id, email, linkedin_name, subscription_status')
     .in('id', userIds)
 
-  const userMap = new Map((users || []).map((u: { id: string; email: string; linkedin_name?: string }) => [u.id, u]))
+  const userMap = new Map((users || []).map((u: { id: string; email: string; linkedin_name?: string; subscription_status?: string | null }) => [u.id, u]))
 
   let sent = 0
   const errors: string[] = []
@@ -51,6 +51,10 @@ export async function GET(request: NextRequest) {
   for (const post of posts) {
     const user = userMap.get(post.user_id)
     if (!user?.email || !post.approval_token) continue
+
+    // Skip approval emails for users without an active subscription
+    const activeStatuses = ['active', 'trialing']
+    if (!activeStatuses.includes(user.subscription_status ?? '')) continue
 
     try {
       await sendApprovalEmail({

@@ -51,6 +51,7 @@ async function handler(_request: NextRequest) {
         linkedin_access_token: string | null
         linkedin_token_expires_at: string | null
         linkedin_id: string
+        subscription_status: string | null
       }
       const profile = post.user_profiles as {
         control_preference: string | null
@@ -58,6 +59,12 @@ async function handler(_request: NextRequest) {
         risk_score: number | null
         autopilot_eligible: boolean | null
       } | null
+
+      // — Subscription check — do not publish for expired/cancelled subscriptions
+      const activeStatuses = ['active', 'trialing']
+      if (!activeStatuses.includes(user.subscription_status ?? '')) {
+        return { id: post.id, status: 'skipped', reason: 'inactive_subscription' }
+      }
 
       // — Token check —
       if (!user.linkedin_access_token || isTokenExpired(user.linkedin_token_expires_at)) {
