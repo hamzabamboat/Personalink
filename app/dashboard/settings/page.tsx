@@ -50,6 +50,7 @@ function SettingsContent() {
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
   const [activatingCode, setActivatingCode] = useState(false)
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly')
   const planRef = useRef<HTMLDivElement>(null)
 
   // Zapier integration state
@@ -125,7 +126,7 @@ function SettingsContent() {
         const res = await fetch('/api/dodo/create-subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: planId, currency: currencyInfo.code }),
+          body: JSON.stringify({ plan: planId, currency: currencyInfo.code, billing_period: billingPeriod }),
         })
         const data = await res.json()
         if (data.error) { toast.error('Error: ' + data.error); setUpgradingPlan(null); return }
@@ -145,7 +146,7 @@ function SettingsContent() {
       const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, billing_period: billingPeriod }),
       })
       const data = await res.json()
       if (data.error) { toast.error('Error: ' + data.error); setUpgradingPlan(null); return }
@@ -281,10 +282,26 @@ function SettingsContent() {
   const currencyInfo = getCurrency(userCountry)
   const processor = getPaymentProcessor(userCountry)
 
+  const isAnnual = billingPeriod === 'annual'
   const PLANS = [
-    { id: 'starter', label: 'Starter', price: currencyInfo.starter, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2' },
-    { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
+    {
+      id: 'starter', label: 'Starter', posts: 12, features: PLAN_FEATURES.starter, color: '#64748b',
+      monthlyPrice: currencyInfo.starter,
+      price: isAnnual ? Math.round(currencyInfo.annualStarter / 12 * 10) / 10 : currencyInfo.starter,
+      annualTotal: currencyInfo.annualStarter,
+    },
+    {
+      id: 'standard', label: 'Standard', posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2',
+      monthlyPrice: currencyInfo.standard,
+      price: isAnnual ? Math.round(currencyInfo.annualStandard / 12 * 10) / 10 : currencyInfo.standard,
+      annualTotal: currencyInfo.annualStandard,
+    },
+    {
+      id: 'pro', label: 'Pro', posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed',
+      monthlyPrice: currencyInfo.pro,
+      price: isAnnual ? Math.round(currencyInfo.annualPro / 12 * 10) / 10 : currencyInfo.pro,
+      annualTotal: currencyInfo.annualPro,
+    },
   ]
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -558,7 +575,39 @@ function SettingsContent() {
 
           {plan !== 'pro' && (
             <>
-              <div className="text-[13px] font-bold text-slate-900 dark:text-slate-100 px-0.5 mt-1">Upgrade your plan</div>
+              <div className="flex items-center justify-between px-0.5 mt-1 mb-0">
+                <div className="text-[13px] font-bold text-slate-900 dark:text-slate-100">Upgrade your plan</div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setBillingPeriod('monthly')}
+                    style={{
+                      fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 'var(--r-full)',
+                      border: '1px solid var(--line)', cursor: 'pointer', fontFamily: 'var(--f-sans)',
+                      background: !isAnnual ? 'var(--ink)' : 'var(--surface)',
+                      color: !isAnnual ? 'var(--bg)' : 'var(--ink-3)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    onClick={() => setBillingPeriod('annual')}
+                    style={{
+                      fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 'var(--r-full)',
+                      border: '1px solid var(--line)', cursor: 'pointer', fontFamily: 'var(--f-sans)',
+                      background: isAnnual ? 'var(--ink)' : 'var(--surface)',
+                      color: isAnnual ? 'var(--bg)' : 'var(--ink-3)',
+                      transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                    }}
+                  >
+                    Annual
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 'var(--r-full)', background: '#16a34a', color: '#fff', letterSpacing: '0.03em' }}>
+                      -25%
+                    </span>
+                  </button>
+                </div>
+              </div>
               {PLANS.filter(p => PLANS.findIndex(x => x.id === p.id) > PLANS.findIndex(x => x.id === plan)).map(p => (
                 <Card key={p.id} className="shadow-sm rounded-2xl" style={{ borderColor: p.color + '30' }}>
                   <CardContent className="pt-5">
@@ -567,8 +616,20 @@ function SettingsContent() {
                         <div className="font-bold text-[16px] mb-0.5 tracking-tight" style={{ color: p.color }}>{p.label}</div>
                         <div className="text-[13px] text-slate-400">{p.posts} posts/month</div>
                       </div>
-                      <div className="text-2xl font-bold tracking-tight" style={{ color: p.color }}>
-                        {currencyInfo.symbol}{p.price.toLocaleString()}<span className="text-xs font-normal text-slate-400">/mo</span>
+                      <div className="text-right">
+                        <div className="flex items-baseline gap-1.5 justify-end">
+                          <div className="text-2xl font-bold tracking-tight" style={{ color: p.color }}>
+                            {currencyInfo.symbol}{p.price.toLocaleString()}<span className="text-xs font-normal text-slate-400">/mo</span>
+                          </div>
+                          {isAnnual && (
+                            <span className="text-sm text-slate-400 line-through">{currencyInfo.symbol}{p.monthlyPrice.toLocaleString()}</span>
+                          )}
+                        </div>
+                        {isAnnual && (
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            Billed annually · {currencyInfo.symbol}{p.annualTotal.toLocaleString()}/yr
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-4">
