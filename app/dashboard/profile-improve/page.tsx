@@ -336,16 +336,23 @@ export default function ProfileImprovePage() {
       const r = await fetch('/api/linkedin/fetch-profile')
       if (!r.ok) {
         const e = await r.json()
-        toast.error(e.error || 'Could not fetch from LinkedIn')
+        toast.error(e.error || 'Could not reach LinkedIn — try again')
         return
       }
       const d = await r.json()
-      if (d.headline) { setHeadline(d.headline); toast.success('Headline pulled from LinkedIn') }
-      if (d.current_about) setAbout(d.current_about)
-      if (d.current_skills?.length) setSkills(d.current_skills.join(', '))
-      if (!d.headline) toast.info('LinkedIn didn\'t return a headline — paste yours below')
+      let synced = 0
+      // LinkedIn's public API only returns name + picture; headline requires a
+      // partner-level scope so it almost never comes back — don't surface that as an error
+      if (d.headline) { setHeadline(d.headline); synced++ }
+      if (d.current_about) { setAbout(d.current_about); synced++ }
+      if (d.current_skills?.length) { setSkills(d.current_skills.join(', ')); synced++ }
+      if (synced > 0) {
+        toast.success('Synced your saved profile data')
+      } else {
+        toast.info('Connection verified — fill in your details below')
+      }
     } catch {
-      toast.error('LinkedIn fetch failed')
+      toast.error('LinkedIn fetch failed — check your connection')
     } finally {
       setFetching(false)
     }
@@ -478,16 +485,21 @@ export default function ProfileImprovePage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-opacity disabled:opacity-60 hover:opacity-80 shrink-0"
             style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)' }}>
             <RefreshCw size={12} className={fetching ? 'animate-spin' : ''} strokeWidth={2} />
-            {fetching ? 'Fetching…' : 'Pull from LinkedIn'}
+            {fetching ? 'Syncing…' : 'Sync saved data'}
           </button>
         </div>
 
         <div className="p-5 flex flex-col gap-4">
           {/* Headline */}
           <div>
-            <label className="block text-[12px] font-semibold mb-1.5" style={{ color: 'var(--ink-3)', fontFamily: 'var(--f-sans)' }}>
-              Current headline
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[12px] font-semibold" style={{ color: 'var(--ink-3)', fontFamily: 'var(--f-sans)' }}>
+                Current headline
+              </label>
+              <span className="text-[10px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)' }}>
+                paste from LinkedIn
+              </span>
+            </div>
             <input
               value={headline}
               onChange={e => setHeadline(e.target.value)}
@@ -496,7 +508,7 @@ export default function ProfileImprovePage() {
               style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--ink)' }}
             />
             <span className="text-[11px] mt-1 block" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-              {headline.length}/220 chars
+              {headline.length}/220 chars · LinkedIn doesn't share this via API
             </span>
           </div>
 
