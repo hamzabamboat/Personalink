@@ -164,7 +164,7 @@ function AiGenerateTab({
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="text-sm text-slate-500 leading-relaxed">
-        AI generates a professional image tailored to your post content using DALL-E 3. The image will be saved to your photo library.
+        AI generates a professional image tailored to your post content. The image will be saved to your photo library.
       </div>
 
       {remaining !== null && (
