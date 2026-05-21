@@ -227,10 +227,10 @@ export default function CalendarPage() {
       {/* Google Calendar banner */}
       {gcalConnected === false && (
         <div
-          className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg"
+          className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-lg"
           style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             {/* Google Calendar icon */}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="3" y="4" width="18" height="17" rx="2" fill="#fff" stroke="#dadce0" strokeWidth="1.5"/>
@@ -241,7 +241,7 @@ export default function CalendarPage() {
                 {new Date().getDate()}
               </text>
             </svg>
-            <div>
+            <div className="min-w-0">
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Sync with Google Calendar</p>
               <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>See your scheduled posts directly in Google Calendar</p>
             </div>
@@ -262,10 +262,10 @@ export default function CalendarPage() {
 
       {gcalConnected === true && (
         <div
-          className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg"
+          className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-lg"
           style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="3" y="4" width="18" height="17" rx="2" fill="#fff" stroke="#dadce0" strokeWidth="1.5"/>
               <rect x="3" y="8" width="18" height="2.5" fill="#4285F4"/>
@@ -275,7 +275,7 @@ export default function CalendarPage() {
                 {new Date().getDate()}
               </text>
             </svg>
-            <div>
+            <div className="min-w-0">
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                 Google Calendar connected
                 <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#10b981', background: '#10b98118', border: '1px solid #10b98130', borderRadius: 99, padding: '1px 7px', verticalAlign: 'middle' }}>
