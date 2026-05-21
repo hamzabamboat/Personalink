@@ -1,0 +1,11 @@
+-- Add the missing trial_ends_at column to subscriptions.
+--
+-- This column is declared in supabase/schema.sql but was never applied to the
+-- live database. Its absence broke every query that selects trial_ends_at from
+-- subscriptions (middleware access checks, /api/me, razorpay/verify trial
+-- creation, dodo/razorpay create-subscription). In the homepage middleware the
+-- failing query was silently swallowed, leaving subRow null, so every logged-in
+-- user was incorrectly redirected to /upgrade.
+--
+-- Idempotent and additive (nullable, no backfill) — safe to run anytime.
+alter table subscriptions add column if not exists trial_ends_at timestamptz;

@@ -167,11 +167,20 @@ export async function middleware(request: NextRequest) {
       return redirect('/dashboard')
     }
 
-    const { data: subRow } = await supabase
+    const { data: subRow, error: subRowErr } = await supabase
       .from('subscriptions')
       .select('status, trial_ends_at')
       .eq('user_id', userId)
       .maybeSingle()
+
+    if (subRowErr) {
+      // Can't determine access (DB error / schema drift). Be permissive and let
+      // them see the page rather than bouncing a paying user to /upgrade. This
+      // mirrors the dashboard check below, which also fails open on DB errors.
+      const res = NextResponse.next()
+      res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
+      return res
+    }
 
     const hasAccess =
       subRow?.status === 'active' ||
