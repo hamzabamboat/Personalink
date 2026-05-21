@@ -33,17 +33,33 @@ function jitterMs(): number {
 async function handler(_request: NextRequest) {
   const now = new Date().toISOString()
 
+  // Step 1: fetch scheduled posts + users (direct FK: posts.user_id → users.id)
   const { data: posts, error } = await supabaseAdmin
     .from('posts')
-    .select('*, users(*), user_profiles!inner(control_preference, trust_score, risk_score, autopilot_eligible)')
+    .select('*, users(*)')
     .eq('status', 'scheduled')
     .lte('scheduled_at', now)
     .limit(20)
 
   if (error) {
-    console.error('Cron query error:', error)
+    console.error('Cron query error:', JSON.stringify(error))
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  if (!posts || posts.length === 0) {
+    return NextResponse.json({ processed: 0, results: [] })
+  }
+
+  // Step 2: fetch user_profiles separately (no direct FK from posts → user_profiles)
+  const userIds = [...new Set(posts.map((p) => p.user_id as string))]
+  const { data: profileRows } = await supabaseAdmin
+    .from('user_profiles')
+    .select('user_id, control_preference, trust_score, risk_score, autopilot_eligible')
+    .in('user_id', userIds)
+
+  const profileByUserId = Object.fromEntries(
+    (profileRows ?? []).map((p) => [p.user_id, p])
+  )
 
   const results = await Promise.allSettled(
     (posts ?? []).map(async (post) => {
@@ -53,7 +69,7 @@ async function handler(_request: NextRequest) {
         linkedin_id: string
         subscription_status: string | null
       }
-      const profile = post.user_profiles as {
+      const profile = (profileByUserId[post.user_id as string] ?? null) as {
         control_preference: string | null
         trust_score: number | null
         risk_score: number | null
