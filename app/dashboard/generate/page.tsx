@@ -16,6 +16,13 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+function utcToLocalInput(utcString: string): string {
+  if (!utcString) return ''
+  const date = new Date(utcString)
+  const offset = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+}
+
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length
   const dp: number[] = Array.from({ length: n + 1 }, (_, i) => i)
@@ -509,7 +516,12 @@ function GenerateContent() {
   const originalDraftRef = useRef<string>('')
 
   function selectPost(post: { id: string; content: string; scheduled_at?: string | null }) {
-    setSelectedPost(post); setEditContent(post.content); setActionResult(''); setScheduleDate(''); setImageSuggestions([]); setUploadedImageUrl('')
+    setSelectedPost(post)
+    setEditContent(post.content)
+    setActionResult('')
+    setScheduleDate(post.scheduled_at ? utcToLocalInput(post.scheduled_at) : '')
+    setImageSuggestions([])
+    setUploadedImageUrl('')
     originalDraftRef.current = post.content
     fetchImageSuggestions(post.content)
   }
@@ -532,7 +544,7 @@ function GenerateContent() {
       posthog.capture('post_edited_before_publish', { post_id: selectedPost.id, edit_percent: Math.round((dist / original.length) * 100) })
     }
     await fetch(`/api/posts/${selectedPost.id}/update`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: editContent, image_url: uploadedImageUrl || undefined }) })
-    const res = await fetch(`/api/posts/${selectedPost.id}/schedule`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scheduledAt: scheduleDate }) })
+    const res = await fetch(`/api/posts/${selectedPost.id}/schedule`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scheduledAt: new Date(scheduleDate).toISOString() }) })
     const data = await res.json()
     setScheduling(false); setActionResult(data.error ? `Error: ${data.error}` : 'scheduled')
   }

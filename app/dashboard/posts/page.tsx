@@ -442,6 +442,16 @@ function PostsContent() {
 
                   {/* Actions */}
                   <div className="pt-more" style={{ display: 'flex', gap: 4 }}>
+                    {['pending_approval', 'draft'].includes(post.status) && post.scheduled_at && (
+                      <button
+                        onClick={() => approvePost(post.id)}
+                        className="btn-dash btn-dash--ghost btn-dash--sm"
+                        title="Approve & schedule"
+                        style={{ color: '#10b981' }}
+                      >
+                        <CheckCircle2 />
+                      </button>
+                    )}
                     <button
                       onClick={() => openEdit(post)}
                       className="btn-dash btn-dash--ghost btn-dash--sm"
