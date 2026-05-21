@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Post, UserProfile } from '@/lib/supabase'
+import { computeVoiceMatch, type VoiceMatch } from '@/lib/voice-match'
 import { toast } from 'sonner'
 import {
   Sparkles,
@@ -160,6 +161,7 @@ function DashboardContent() {
   const [reanalysing, setReanalysing] = useState(false)
   const [loading,     setLoading]     = useState(true)
   const [monthStats,  setMonthStats]  = useState({ generated: 0, scheduled: 0, draft: 0, needsApproval: 0 })
+  const [voiceMatch,  setVoiceMatch]  = useState<VoiceMatch | null>(null)
   const [user,        setUser]        = useState<{ id?: string; linkedin_name?: string; linkedin_picture?: string } | null>(null)
   const [userId,      setUserId]      = useState<string | null>(null)
 
@@ -197,6 +199,21 @@ function DashboardContent() {
             draft:         all.filter(p => p.status === 'draft').length,
             needsApproval: all.filter(p => p.status === 'pending_approval').length,
           })
+        }
+
+        // Real voice-fingerprint match: compare the user's actual posts to their writing sample
+        if (u?.id) {
+          const { supabase } = await import('@/lib/supabase')
+          const { data: refPostsData } = await supabase
+            .from('posts')
+            .select('content')
+            .eq('user_id', u.id)
+            .in('status', ['published', 'approved'])
+            .order('created_at', { ascending: false })
+            .limit(10)
+          const reference = p.writing_sample || p.post_examples || ''
+          const match = computeVoiceMatch(reference, (refPostsData || []).map(r => r.content).filter(Boolean))
+          if (!cancelled) setVoiceMatch(match)
         }
       } catch {
         /* non-fatal */
@@ -268,6 +285,61 @@ function DashboardContent() {
         <Eyebrow dot className="mb-3">{todayStr}</Eyebrow>
         <DisplayHeading as="h1" size="h" text={`${greeting}, ${firstName}.`} accent="Your week is already written." />
       </header>
+
+      {/* ── Getting-started guidance (new users only) ── */}
+      {monthStats.generated === 0 && (
+        <div
+          className="rounded-xl p-5 mb-4"
+          style={{
+            background: 'linear-gradient(180deg, var(--surface) 0%, color-mix(in srgb, var(--pl-accent) 5%, var(--surface)) 130%)',
+            border: '1px solid color-mix(in srgb, var(--pl-accent) 18%, var(--line))',
+          }}
+        >
+          <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
+            // new here? pick how you want to start
+          </span>
+          <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55, margin: '8px 0 16px' }}>
+            Two ways to create posts. Plan the whole month in one go, or write a single post on the spot.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link
+              href="/dashboard/generate?tab=bulk"
+              className="flex flex-col gap-1.5 p-4 rounded-lg transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}
+            >
+              <div className="flex items-center gap-2">
+                <CalendarDays size={18} style={{ color: 'var(--pl-accent)' }} strokeWidth={1.75} />
+                <strong style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>Plan a whole month</strong>
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--pl-accent)', background: 'var(--pl-accent-soft)', padding: '2px 7px', borderRadius: 99 }}>BEST FOR BULK</span>
+              </div>
+              <span style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                Type everything you&apos;re working on this month — launches, milestones, lessons — and we&apos;ll write and schedule a full batch in your voice.
+              </span>
+              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                Open bulk generator <ArrowRight size={11} />
+              </span>
+            </Link>
+
+            <Link
+              href="/dashboard/generate"
+              className="flex flex-col gap-1.5 p-4 rounded-lg transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} style={{ color: 'var(--pl-accent)' }} strokeWidth={1.75} />
+                <strong style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>Write one post now</strong>
+                <span style={{ marginLeft: 'auto', fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--pl-accent)', background: 'var(--pl-accent-soft)', padding: '2px 7px', borderRadius: 99 }}>BEST FOR SINGLE</span>
+              </div>
+              <span style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                Have one idea? Drop it into the &ldquo;Generate post with AI&rdquo; box and get a polished draft in your voice in ~30 seconds.
+              </span>
+              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                Generate with AI <ArrowRight size={11} />
+              </span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ── Next Post Hero ── */}
       <div
@@ -566,18 +638,26 @@ function DashboardContent() {
             <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
               Voice fingerprint
             </span>
-            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-3)' }}>
-              98% tone match
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: voiceMatch ? 'var(--pl-accent)' : 'var(--ink-4)' }}>
+              {voiceMatch ? `${voiceMatch.score}% tone match` : 'no data yet'}
             </span>
           </div>
 
           <ToneWave />
 
-          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.55, margin: 0, flex: 1 }}>
-            Your last 5 posts averaged{' '}
-            <strong style={{ color: 'var(--pl-accent)', fontWeight: 600 }}>98%</strong>{' '}
-            match against your reference samples. Keep going — the model is locking in.
-          </p>
+          {voiceMatch ? (
+            <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.55, margin: 0, flex: 1 }}>
+              Your last {voiceMatch.postCount} post{voiceMatch.postCount !== 1 ? 's' : ''} averaged{' '}
+              <strong style={{ color: 'var(--pl-accent)', fontWeight: 600 }}>{voiceMatch.score}%</strong>{' '}
+              match against your writing sample. {voiceMatch.score >= 80 ? 'The model has locked in your voice.' : 'Keep posting — the model keeps tuning to you.'}
+            </p>
+          ) : (
+            <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.55, margin: 0, flex: 1 }}>
+              {profile?.writing_sample
+                ? 'Publish or approve a few posts and we’ll measure how closely they match your writing sample.'
+                : 'Add a writing sample so we can measure how closely your posts match your real voice.'}
+            </p>
+          )}
 
           <Link
             href="/dashboard/profile"

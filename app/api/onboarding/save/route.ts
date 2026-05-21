@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   const {
-    name, role, industry, company, years_experience, linkedin_url,
+    name, role, industry, company, age, linkedin_url,
     mcq_answers, writing_sample, content_pillars, control_preference, plan,
   } = body
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     .upsert({
       user_id: user.id,
       name, role, industry, company,
-      years_experience: years_experience ? parseInt(years_experience) : null,
+      age: age ? parseInt(age) : null,
       linkedin_url,
       job_title: role,
       topics: content_pillars,

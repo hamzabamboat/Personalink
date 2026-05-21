@@ -151,6 +151,7 @@ function ImageUploadSection({ onUpload }: { onUpload: (url: string) => void }) {
 function BulkTab({ plan, postsLimit, postsRemaining, monthName }: { plan: string; postsLimit: number | null; postsRemaining: number | null; monthName: string }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [instructions, setInstructions] = useState('')
   const [selectedCount, setSelectedCount] = useState<number | null>(null)
   const [currentStep, setCurrentStep] = useState(0)
   const [simulatedPostCount, setSimulatedPostCount] = useState(0)
@@ -194,7 +195,7 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName }: { plan: string
     batchStartRef.current = new Date().toISOString()
     intervalRef.current = setInterval(() => setCurrentStep(s => Math.min(s + 1, steps.length - 2)), 4000)
     try {
-      const res = await fetch('/api/posts/generate-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ count: effectiveCount }) })
+      const res = await fetch('/api/posts/generate-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ count: effectiveCount, instructions }) })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
       setResult({ postsGenerated: data.postsGenerated, nextPostDate: data.nextPostDate })
@@ -316,6 +317,24 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName }: { plan: string
             : " You've used all your posts this month."}
         </p>
       </div>
+
+      <div className="db-field">
+        <label className="db-label" htmlFor="bulk-instructions">
+          What should this month&apos;s posts cover? <span style={{ fontWeight: 400, opacity: .7 }}>(optional)</span>
+        </label>
+        <textarea
+          id="bulk-instructions"
+          value={instructions}
+          onChange={e => setInstructions(e.target.value)}
+          placeholder="Dump everything you're working on this month — launches, milestones, events, lessons, hot takes. e.g. Launching v2 of our app on the 12th, spoke at a fintech conference, hired our first designer, learned a hard lesson about pricing..."
+          className="g-textarea"
+          style={{ minHeight: 120 }}
+        />
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5 }}>
+          The more context you give, the more specific and personal your batch will be. Leave blank to let AI plan around your content pillars.
+        </p>
+      </div>
+
       {error && <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca' }}>{error}</div>}
       <button onClick={() => setShowConfirm(true)} disabled={remaining === 0} className="btn-dash btn-dash--primary" style={{ alignSelf: 'flex-start' }}>
         <Sparkles size={13} /> Generate posts →

@@ -26,6 +26,25 @@ const MCQ_QUESTIONS = [
   { id: 'known_as', q: 'How do you want to be known?', options: ['The Expert', 'The Leader', 'The Storyteller', 'The Innovator', 'The Connector'] },
 ]
 
+// Questions where the user can pick more than one option
+const MULTI_SELECT_QUESTIONS = ['voice_style', 'content_type']
+
+const INDUSTRIES = [
+  'Software & SaaS', 'Information Technology', 'Artificial Intelligence', 'Cybersecurity',
+  'Data & Analytics', 'Blockchain & Crypto', 'Electronics & Hardware', 'Telecommunications',
+  'Fintech', 'Banking', 'Financial Services', 'Insurance', 'Investment & Venture Capital',
+  'Accounting', 'Management Consulting', 'Marketing & Advertising', 'Public Relations',
+  'Sales', 'Human Resources & Recruiting', 'Design (UX/UI)', 'Media & Entertainment',
+  'Publishing', 'Gaming', 'E-commerce', 'Retail', 'Consumer Goods (FMCG)',
+  'Manufacturing', 'Automotive', 'Aerospace & Defense', 'Energy & Utilities',
+  'Oil & Gas', 'Renewable Energy', 'Construction', 'Real Estate', 'Architecture',
+  'Engineering', 'Transportation & Logistics', 'Supply Chain', 'Hospitality & Tourism',
+  'Food & Beverage', 'Agriculture', 'Healthcare', 'Pharmaceuticals', 'Biotechnology',
+  'Medical Devices', 'Education', 'EdTech', 'Non-Profit', 'Government & Public Sector',
+  'Legal', 'Fashion & Apparel', 'Sports & Fitness', 'Beauty & Wellness',
+  'Climate & Sustainability', 'Travel',
+]
+
 const PLAN_META = [
   { id: 'starter', label: 'Starter', posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
   { id: 'standard', label: 'Standard', posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
@@ -33,8 +52,8 @@ const PLAN_META = [
 ]
 
 type FormData = {
-  name: string; role: string; industry: string; company: string; years_experience: string; linkedin_url: string
-  mcq_answers: Record<string, string>; writing_sample: string; content_pillars: string[]
+  name: string; role: string; industry: string; company: string; age: string; linkedin_url: string
+  mcq_answers: Record<string, string | string[]>; writing_sample: string; content_pillars: string[]
   control_preference: 'autopilot' | 'approve' | 'suggest' | ''; plan: string
 }
 
@@ -45,9 +64,10 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [industryOther, setIndustryOther] = useState(false)
   const [userCountry, setUserCountry] = useState('IN')
   const [form, setForm] = useState<FormData>({
-    name: '', role: '', industry: '', company: '', years_experience: '', linkedin_url: '',
+    name: '', role: '', industry: '', company: '', age: '', linkedin_url: '',
     mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'standard',
   })
   const [codeInput, setCodeInput] = useState('')
@@ -90,8 +110,24 @@ export default function OnboardingPage() {
     } catch {}
   }, [step, form])
 
+  // If a restored/custom industry isn't in the preset list, switch to the "Other" input
+  useEffect(() => {
+    if (form.industry && !INDUSTRIES.includes(form.industry)) setIndustryOther(true)
+  }, [form.industry])
+
   function nextStep() { setError(''); if (step < TOTAL_STEPS) setStep(s => s + 1) }
   function prevStep() { setError(''); if (step > 1) setStep(s => s - 1) }
+
+  function toggleMcq(qid: string, opt: string) {
+    setForm(f => {
+      if (MULTI_SELECT_QUESTIONS.includes(qid)) {
+        const cur = Array.isArray(f.mcq_answers[qid]) ? (f.mcq_answers[qid] as string[]) : []
+        const next = cur.includes(opt) ? cur.filter(x => x !== opt) : [...cur, opt]
+        return { ...f, mcq_answers: { ...f.mcq_answers, [qid]: next } }
+      }
+      return { ...f, mcq_answers: { ...f.mcq_answers, [qid]: opt } }
+    })
+  }
 
   function togglePillar(p: string) {
     setForm(f => {
@@ -241,26 +277,84 @@ export default function OnboardingPage() {
               <p className="text-slate-500 text-base">This helps us personalise your content pillars and voice.</p>
             </div>
             <div className="flex flex-col gap-5">
-              {[
-                { label: 'Full name', key: 'name', placeholder: 'Arjun Mehta', required: true },
-                { label: 'Role / Title', key: 'role', placeholder: 'e.g. Founder, Student, Consultant', required: true },
-                { label: 'Industry / Institution', key: 'industry', placeholder: 'e.g. SaaS, Fintech, IIT Bombay', required: true },
-                { label: 'LinkedIn profile URL', key: 'linkedin_url', placeholder: 'https://linkedin.com/in/yourname', required: true },
-                { label: 'Years of experience', key: 'years_experience', placeholder: '8', type: 'number', required: false },
-              ].map(field => (
-                <div key={field.key}>
-                  <Label className="mb-1.5">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-0.5">*</span>}
-                  </Label>
+              {/* Full name */}
+              <div>
+                <Label className="mb-1.5">Full name<span className="text-red-500 ml-0.5">*</span></Label>
+                <Input
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Arjun Mehta"
+                />
+              </div>
+
+              {/* Role / Title */}
+              <div>
+                <Label className="mb-1.5">Role / Title<span className="text-red-500 ml-0.5">*</span></Label>
+                <Input
+                  value={form.role}
+                  onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+                  placeholder="e.g. Founder, Student, Consultant"
+                />
+              </div>
+
+              {/* Industry — dropdown with Other */}
+              <div>
+                <Label className="mb-1.5">Industry<span className="text-red-500 ml-0.5">*</span></Label>
+                <select
+                  value={industryOther ? 'Other' : form.industry}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (v === 'Other') { setIndustryOther(true); setForm(f => ({ ...f, industry: '' })) }
+                    else { setIndustryOther(false); setForm(f => ({ ...f, industry: v })) }
+                  }}
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base md:text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                >
+                  <option value="" disabled>Select your industry…</option>
+                  {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
+                  <option value="Other">Other…</option>
+                </select>
+                {industryOther && (
                   <Input
-                    type={field.type || 'text'}
-                    value={form[field.key as keyof FormData] as string}
-                    onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
-                    placeholder={field.placeholder}
+                    className="mt-2"
+                    value={form.industry}
+                    onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}
+                    placeholder="Type your industry"
+                    autoFocus
                   />
-                </div>
-              ))}
+                )}
+              </div>
+
+              {/* Company / Institution */}
+              <div>
+                <Label className="mb-1.5">Company / Institution</Label>
+                <Input
+                  value={form.company}
+                  onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
+                  placeholder="e.g. Acme Inc, IIT Bombay"
+                />
+              </div>
+
+              {/* LinkedIn URL */}
+              <div>
+                <Label className="mb-1.5">LinkedIn profile URL<span className="text-red-500 ml-0.5">*</span></Label>
+                <Input
+                  value={form.linkedin_url}
+                  onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
+                  placeholder="https://linkedin.com/in/yourname"
+                />
+              </div>
+
+              {/* Current age */}
+              <div>
+                <Label className="mb-1.5">Current age</Label>
+                <Input
+                  type="number"
+                  value={form.age}
+                  onChange={e => setForm(f => ({ ...f, age: e.target.value }))}
+                  placeholder="32"
+                />
+              </div>
+
               <p className="text-[12px] text-slate-400 mt-1">
                 The more you fill out, the better we can personalise your content and match your voice exactly.
               </p>
@@ -284,30 +378,39 @@ export default function OnboardingPage() {
               <p className="text-slate-500 text-base">Helps our AI match your communication style perfectly.</p>
             </div>
             <div className="flex flex-col gap-8">
-              {MCQ_QUESTIONS.map(q => (
-                <div key={q.id}>
-                  <p className="font-semibold text-slate-900 mb-3.5 text-[15px]">{q.q}</p>
-                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-2.5">
-                    {q.options.map(opt => {
-                      const selected = form.mcq_answers[q.id] === opt
-                      return (
-                        <button
-                          key={opt}
-                          onClick={() => setForm(f => ({ ...f, mcq_answers: { ...f.mcq_answers, [q.id]: opt } }))}
-                          className={`px-4 py-3 sm:py-2.5 rounded-xl sm:rounded-full border-2 text-sm transition-all text-left sm:text-center min-h-[48px] sm:min-h-0 ${
-                            selected ? 'border-brand bg-brand-light text-brand font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      )
-                    })}
+              {MCQ_QUESTIONS.map(q => {
+                const isMulti = MULTI_SELECT_QUESTIONS.includes(q.id)
+                const answer = form.mcq_answers[q.id]
+                return (
+                  <div key={q.id}>
+                    <p className="font-semibold text-slate-900 mb-1 text-[15px]">{q.q}</p>
+                    <p className="text-[12px] text-slate-400 mb-3">{isMulti ? 'Select all that apply.' : 'Pick one.'}</p>
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-2.5">
+                      {q.options.map(opt => {
+                        const selected = Array.isArray(answer) ? answer.includes(opt) : answer === opt
+                        return (
+                          <button
+                            key={opt}
+                            onClick={() => toggleMcq(q.id, opt)}
+                            className={`px-4 py-3 sm:py-2.5 rounded-xl sm:rounded-full border-2 text-sm transition-all text-left sm:text-center min-h-[48px] sm:min-h-0 ${
+                              selected ? 'border-brand bg-brand-light text-brand font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             <NavButtons onNext={() => {
-              if (Object.keys(form.mcq_answers).length < MCQ_QUESTIONS.length) { setError('Please answer all questions.'); return }
+              const allAnswered = MCQ_QUESTIONS.every(q => {
+                const a = form.mcq_answers[q.id]
+                return Array.isArray(a) ? a.length > 0 : !!a
+              })
+              if (!allAnswered) { setError('Please answer all questions.'); return }
               nextStep()
             }} onPrev={prevStep} step={step} />
           </div>

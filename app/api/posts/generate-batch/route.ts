@@ -275,6 +275,7 @@ export async function POST(request: NextRequest) {
       const variants = await generateLinkedInPosts({
         profile: profile as unknown as UserProfile,
         storyText: story.raw_text,
+        additionalContext: instructions || undefined,
       })
       if (variants.length > 0) {
         allPosts.push({
@@ -297,7 +298,7 @@ export async function POST(request: NextRequest) {
     while (allPosts.length < postsToGenerate) {
       const remaining = postsToGenerate - allPosts.length
       const batchCount = Math.min(remaining, BATCH_SIZE)
-      const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars)
+      const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars, instructions, tone)
       allPosts.push(...batch)
       batchIdx++
       if (batch.length === 0) break

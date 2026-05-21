@@ -37,6 +37,7 @@ export type UserProfile = {
   industry: string | null
   company: string | null
   years_experience: number | null
+  age: number | null
   linkedin_url: string | null
   // Legacy fields
   job_title: string | null
@@ -46,7 +47,7 @@ export type UserProfile = {
   post_examples: string | null
   // New onboarding fields
   voice_fingerprint: string | null
-  mcq_answers: Record<string, string> | null
+  mcq_answers: Record<string, string | string[]> | null
   content_pillars: string[] | null
   control_preference: 'autopilot' | 'approve' | 'suggest' | null
   writing_sample: string | null

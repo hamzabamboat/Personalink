@@ -39,6 +39,7 @@ create table if not exists user_profiles (
   industry text,
   company text,
   years_experience integer,
+  age integer,
   linkedin_url text,
   job_title text,
   topics text[],
@@ -197,3 +198,6 @@ create index if not exists subscriptions_razorpay_id_idx on subscriptions(razorp
 
 -- Pipeline reminder throttle: track when the last low-queue reminder was sent per user
 alter table user_profiles add column if not exists last_pipeline_reminder_sent_at timestamptz;
+
+-- Onboarding "Current age" (replaces years_experience for new signups)
+alter table user_profiles add column if not exists age integer;

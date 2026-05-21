@@ -268,6 +268,21 @@ function SettingsContent() {
     }
   }
 
+  const [disconnecting, setDisconnecting] = useState(false)
+  async function disconnectLinkedIn() {
+    if (!confirm('Disconnect your LinkedIn account? You will be signed out and PersonaLink will no longer be able to post on your behalf until you reconnect.')) return
+    setDisconnecting(true)
+    try {
+      const res = await fetch('/api/auth/linkedin/disconnect', { method: 'POST' })
+      const data = await res.json()
+      if (data.error) { toast.error('Error: ' + data.error); setDisconnecting(false); return }
+      window.location.href = '/'
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+      setDisconnecting(false)
+    }
+  }
+
   async function deleteAccount() {
     setDeleting(true)
     const res = await fetch('/api/account/delete', { method: 'DELETE' })
@@ -730,10 +745,21 @@ function SettingsContent() {
                 <div className="text-xs text-slate-400 mt-0.5">{String(user?.email || '')}</div>
               </div>
             </div>
-            <Button variant="outline" onClick={() => window.location.href = '/api/auth/linkedin'} className="gap-1.5 border-slate-200 dark:border-slate-700">
-              <Link2 className="w-4 h-4" />
-              Reconnect LinkedIn
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => window.location.href = '/api/auth/linkedin'} className="gap-1.5 border-slate-200 dark:border-slate-700">
+                <Link2 className="w-4 h-4" />
+                Reconnect LinkedIn
+              </Button>
+              <Button
+                variant="outline"
+                onClick={disconnectLinkedIn}
+                disabled={disconnecting}
+                className="gap-1.5 border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+              >
+                {disconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                {disconnecting ? 'Disconnecting…' : 'Disconnect'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>

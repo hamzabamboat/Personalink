@@ -5,6 +5,7 @@ import posthog from 'posthog-js'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { UserProfile, Post } from '@/lib/supabase'
+import { computeVoiceMatch } from '@/lib/voice-match'
 import {
   Mic, RefreshCw, Loader2, Plus, MoreHorizontal,
   ArrowRight, Sparkles, User, FileText, Target, BarChart2,
@@ -19,22 +20,6 @@ const VOICE_DIMENSIONS = [
   { label: 'Emotional register', key: 'emotion' },
   { label: 'Punctuation style', key: 'punctuation' },
 ]
-
-function deriveVoiceDimensions(fingerprint: string | null): Record<string, number> {
-  if (!fingerprint) return {}
-  // Derive rough quality scores from fingerprint presence and length
-  const len = fingerprint.length
-  const base = Math.min(75 + (len > 200 ? 10 : len > 100 ? 5 : 0), 85)
-  const seed = fingerprint.charCodeAt(0) + fingerprint.charCodeAt(Math.floor(len / 2))
-  return {
-    rhythm:      Math.min(100, base + ((seed * 7) % 15)),
-    vocab:       Math.min(100, base + ((seed * 3) % 18)),
-    opening:     Math.min(100, base - 3 + ((seed * 11) % 12)),
-    phrases:     Math.min(100, base - 6 + ((seed * 5) % 14)),
-    emotion:     Math.min(100, base + ((seed * 9) % 13)),
-    punctuation: Math.min(100, base - 8 + ((seed * 13) % 16)),
-  }
-}
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -99,15 +84,16 @@ export default function ProfilePage() {
   }
 
   const hasFingerprint = !!profile?.voice_fingerprint
-  const dimensions = deriveVoiceDimensions(profile?.voice_fingerprint || null)
-  const matchScore = hasFingerprint
-    ? Math.round(Object.values(dimensions).reduce((a, b) => a + b, 0) / Object.values(dimensions).length)
-    : 0
-
   const pillars = profile?.content_pillars || []
   const initials = ((profile?.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2)).toUpperCase()
   const writingSample = profile?.writing_sample || profile?.post_examples || null
   const refPosts = posts.slice(0, 5)
+
+  // Real voice match: compare the user's actual posts against their writing sample
+  const voiceMatch = computeVoiceMatch(writingSample, posts.map(p => p.content).filter(Boolean))
+  const hasMatch = voiceMatch !== null
+  const dimensions: Record<string, number> = voiceMatch?.dimensions || {}
+  const matchScore = voiceMatch?.score ?? 0
 
   return (
     <div className="p-3 sm:p-4 md:p-7 w-full">
@@ -216,27 +202,31 @@ export default function ProfilePage() {
             <span style={{ fontSize: 10.5, fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', padding: '3px 8px', background: 'var(--surface-2)', borderRadius: 'var(--r-sm)' }}>
               Voice dimensions
             </span>
-            <span style={{ fontSize: 10.5, fontFamily: 'var(--f-mono)', color: hasFingerprint ? '#059669' : 'var(--ink-4)', whiteSpace: 'nowrap' }}>
-              match · {hasFingerprint ? `${matchScore}%` : 'n/a'}
+            <span style={{ fontSize: 10.5, fontFamily: 'var(--f-mono)', color: hasMatch ? '#059669' : 'var(--ink-4)', whiteSpace: 'nowrap' }}>
+              match · {hasMatch ? `${matchScore}%` : 'n/a'}
             </span>
           </div>
 
-          {!hasFingerprint ? (
+          {!hasMatch ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '24px 0' }}>
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f59e0b18', display: 'grid', placeItems: 'center' }}>
                 <Mic className="size-5" style={{ color: '#d97706' }} />
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>No voice fingerprint yet</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>
+                  {writingSample ? 'Not enough posts yet' : 'No voice fingerprint yet'}
+                </div>
                 <div style={{ fontSize: 12, color: 'var(--ink-4)', maxWidth: 280 }}>
-                  Add a writing sample in Settings to train your voice model.
+                  {writingSample
+                    ? 'Publish or approve a few posts and we’ll measure how closely they match your writing sample.'
+                    : 'Add a writing sample in Settings to train your voice model.'}
                 </div>
               </div>
-              <Link href="/dashboard/settings" style={{
+              <Link href={writingSample ? '/dashboard/generate' : '/dashboard/settings'} style={{
                 fontSize: 12, fontWeight: 500, padding: '6px 14px', borderRadius: 'var(--r-sm)',
                 background: 'var(--accent)', color: '#fff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                <Sparkles className="size-3.5" /> Add writing sample
+                <Sparkles className="size-3.5" /> {writingSample ? 'Generate a post' : 'Add writing sample'}
               </Link>
             </div>
           ) : (

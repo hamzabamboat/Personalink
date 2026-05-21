@@ -57,11 +57,12 @@ function buildVoiceContext(profile: UserProfile): string {
 
   if (profile.mcq_answers) {
     const q = profile.mcq_answers
-    if (q.voice_style) parts.push(`Professional voice: ${q.voice_style}`)
-    if (q.main_goal) parts.push(`LinkedIn goal: ${q.main_goal}`)
-    if (q.personal_stories) parts.push(`Personal stories comfort: ${q.personal_stories}`)
-    if (q.content_type) parts.push(`Content they enjoy: ${q.content_type}`)
-    if (q.known_as) parts.push(`Wants to be known as: ${q.known_as}`)
+    const fmt = (v: string | string[] | undefined) => Array.isArray(v) ? v.join(', ') : v
+    if (q.voice_style) parts.push(`Professional voice: ${fmt(q.voice_style)}`)
+    if (q.main_goal) parts.push(`LinkedIn goal: ${fmt(q.main_goal)}`)
+    if (q.personal_stories) parts.push(`Personal stories comfort: ${fmt(q.personal_stories)}`)
+    if (q.content_type) parts.push(`Content they enjoy: ${fmt(q.content_type)}`)
+    if (q.known_as) parts.push(`Wants to be known as: ${fmt(q.known_as)}`)
   }
 
   if (profile.writing_sample) {

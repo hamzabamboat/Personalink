@@ -100,8 +100,163 @@ const MORE_ITEMS = [
   { href: '/dashboard/settings',        label: 'Settings',           icon: Settings },
 ]
 
+const SEARCH_TARGETS: { href: string; label: string }[] = [
+  { href: '/dashboard',                  label: 'Overview' },
+  { href: '/dashboard/generate',         label: 'Generate post' },
+  { href: '/dashboard/generate?tab=bulk', label: 'Bulk · plan a month' },
+  { href: '/dashboard/generate?tab=voice', label: 'Voice note → post' },
+  { href: '/dashboard/posts',            label: 'My posts' },
+  { href: '/dashboard/calendar',         label: 'Calendar' },
+  { href: '/dashboard/story-bank',       label: 'Story bank' },
+  { href: '/dashboard/analytics',        label: 'Analytics' },
+  { href: '/dashboard/suggestions',      label: 'Trending ideas' },
+  { href: '/dashboard/upload',           label: 'Image library' },
+  { href: '/dashboard/profile',          label: 'Voice & profile' },
+  { href: '/dashboard/profile-improve',  label: 'Profile beautifier' },
+  { href: '/dashboard/settings',         label: 'Settings' },
+  { href: '/dashboard/settings?tab=plan', label: 'Plan & billing' },
+  { href: '/dashboard/settings?tab=help', label: 'Help & FAQ' },
+  { href: '/dashboard/upgrade',          label: 'Upgrade plan' },
+]
+
 function planRank(plan: string) {
   return plan === 'pro' ? 3 : plan === 'standard' ? 2 : 1
+}
+
+/* ── Topbar search (quick command palette) ───────────────── */
+function TopbarSearch() {
+  const router = useRouter()
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const results = q.trim()
+    ? SEARCH_TARGETS.filter(t => t.label.toLowerCase().includes(q.trim().toLowerCase()))
+    : SEARCH_TARGETS
+
+  useEffect(() => {
+    function key(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault(); inputRef.current?.focus(); setOpen(true)
+      } else if (e.key === 'Escape') {
+        setOpen(false); inputRef.current?.blur()
+      }
+    }
+    document.addEventListener('keydown', key)
+    return () => document.removeEventListener('keydown', key)
+  }, [])
+
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  function go(href: string) { setOpen(false); setQ(''); router.push(href) }
+
+  return (
+    <div ref={ref} className="relative" style={{ minWidth: 200 }}>
+      <div className="flex items-center gap-2 h-8 px-3 rounded-md" style={{ background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
+        <Search size={13} style={{ color: 'var(--ink-4)' }} />
+        <input
+          ref={inputRef}
+          value={q}
+          onChange={e => { setQ(e.target.value); setOpen(true); setActive(0) }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={e => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)) }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => Math.max(a - 1, 0)) }
+            else if (e.key === 'Enter' && results[active]) { go(results[active].href) }
+          }}
+          placeholder="Search pages…"
+          className="text-[12px] flex-1 bg-transparent outline-none border-0 p-0"
+          style={{ color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}
+        />
+        <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-3)', color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>⌘K</span>
+      </div>
+      {open && (
+        <div className="absolute left-0 right-0 mt-1 rounded-lg overflow-hidden z-50"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-3)', top: '100%', maxHeight: 320, overflowY: 'auto' }}>
+          {results.length === 0 ? (
+            <div className="px-3 py-3 text-[12px]" style={{ color: 'var(--ink-4)' }}>No matches</div>
+          ) : results.map((t, i) => (
+            <button key={t.href} onMouseEnter={() => setActive(i)} onClick={() => go(t.href)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-left transition-colors"
+              style={{ background: i === active ? 'var(--surface-3)' : 'transparent', color: 'var(--ink-2)' }}>
+              <Search size={12} style={{ color: 'var(--ink-4)' }} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Notifications bell ───────────────────────────────────── */
+type NotifPost = { id: string; content: string; scheduled_at: string | null }
+function NotificationsBell() {
+  const [open, setOpen] = useState(false)
+  const [items, setItems] = useState<NotifPost[]>([])
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetch('/api/posts?status=pending_approval&order=scheduled_at&limit=6')
+      .then(r => r.json())
+      .then(d => setItems(d.posts || []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(o => !o)}
+        className="relative flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-surface-3"
+        style={{ border: '1px solid var(--line)', color: 'var(--ink-3)' }}
+        title="Notifications">
+        <Bell size={15} />
+        {items.length > 0 && (
+          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-bold rounded-full bg-red-500 text-white">
+            {items.length}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-[300px] rounded-lg overflow-hidden z-50"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-3)', top: '100%' }}>
+          <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-2)' }}>
+            <span className="text-[12px] font-semibold" style={{ color: 'var(--ink)' }}>Notifications</span>
+            <span className="text-[10px]" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>{items.length} pending</span>
+          </div>
+          {items.length === 0 ? (
+            <div className="px-3 py-6 text-center text-[12px]" style={{ color: 'var(--ink-4)' }}>You&apos;re all caught up</div>
+          ) : (
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {items.map(p => (
+                <Link key={p.id} href={`/dashboard/posts?edit=${p.id}`} onClick={() => setOpen(false)}
+                  className="block px-3 py-2.5 transition-colors hover:bg-surface-3" style={{ borderBottom: '1px solid var(--line)' }}>
+                  <div className="text-[12px] font-medium mb-0.5" style={{ color: 'var(--ink)' }}>Post awaiting your approval</div>
+                  <div className="text-[11px] truncate" style={{ color: 'var(--ink-4)' }}>{p.content?.split('\n')[0]?.slice(0, 60) || 'Untitled draft'}</div>
+                </Link>
+              ))}
+            </div>
+          )}
+          <Link href="/dashboard/posts" onClick={() => setOpen(false)}
+            className="block px-3 py-2.5 text-center text-[12px] font-semibold transition-colors hover:bg-surface-3"
+            style={{ color: 'var(--pl-accent)' }}>
+            View all posts →
+          </Link>
+        </div>
+      )}
+    </div>
+  )
 }
 
 /* ── Workspace Switcher ──────────────────────────────────── */
@@ -205,7 +360,7 @@ function SidebarNav({ plan, pathname, collapsed }: { plan: string; pathname: str
           )}
           <div className="flex flex-col gap-0.5">
             {section.items.map(item => {
-              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+              const active = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'))
               const locked = item.minPlan && planRank(plan) < planRank(item.minPlan)
               const href   = locked ? `/dashboard/upgrade?feature=${item.href.split('/').pop()}` : item.href
               const Icon   = item.icon
@@ -440,24 +595,23 @@ function Topbar({ pathname, user }: { pathname: string; user: User | null }) {
       </span>
 
       {/* Search */}
-      <div className="flex items-center gap-2 h-8 px-3 rounded-md" style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', minWidth: 200 }}>
-        <Search size={13} style={{ color: 'var(--ink-4)' }} />
-        <span className="text-[12px] flex-1" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-sans)' }}>Search…</span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--surface-3)', color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>⌘K</span>
-      </div>
+      <TopbarSearch />
 
-      {/* Icons */}
-      <button className="flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-surface-3" style={{ border: '1px solid var(--line)', color: 'var(--ink-3)' }}>
-        <Bell size={15} />
-      </button>
-      <button className="flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-surface-3" style={{ border: '1px solid var(--line)', color: 'var(--ink-3)' }}>
+      {/* Notifications */}
+      <NotificationsBell />
+
+      {/* Help */}
+      <Link href="/dashboard/settings?tab=help"
+        className="flex items-center justify-center w-8 h-8 rounded-md transition-colors hover:bg-surface-3"
+        style={{ border: '1px solid var(--line)', color: 'var(--ink-3)' }}
+        title="Help & FAQ">
         <HelpCircle size={15} />
-      </button>
+      </Link>
 
       {/* New post */}
       <Link href="/dashboard/generate"
-        className="flex items-center gap-1.5 h-8 px-3.5 rounded-md text-[13px] font-semibold text-white transition-all hover:opacity-90"
-        style={{ background: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
+        className="flex items-center gap-1.5 h-8 px-3.5 rounded-md text-[13px] font-semibold transition-all hover:opacity-90"
+        style={{ background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
         <Plus size={14} strokeWidth={2.5} />
         New post
       </Link>
@@ -650,7 +804,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex flex-col gap-0.5">
             {MORE_ITEMS.map(item => {
               const Icon   = item.icon
-              const active = pathname.startsWith(item.href)
+              const active = pathname === item.href || pathname.startsWith(item.href + '/')
               return (
                 <Link key={item.href} href={item.href} onClick={() => setMoreOpen(false)}
                   className="flex items-center gap-3 px-3 py-3 rounded-xl min-h-[44px] transition-colors"
