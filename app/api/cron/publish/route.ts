@@ -91,67 +91,75 @@ async function handler(_request: NextRequest) {
         return { id: post.id, status: 'failed', reason: 'token_expired' }
       }
 
-      // — Spam score block —
-      if ((post.spam_score ?? 0) >= SPAM_BLOCK_THRESHOLD) {
-        await supabaseAdmin
-          .from('posts')
-          .update({ status: 'pending_approval', failure_reason: 'High spam score — manual review required' })
-          .eq('id', post.id)
-        await logComplianceEvent(post.user_id, 'post_blocked_spam', 'high', {
-          spam_score: post.spam_score,
-        }, post.id)
-        return { id: post.id, status: 'blocked', reason: 'high_spam_score' }
-      }
+      // — Unattended-autopilot safety gates —
+      // These gates decide whether a post may publish WITHOUT a human in the
+      // loop. A human-approved post (approved via the email link or the
+      // dashboard, or explicitly scheduled by the user) has already been
+      // reviewed, so we skip them — otherwise an explicit approval would be
+      // bounced straight back to pending_approval and could never publish.
+      if (!post.human_approved) {
+        // — Spam score block —
+        if ((post.spam_score ?? 0) >= SPAM_BLOCK_THRESHOLD) {
+          await supabaseAdmin
+            .from('posts')
+            .update({ status: 'pending_approval', failure_reason: 'High spam score — manual review required' })
+            .eq('id', post.id)
+          await logComplianceEvent(post.user_id, 'post_blocked_spam', 'high', {
+            spam_score: post.spam_score,
+          }, post.id)
+          return { id: post.id, status: 'blocked', reason: 'high_spam_score' }
+        }
 
-      // — Manual review flag —
-      if (post.requires_manual_review) {
-        await supabaseAdmin
-          .from('posts')
-          .update({ status: 'pending_approval', failure_reason: 'Flagged for manual review before publishing' })
-          .eq('id', post.id)
-        await logComplianceEvent(post.user_id, 'post_flagged_review', 'medium', {
-          spam_score: post.spam_score,
-          humanity_score: post.humanity_score,
-        }, post.id)
-        return { id: post.id, status: 'blocked', reason: 'requires_manual_review' }
-      }
+        // — Manual review flag —
+        if (post.requires_manual_review) {
+          await supabaseAdmin
+            .from('posts')
+            .update({ status: 'pending_approval', failure_reason: 'Flagged for manual review before publishing' })
+            .eq('id', post.id)
+          await logComplianceEvent(post.user_id, 'post_flagged_review', 'medium', {
+            spam_score: post.spam_score,
+            humanity_score: post.humanity_score,
+          }, post.id)
+          return { id: post.id, status: 'blocked', reason: 'requires_manual_review' }
+        }
 
-      // — Autopilot eligibility check —
-      if (profile?.control_preference === 'autopilot' && profile?.autopilot_eligible === false) {
-        await supabaseAdmin
-          .from('posts')
-          .update({ status: 'pending_approval', failure_reason: 'Account not yet eligible for autopilot — manual approval needed' })
-          .eq('id', post.id)
-        await logComplianceEvent(post.user_id, 'autopilot_blocked', 'medium', {
-          trust_score: profile.trust_score,
-          risk_score: profile.risk_score,
-        }, post.id)
-        return { id: post.id, status: 'blocked', reason: 'autopilot_not_eligible' }
-      }
+        // — Autopilot eligibility check —
+        if (profile?.control_preference === 'autopilot' && profile?.autopilot_eligible === false) {
+          await supabaseAdmin
+            .from('posts')
+            .update({ status: 'pending_approval', failure_reason: 'Account not yet eligible for autopilot — manual approval needed' })
+            .eq('id', post.id)
+          await logComplianceEvent(post.user_id, 'autopilot_blocked', 'medium', {
+            trust_score: profile.trust_score,
+            risk_score: profile.risk_score,
+          }, post.id)
+          return { id: post.id, status: 'blocked', reason: 'autopilot_not_eligible' }
+        }
 
-      // — Trust / risk gate (high risk users blocked from autopilot) —
-      if ((profile?.risk_score ?? 0) >= 70) {
-        await supabaseAdmin
-          .from('posts')
-          .update({ status: 'pending_approval', failure_reason: 'Account risk level too high for automatic publishing' })
-          .eq('id', post.id)
-        await logComplianceEvent(post.user_id, 'autopilot_blocked', 'high', {
-          risk_score: profile?.risk_score,
-        }, post.id)
-        return { id: post.id, status: 'blocked', reason: 'high_risk_account' }
-      }
+        // — Trust / risk gate (high risk users blocked from autopilot) —
+        if ((profile?.risk_score ?? 0) >= 70) {
+          await supabaseAdmin
+            .from('posts')
+            .update({ status: 'pending_approval', failure_reason: 'Account risk level too high for automatic publishing' })
+            .eq('id', post.id)
+          await logComplianceEvent(post.user_id, 'autopilot_blocked', 'high', {
+            risk_score: profile?.risk_score,
+          }, post.id)
+          return { id: post.id, status: 'blocked', reason: 'high_risk_account' }
+        }
 
-      // — Posting cadence protection: max 2 auto-posts per day —
-      const todayCount = await countTodayPublished(post.user_id)
-      if (todayCount >= MAX_AUTOPOSTS_PER_DAY) {
-        // Reschedule to next day same hour instead of failing
-        const nextDay = new Date(post.scheduled_at)
-        nextDay.setDate(nextDay.getDate() + 1)
-        await supabaseAdmin
-          .from('posts')
-          .update({ scheduled_at: nextDay.toISOString() })
-          .eq('id', post.id)
-        return { id: post.id, status: 'rescheduled', reason: 'daily_cadence_limit' }
+        // — Posting cadence protection: max 2 auto-posts per day —
+        const todayCount = await countTodayPublished(post.user_id)
+        if (todayCount >= MAX_AUTOPOSTS_PER_DAY) {
+          // Reschedule to next day same hour instead of failing
+          const nextDay = new Date(post.scheduled_at)
+          nextDay.setDate(nextDay.getDate() + 1)
+          await supabaseAdmin
+            .from('posts')
+            .update({ scheduled_at: nextDay.toISOString() })
+            .eq('id', post.id)
+          return { id: post.id, status: 'rescheduled', reason: 'daily_cadence_limit' }
+        }
       }
 
       await supabaseAdmin

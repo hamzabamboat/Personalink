@@ -91,6 +91,7 @@ export type Post = {
   comments: number | null
   approval_token: string | null
   approval_sent_at: string | null
+  human_approved: boolean
   failure_reason: string | null
   image_urls: string[] | null
   // Compliance scores

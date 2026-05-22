@@ -1,0 +1,13 @@
+-- Track whether a post was explicitly approved/scheduled by a human.
+--
+-- The publish cron applies unattended-autopilot safety gates (autopilot
+-- eligibility, risk score, spam score, manual-review flag, daily cadence) to
+-- every 'scheduled' post. That is correct for posts auto-scheduled by autopilot,
+-- but it also clobbered posts a user had explicitly approved via the email
+-- approval link: a not-yet-eligible autopilot account would have its approved
+-- post reverted to 'pending_approval' every cron run, so it could never publish.
+--
+-- This flag lets the cron skip those gates for human-approved posts (human
+-- approval IS the review). Set true by the email approve route, the dashboard
+-- approve route, and the manual schedule route.
+alter table posts add column if not exists human_approved boolean not null default false;

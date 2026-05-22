@@ -38,6 +38,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .update({
         status: 'scheduled',
         scheduled_at: scheduledAt,
+        human_approved: true,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

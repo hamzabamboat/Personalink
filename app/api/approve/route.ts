@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const scheduledAt = post.scheduled_at ?? now
     const update =
       action === 'approve'
-        ? { status: 'scheduled', scheduled_at: scheduledAt, updated_at: now }
+        ? { status: 'scheduled', scheduled_at: scheduledAt, human_approved: true, updated_at: now }
         : { status: 'rejected', updated_at: now }
 
     await supabaseAdmin
