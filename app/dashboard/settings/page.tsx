@@ -285,11 +285,19 @@ function SettingsContent() {
 
   async function deleteAccount() {
     setDeleting(true)
-    const res = await fetch('/api/account/delete', { method: 'DELETE' })
-    const data = await res.json()
-    setDeleting(false)
-    if (data.error) { toast.error('Error: ' + data.error); return }
-    window.location.href = '/'
+    try {
+      const res = await fetch('/api/account/delete', { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.error) {
+        toast.error('Error: ' + (data.error || 'Could not delete account. Please try again.'))
+        setDeleting(false)
+        return
+      }
+      window.location.href = '/'
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+      setDeleting(false)
+    }
   }
 
   const plan = (profile.plan as string) || 'starter'
