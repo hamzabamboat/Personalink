@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { syncPostToCalendar, removePostFromCalendar } from '@/lib/google-calendar'
+import { addVoiceSample } from '@/lib/voice'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return PATCH(request, { params })
@@ -30,6 +31,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     }
 
+    // Capture the previous content so we can tell whether the human actually edited it
+    let previousContent: string | null = null
+    if (content !== undefined) {
+      const { data: existing } = await supabaseAdmin
+        .from('posts')
+        .select('content')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      previousContent = existing?.content ?? null
+    }
+
     const updatePayload: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (content !== undefined) updatePayload.content = content
     if (scheduled_at !== undefined) updatePayload.scheduled_at = scheduled_at || null
@@ -44,6 +57,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // A human-edited draft is the strongest voice signal — add it to the corpus
+    // (only when the content meaningfully changed from what was there before).
+    if (
+      content !== undefined &&
+      typeof content === 'string' &&
+      content.trim().length >= 120 &&
+      content.trim() !== (previousContent ?? '').trim()
+    ) {
+      addVoiceSample(user.id, content, 'edit').catch(() => { /* non-fatal */ })
+    }
 
     // Fire-and-forget: sync to Google Calendar if scheduled_at changed
     if (scheduled_at !== undefined) {

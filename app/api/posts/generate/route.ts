@@ -6,6 +6,7 @@ export const maxDuration = 60
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateLinkedInPosts, extractMemoriesFromContent, extractTopicsFromPost } from '@/lib/anthropic'
+import { getVoiceExemplars, addVoiceSample } from '@/lib/voice'
 import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
@@ -178,11 +179,19 @@ export async function POST(request: NextRequest) {
     } catch { /* post_images table may not exist yet — skip image context */ }
   }
 
+  // Few-shot voice exemplars from the person's real writing (fall back to the
+  // onboarding writing sample for users with an empty corpus).
+  let voiceExemplars = await getVoiceExemplars(user.id)
+  if (voiceExemplars.length === 0 && profile.writing_sample) {
+    voiceExemplars = [profile.writing_sample as string]
+  }
+
   const posts = await generateLinkedInPosts({
     profile, topic, transcript, storyText, additionalContext, trendingContext,
     recentTopics, recentTopicsByPillar,
     userMemories: userMemories || undefined,
     imageContext,
+    voiceExemplars,
   })
 
   const validPosts = posts.filter(p => p && p.trim().length >= 50)
@@ -325,6 +334,9 @@ export async function POST(request: NextRequest) {
       )
     })(),
   ]).catch(() => { /* non-fatal */ })
+
+  // A voice-note transcript is the person's own words — add it to the voice corpus
+  if (transcript) addVoiceSample(user.id, transcript, 'voice_note').catch(() => { /* non-fatal */ })
 
   return NextResponse.json({ posts: savedPosts })
   } catch (error) {

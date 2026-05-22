@@ -201,3 +201,17 @@ alter table user_profiles add column if not exists last_pipeline_reminder_sent_a
 
 -- Onboarding "Current age" (replaces years_experience for new signups)
 alter table user_profiles add column if not exists age integer;
+
+-- Voice corpus: growing store of the user's real (human-authored) writing,
+-- used as few-shot exemplars and to re-distill the voice fingerprint over time.
+create table if not exists voice_samples (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  text text not null,
+  source text not null default 'manual', -- onboarding | manual | edit | voice_note
+  weight real not null default 1,
+  char_count integer,
+  created_at timestamptz default now()
+);
+create index if not exists voice_samples_user_idx on voice_samples(user_id, created_at desc);
+create index if not exists voice_samples_user_weight_idx on voice_samples(user_id, weight desc, created_at desc);

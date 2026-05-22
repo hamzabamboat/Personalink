@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { anthropic, generateLinkedInPosts } from '@/lib/anthropic'
+import { getVoiceExemplars } from '@/lib/voice'
 import { UserProfile } from '@/lib/supabase'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
@@ -17,11 +18,16 @@ async function generateBatch(
   pillars: string[],
   instructions?: string,
   tone?: string,
+  exemplars?: string[],
 ): Promise<Array<{ content: string; content_pillar: string; format: string }>> {
   const voiceCtx = [
     profile.voice_fingerprint ? `Voice fingerprint:\n${profile.voice_fingerprint}` : '',
     profile.writing_sample ? `Writing sample:\n${String(profile.writing_sample).slice(0, 400)}` : '',
   ].filter(Boolean).join('\n\n')
+
+  const exemplarBlock = exemplars?.length
+    ? `\n\nREAL WRITING BY THIS PERSON (match this voice, rhythm, vocabulary and quirks exactly — copy the voice, not the topics):\n${exemplars.slice(0, 4).map((s, i) => `Example ${i + 1}:\n"""\n${s.trim().slice(0, 1000)}\n"""`).join('\n\n')}`
+    : ''
 
   const toneInstruction = tone ? `\nTone: Write every post in a ${tone.toLowerCase()} tone.` : ''
   const extraInstructions = instructions?.trim() ? `\nBatch instructions from the user: ${instructions.trim()}` : ''
@@ -35,7 +41,7 @@ async function generateBatch(
 
 Author: ${profile.name || 'Professional'}, ${profile.role || 'expert'} in ${profile.industry || 'business'}
 Content pillars (rotate evenly): ${pillars.join(', ')}
-${voiceCtx}${toneInstruction}${extraInstructions}
+${voiceCtx}${exemplarBlock}${toneInstruction}${extraInstructions}
 
 Rules:
 1. Scroll-stopping first line — no generic openers, never start with "I"
@@ -43,7 +49,7 @@ Rules:
 3. 150-300 words per post
 4. Include 5-8 hashtags (mix of large/medium/niche) on the last line
 5. Vary formats: personal story, contrarian take, industry insight, behind-the-scenes, question to audience, how-to narrative
-6. Sound 100% human — match the writing sample's rhythm exactly, vary sentence lengths
+6. Sound 100% human — match the REAL WRITING samples' rhythm exactly. High burstiness: mix very short sentences (2-5 words) with longer winding ones; never uniform. Allow fragments, asides, and small imperfections. Avoid the tidy, evenly-balanced cadence AI defaults to.
 7. Each post must be on a completely different topic
 8. NEVER use numbered lists (1. 2. 3.) or heavy bullet points — write in paragraphs
 9. BANNED phrases: "game changer", "unpopular opinion", "nobody talks about", "hard truth", "trust the process", "level up", "hustle", "consistency is key", "paradigm shift", "move the needle", "crushing it", "built different"
@@ -238,6 +244,13 @@ export async function POST(request: NextRequest) {
   const preferredDays: string[] = (profile.preferred_days as string[]) || ['Monday', 'Wednesday', 'Friday']
   const timezone: string = (profile.timezone as string) || 'Asia/Kolkata'
 
+  // Few-shot voice exemplars from the person's real writing (fall back to the
+  // onboarding writing sample for users with an empty corpus).
+  let voiceExemplars = await getVoiceExemplars(user.id)
+  if (voiceExemplars.length === 0 && profile.writing_sample) {
+    voiceExemplars = [profile.writing_sample as string]
+  }
+
   const now = new Date()
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
@@ -276,6 +289,7 @@ export async function POST(request: NextRequest) {
         profile: profile as unknown as UserProfile,
         storyText: story.raw_text,
         additionalContext: instructions || undefined,
+        voiceExemplars,
       })
       if (variants.length > 0) {
         allPosts.push({
@@ -298,7 +312,7 @@ export async function POST(request: NextRequest) {
     while (allPosts.length < postsToGenerate) {
       const remaining = postsToGenerate - allPosts.length
       const batchCount = Math.min(remaining, BATCH_SIZE)
-      const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars, instructions, tone)
+      const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars, instructions, tone, voiceExemplars)
       allPosts.push(...batch)
       batchIdx++
       if (batch.length === 0) break

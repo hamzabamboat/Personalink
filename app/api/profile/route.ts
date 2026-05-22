@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { analyzeVoiceFingerprint } from '@/lib/anthropic'
+import { addVoiceSample } from '@/lib/voice'
 
 export const maxDuration = 60
 
@@ -55,6 +56,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Add the writing sample to the voice corpus (dedup skips unchanged re-saves)
+    if (writing_sample) addVoiceSample(user.id, writing_sample, 'manual').catch(() => { /* non-fatal */ })
+
     return NextResponse.json({ profile: data })
   } catch (error) {
     console.error('[profile POST]', error)

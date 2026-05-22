@@ -25,6 +25,8 @@ type GeneratePostOptions = {
   recentTopicsByPillar?: Record<string, string[]>
   userMemories?: Array<{ content: string; memory_type: string; created_at: string; occurred_at?: string }>
   imageContext?: string
+  /** Real human-authored writing from this person, used as few-shot style exemplars */
+  voiceExemplars?: string[]
 }
 
 export type ExtractedMemory = {
@@ -72,11 +74,63 @@ function buildVoiceContext(profile: UserProfile): string {
   return parts.join('\n\n')
 }
 
+/** Real, human-authored writing from this person — the strongest voice signal. */
+function buildExemplarBlock(exemplars?: string[]): string {
+  if (!exemplars?.length) return ''
+  const samples = exemplars
+    .filter(s => s && s.trim().length > 40)
+    .slice(0, 4)
+    .map((s, i) => `Example ${i + 1}:\n"""\n${s.trim()}\n"""`)
+    .join('\n\n')
+  if (!samples) return ''
+  return `\n\nREAL WRITING BY THIS PERSON — study these closely. They are the ground truth for the voice.
+Match their exact sentence rhythm, paragraph shape, vocabulary, punctuation habits, and quirks. Reuse their characteristic phrasings and cadence (not their topics). The post you write should be indistinguishable from these samples if read side by side.
+
+${samples}`
+}
+
+/**
+ * Distil a voice fingerprint from MULTIPLE real writing samples.
+ * Used to keep the fingerprint sharpening as the person's corpus grows.
+ */
+export async function distillVoiceFingerprint(samples: string[]): Promise<string> {
+  const corpus = samples
+    .filter(s => s && s.trim())
+    .slice(0, 10)
+    .map((s, i) => `Sample ${i + 1}:\n${s.trim().slice(0, 1200)}`)
+    .join('\n\n---\n\n')
+  if (!corpus) return ''
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 700,
+    messages: [{
+      role: 'user',
+      content: `Below are multiple real writing samples from the same person. Synthesise a single, precise voice fingerprint a ghostwriter can use to replicate this person's voice exactly. Cover:
+1. Sentence length and rhythm (how they vary short vs long — the "burstiness")
+2. Vocabulary level and any recurring/signature words
+3. Tone and emotional register
+4. Use of personal pronouns, asides, and storytelling
+5. Punctuation, capitalisation, and formatting habits (incl. fragments, dashes, line breaks)
+6. 4-5 distinctive phrases or patterns to replicate
+7. Things this person never does (so the ghostwriter avoids them)
+
+Writing samples:
+${corpus}
+
+Write the fingerprint in under 220 words. Be specific and actionable. Focus on what makes this voice unmistakably human and unmistakably theirs.`,
+    }],
+  })
+
+  return msg.content[0].type === 'text' ? msg.content[0].text : ''
+}
+
 export async function generateLinkedInPosts(options: GeneratePostOptions): Promise<string[]> {
-  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext } = options
+  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext, voiceExemplars } = options
 
   const pillar = pickContentPillar(profile, recentTopicsByPillar)
   const voiceContext = buildVoiceContext(profile)
+  const exemplarBlock = buildExemplarBlock(voiceExemplars)
 
   const sourceContext = storyText
     ? `Transform this personal story/experience into a LinkedIn post:\n"${storyText}"`
@@ -105,7 +159,7 @@ Author profile:
 - Industry: ${profile.industry || 'business'}
 - Content pillar for this post: ${pillar}
 
-${voiceContext}${memoriesContext}
+${voiceContext}${exemplarBlock}${memoriesContext}
 
 LinkedIn post rules:
 1. First line must be a scroll-stopper hook — no "I" to open, no generic starters
@@ -114,10 +168,15 @@ LinkedIn post rules:
 4. HASHTAGS (MANDATORY): Always add 5-8 hashtags on a new line after the post. Mix: 2 large (1M+ followers, e.g. #Leadership #Entrepreneurship), 3 medium (100k-1M, e.g. #StartupIndia #ProductManagement), 2-3 niche (under 100k, specific to their industry/topic). Never use #instagood, #love, #follow. Base hashtags on industry, content pillar, and post topic.
 5. 150-300 words for most posts (up to 500 for deep insights)
 6. Sound like a real person writing for themselves — not a press release, not an AI assistant
-7. Match the author's exact sentence length, vocabulary, and rhythm from their writing sample
-8. VARY sentence length naturally — mix short punchy sentences with longer flowing ones. Avoid suspiciously uniform sentence lengths.
-9. BANNED phrases — never use: "game changer", "paradigm shift", "move the needle", "hustle harder", "built different", "showing up", "consistency is key", "trust the process", "level up", "crushing it", "this changed everything", "nobody talks about this", "unpopular opinion", "hard truth", "real talk", "at the end of the day", "deep dive", "synergy", "low-hanging fruit"
-10. BANNED formats — do not use numbered lists (1. 2. 3.) or heavy bullet point lists. Use narrative paragraphs instead.
+7. Match the author's exact sentence length, vocabulary, and rhythm from the REAL WRITING samples above — copy their voice, not their topics
+8. WRITE LIKE A HUMAN, NOT AN AI (this is critical):
+   - High burstiness: deliberately mix very short sentences (2-5 words) with longer, winding ones. Real people are uneven. Never let sentences settle into a uniform length or rhythm.
+   - Vary paragraph length unpredictably — a one-line paragraph, then a three-line one.
+   - Allow natural human texture: the occasional sentence fragment, a mid-thought dash, an aside, a slightly imperfect transition. Do not over-polish.
+   - Use concrete, specific details and the person's own plain words from the samples — avoid smooth, generic, "balanced" phrasing.
+   - Do not write in the tidy, evenly-weighted, summary-like cadence that AI defaults to. No "Firstly/Secondly", no neat tricolons in every paragraph, no symmetrical structure.
+9. BANNED phrases — never use: "game changer", "paradigm shift", "move the needle", "hustle harder", "built different", "showing up", "consistency is key", "trust the process", "level up", "crushing it", "this changed everything", "nobody talks about this", "unpopular opinion", "hard truth", "real talk", "at the end of the day", "deep dive", "synergy", "low-hanging fruit", "in today's world", "in a world where", "let's dive in", "the truth is", "here's the thing", "needle-moving", "it's not just X, it's Y"
+10. BANNED formats — do not use numbered lists (1. 2. 3.) or heavy bullet point lists. Use narrative paragraphs instead. No em-dash-heavy "AI rhythm".
 11. BANNED storytelling arcs — avoid "I failed, then I learned", fake vulnerability designed to perform rather than share, and fabricated journey narratives${avoidTopics}
 ${imageContext ? `\n${imageContext}\nWrite the post so it naturally connects to what is shown in these photos. Reference the images implicitly — the post should feel written specifically to accompany them.` : ''}`
 

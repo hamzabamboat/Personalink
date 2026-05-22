@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { analyzeVoiceFingerprint } from '@/lib/anthropic'
+import { addVoiceSample } from '@/lib/voice'
 import { PLAN_LIMITS } from '@/lib/supabase'
 import { getPostHogClient } from '@/lib/posthog-server'
 
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
     }, { onConflict: 'user_id' })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Seed the voice corpus with the onboarding writing sample
+  if (writing_sample) addVoiceSample(user.id, writing_sample, 'onboarding').catch(() => { /* non-fatal */ })
 
   getPostHogClient().capture({
     distinctId: user.id,

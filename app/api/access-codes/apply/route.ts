@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { analyzeVoiceFingerprint } from '@/lib/anthropic'
+import { addVoiceSample } from '@/lib/voice'
 import { PLAN_LIMITS } from '@/lib/supabase'
 
 const PLAN_LIMITS_MAP: Record<string, number> = { starter: 12, standard: 20, pro: 30 }
@@ -82,6 +83,9 @@ export async function POST(request: NextRequest) {
       .update({ subscription_status: 'access_code', updated_at: now })
       .eq('id', user.id),
   ])
+
+  // Seed the voice corpus with the onboarding writing sample
+  if (writing_sample) addVoiceSample(user.id, writing_sample, 'onboarding').catch(() => { /* non-fatal */ })
 
   const cookieOpts = {
     httpOnly: true,
