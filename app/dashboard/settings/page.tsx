@@ -60,6 +60,11 @@ function SettingsContent() {
   const [zapierShowKey, setZapierShowKey] = useState(false)
   const [zapierLoading, setZapierLoading] = useState(false)
 
+  // Voice training (past-post import)
+  const [importText, setImportText] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [sampleCount, setSampleCount] = useState<number | null>(null)
+
   useEffect(() => {
     const match = document.cookie.match(/user_country=([^;]+)/)
     if (match) setUserCountry(match[1])
@@ -85,6 +90,13 @@ function SettingsContent() {
             setZapierHasKey(zData.hasKey)
             setZapierKeyPreview(zData.keyPreview)
           }
+        } catch { /* non-fatal */ }
+
+        // Load voice corpus size
+        try {
+          const vRes = await fetch('/api/voice/samples')
+          const vData = await vRes.json()
+          if (!cancelled && typeof vData.count === 'number') setSampleCount(vData.count)
         } catch { /* non-fatal */ }
       } catch {
         /* non-fatal */
@@ -115,6 +127,27 @@ function SettingsContent() {
     setSaving(false)
     if (data.error) { toast.error('Error: ' + data.error); return }
     toast.success('Settings saved!')
+  }
+
+  async function importPosts() {
+    if (!importText.trim()) return
+    setImporting(true)
+    try {
+      const res = await fetch('/api/voice/samples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posts: importText }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.error) { toast.error(data.error || 'Could not import posts.'); return }
+      if (typeof data.count === 'number') setSampleCount(data.count)
+      setImportText('')
+      toast.success(`Added ${data.added} post${data.added !== 1 ? 's' : ''} to your voice. The more real writing, the better the match.`)
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+    } finally {
+      setImporting(false)
+    }
   }
 
   async function handleUpgrade(planId: string, planLabel: string, planColor: string) {
@@ -407,6 +440,43 @@ function SettingsContent() {
               />
             </div>
             <SaveButton label="Save Profile" />
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* ── Voice Training ── */}
+      <section className="mb-8">
+        <SectionLabel>Train Your Voice</SectionLabel>
+        <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl">
+          <CardContent className="pt-6 flex flex-col gap-4">
+            <div>
+              <div className="font-semibold text-slate-900 dark:text-slate-100 text-[14px] mb-1">Paste your real past posts</div>
+              <p className="text-[13px] text-slate-500 leading-relaxed">
+                The single biggest thing that makes generated posts sound like <em>you</em> is feeding in your own writing.
+                Paste a few LinkedIn posts you&apos;ve actually written. Separate each one with a line containing only <code className="text-slate-600 font-mono">---</code>.
+                {sampleCount !== null && (
+                  <> Your voice is currently learning from <strong className="text-slate-700 dark:text-slate-300">{sampleCount}</strong> sample{sampleCount !== 1 ? 's' : ''}.</>
+                )}
+              </p>
+            </div>
+            <Textarea
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+              placeholder={"Paste a real post here...\n\n---\n\nAnother real post here..."}
+              className="min-h-[160px] resize-none border-slate-200 dark:border-slate-700 text-[14px]"
+            />
+            <button
+              onClick={importPosts}
+              disabled={importing || !importText.trim()}
+              className="flex items-center gap-1.5 transition-opacity self-start"
+              style={{
+                padding: '8px 18px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600,
+                background: 'var(--pl-accent)', color: '#fff',
+                opacity: (importing || !importText.trim()) ? 0.6 : 1,
+              }}
+            >
+              {importing ? <><Loader2 className="size-4 animate-spin" /> Learning your voice…</> : <><Check className="size-4" /> Add to my voice</>}
+            </button>
           </CardContent>
         </Card>
       </section>

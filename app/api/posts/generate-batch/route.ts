@@ -3,6 +3,7 @@ import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { anthropic, generateLinkedInPosts } from '@/lib/anthropic'
 import { getVoiceExemplars } from '@/lib/voice'
+import { humanizeText } from '@/lib/humanize'
 import { UserProfile } from '@/lib/supabase'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
@@ -340,7 +341,7 @@ export async function POST(request: NextRequest) {
 
   const insertPayloads = allPosts.map((post, i) => ({
     user_id: user.id,
-    content: post.content,
+    content: humanizeText(post.content),
     content_pillar: post.content_pillar || pillars[i % pillars.length],
     source: 'ai_generated',
     status: postStatus,

@@ -7,6 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateLinkedInPosts, extractMemoriesFromContent, extractTopicsFromPost } from '@/lib/anthropic'
 import { getVoiceExemplars, addVoiceSample } from '@/lib/voice'
+import { humanizeText } from '@/lib/humanize'
 import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
@@ -194,7 +195,8 @@ export async function POST(request: NextRequest) {
     voiceExemplars,
   })
 
-  const validPosts = posts.filter(p => p && p.trim().length >= 50)
+  // Strip mechanical AI typographic tells from every draft (free, no API)
+  const validPosts = posts.map(p => humanizeText(p)).filter(p => p && p.trim().length >= 50)
   if (validPosts.length === 0) {
     return NextResponse.json({ error: 'Generation failed — response too short. Please try again.' }, { status: 500 })
   }
