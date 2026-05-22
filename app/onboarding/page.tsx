@@ -307,11 +307,12 @@ export default function OnboardingPage() {
                     if (v === 'Other') { setIndustryOther(true); setForm(f => ({ ...f, industry: '' })) }
                     else { setIndustryOther(false); setForm(f => ({ ...f, industry: v })) }
                   }}
-                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base md:text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                  className="h-8 w-full min-w-0 rounded-lg border border-input px-2.5 py-1 text-base md:text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  style={{ color: 'var(--ink)', backgroundColor: 'var(--surface)' }}
                 >
-                  <option value="" disabled>Select your industry…</option>
-                  {INDUSTRIES.map(ind => <option key={ind} value={ind}>{ind}</option>)}
-                  <option value="Other">Other…</option>
+                  <option value="" disabled style={{ color: 'var(--ink-3)', background: 'var(--surface)' }}>Select your industry…</option>
+                  {INDUSTRIES.map(ind => <option key={ind} value={ind} style={{ color: 'var(--ink)', background: 'var(--surface)' }}>{ind}</option>)}
+                  <option value="Other" style={{ color: 'var(--ink)', background: 'var(--surface)' }}>Other…</option>
                 </select>
                 {industryOther && (
                   <Input
