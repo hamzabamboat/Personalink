@@ -59,7 +59,10 @@ export async function sendApprovalEmail({
     <div style="background:#0A66C2;padding:28px 32px;">
       <div>
         <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
-          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+          <span style="display:inline-block;line-height:1;white-space:nowrap;vertical-align:middle;">
+            <img src="${APP_URL}/logo-mark.png" alt="" width="24" height="24" style="vertical-align:middle;display:inline-block;border:0;margin-right:8px;width:24px;height:24px;" />
+            <img src="${APP_URL}/logo-text.png" alt="PersonaLink" height="22" style="vertical-align:middle;display:inline-block;border:0;height:22px;width:auto;" />
+          </span>
         </div>
       </div>
     </div>
@@ -145,7 +148,10 @@ export async function sendWeeklyDigestEmail({
     <div style="background:#0A66C2;padding:28px 32px;">
       <div>
         <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
-          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+          <span style="display:inline-block;line-height:1;white-space:nowrap;vertical-align:middle;">
+            <img src="${APP_URL}/logo-mark.png" alt="" width="24" height="24" style="vertical-align:middle;display:inline-block;border:0;margin-right:8px;width:24px;height:24px;" />
+            <img src="${APP_URL}/logo-text.png" alt="PersonaLink" height="22" style="vertical-align:middle;display:inline-block;border:0;height:22px;width:auto;" />
+          </span>
         </div>
       </div>
       <p style="margin:16px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Your weekly content briefing</p>
@@ -214,7 +220,10 @@ export async function sendImageBriefEmail({
     <div style="background:#0A66C2;padding:28px 32px;">
       <div>
         <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
-          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+          <span style="display:inline-block;line-height:1;white-space:nowrap;vertical-align:middle;">
+            <img src="${APP_URL}/logo-mark.png" alt="" width="24" height="24" style="vertical-align:middle;display:inline-block;border:0;margin-right:8px;width:24px;height:24px;" />
+            <img src="${APP_URL}/logo-text.png" alt="PersonaLink" height="22" style="vertical-align:middle;display:inline-block;border:0;height:22px;width:auto;" />
+          </span>
         </div>
       </div>
     </div>
@@ -304,7 +313,10 @@ export async function sendTrialStartedEmail({
     <div style="background:#0A66C2;padding:28px 32px;">
       <div>
         <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
-          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+          <span style="display:inline-block;line-height:1;white-space:nowrap;vertical-align:middle;">
+            <img src="${APP_URL}/logo-mark.png" alt="" width="24" height="24" style="vertical-align:middle;display:inline-block;border:0;margin-right:8px;width:24px;height:24px;" />
+            <img src="${APP_URL}/logo-text.png" alt="PersonaLink" height="22" style="vertical-align:middle;display:inline-block;border:0;height:22px;width:auto;" />
+          </span>
         </div>
       </div>
     </div>
@@ -403,7 +415,10 @@ export async function sendPipelineReminderEmail({
     <div style="background:#0A66C2;padding:28px 32px;">
       <div>
         <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
-          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+          <span style="display:inline-block;line-height:1;white-space:nowrap;vertical-align:middle;">
+            <img src="${APP_URL}/logo-mark.png" alt="" width="24" height="24" style="vertical-align:middle;display:inline-block;border:0;margin-right:8px;width:24px;height:24px;" />
+            <img src="${APP_URL}/logo-text.png" alt="PersonaLink" height="22" style="vertical-align:middle;display:inline-block;border:0;height:22px;width:auto;" />
+          </span>
         </div>
       </div>
     </div>
