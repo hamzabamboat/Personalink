@@ -62,6 +62,8 @@ export default function CalendarPage() {
   const [plan, setPlan] = useState('starter')
   const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
   const [gcalSyncing, setGcalSyncing] = useState(false)
+  const [feedUrls, setFeedUrls] = useState<{ httpsUrl: string; webcalUrl: string } | null>(null)
+  const [feedCopied, setFeedCopied] = useState(false)
 
   // Check for ?gcal= query param on mount and show toasts
   useEffect(() => {
@@ -82,6 +84,14 @@ export default function CalendarPage() {
       .then(r => r.json())
       .then(d => setGcalConnected(!!d.connected))
       .catch(() => setGcalConnected(false))
+  }, [])
+
+  // Load the private subscription-feed URL (Apple Calendar, Outlook, etc.)
+  useEffect(() => {
+    fetch('/api/calendar/feed-url')
+      .then(r => r.json())
+      .then(d => { if (d.httpsUrl) setFeedUrls({ httpsUrl: d.httpsUrl, webcalUrl: d.webcalUrl }) })
+      .catch(() => { /* non-fatal */ })
   }, [])
 
   useEffect(() => {
@@ -309,6 +319,52 @@ export default function CalendarPage() {
               }}
             >
               Disconnect
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Apple Calendar / Outlook / other — subscription feed */}
+      {feedUrls && (
+        <div
+          className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-lg"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <CalendarDays className="w-5 h-5 shrink-0" style={{ color: 'var(--ink-3)' }} />
+            <div className="min-w-0">
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Apple Calendar, Outlook &amp; others</p>
+              <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>Subscribe once — your scheduled posts appear and auto-refresh on all your devices.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href={feedUrls.webcalUrl}
+              className="transition-opacity hover:opacity-80"
+              style={{
+                background: 'var(--pl-accent)', color: '#fff',
+                borderRadius: 'var(--r-sm)', padding: '6px 14px',
+                fontSize: 12, fontWeight: 600, textDecoration: 'none',
+              }}
+            >
+              Subscribe
+            </a>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(feedUrls.httpsUrl)
+                  setFeedCopied(true)
+                  setTimeout(() => setFeedCopied(false), 2000)
+                } catch { toast.error('Could not copy link') }
+              }}
+              className="transition-opacity hover:opacity-80"
+              style={{
+                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                padding: '6px 12px', fontSize: 12, fontWeight: 500, color: 'var(--ink-2)',
+                background: 'var(--surface-2)',
+              }}
+            >
+              {feedCopied ? 'Copied!' : 'Copy link'}
             </button>
           </div>
         </div>
