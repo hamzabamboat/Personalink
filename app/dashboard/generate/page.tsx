@@ -318,15 +318,16 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
         </p>
       </div>
 
-      {storyCount > 0 && (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 'var(--r-sm)', background: 'var(--accent-soft)', border: '1px solid color-mix(in oklab, var(--accent) 20%, transparent)' }}>
-          <BookOpen size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink-2)' }}>
-            Your first {Math.min(storyCount, effectiveCount)} post{Math.min(storyCount, effectiveCount) !== 1 ? 's' : ''} will be drawn from your Story Bank
-            {' '}({storyCount} saved {storyCount !== 1 ? 'stories' : 'story'}). The rest are generated fresh in your voice.
-          </p>
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 'var(--r-sm)', background: 'var(--accent-soft)', border: '1px solid color-mix(in oklab, var(--accent) 20%, transparent)' }}>
+        <BookOpen size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
+        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink-2)' }}>
+          {storyCount > 0 ? (
+            <>Your first {Math.min(storyCount, effectiveCount)} post{Math.min(storyCount, effectiveCount) !== 1 ? 's' : ''} will be drawn from your Story Bank ({storyCount} saved {storyCount !== 1 ? 'stories' : 'story'}). The rest are generated fresh in your voice.</>
+          ) : (
+            <>Anything you save to your <Link href="/dashboard/story-bank" style={{ color: 'var(--accent)', fontWeight: 600 }}>Story Bank</Link> becomes your first bulk posts. You have none saved yet, so these will all be generated fresh in your voice.</>
+          )}
+        </p>
+      </div>
 
       <div className="db-field">
         <label className="db-label" htmlFor="bulk-instructions">
