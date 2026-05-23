@@ -148,7 +148,7 @@ function ImageUploadSection({ onUpload }: { onUpload: (url: string) => void }) {
 }
 
 /* ── Batch generate tab ──────────────────────────────────── */
-function BulkTab({ plan, postsLimit, postsRemaining, monthName }: { plan: string; postsLimit: number | null; postsRemaining: number | null; monthName: string }) {
+function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { plan: string; postsLimit: number | null; postsRemaining: number | null; monthName: string; storyCount: number }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [instructions, setInstructions] = useState('')
@@ -317,6 +317,16 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName }: { plan: string
             : " You've used all your posts this month."}
         </p>
       </div>
+
+      {storyCount > 0 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 'var(--r-sm)', background: 'var(--accent-soft)', border: '1px solid color-mix(in oklab, var(--accent) 20%, transparent)' }}>
+          <BookOpen size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
+          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink-2)' }}>
+            Your first {Math.min(storyCount, effectiveCount)} post{Math.min(storyCount, effectiveCount) !== 1 ? 's' : ''} will be drawn from your Story Bank
+            {' '}({storyCount} saved {storyCount !== 1 ? 'stories' : 'story'}). The rest are generated fresh in your voice.
+          </p>
+        </div>
+      )}
 
       <div className="db-field">
         <label className="db-label" htmlFor="bulk-instructions">
@@ -919,7 +929,7 @@ function GenerateContent() {
           )}
 
           {tab === 'bulk' && (
-            <BulkTab plan={plan} postsLimit={postsLimit} postsRemaining={postsRemaining} monthName={monthName} />
+            <BulkTab plan={plan} postsLimit={postsLimit} postsRemaining={postsRemaining} monthName={monthName} storyCount={stories.filter(s => s.status !== 'converted' && s.status !== 'dismissed').length} />
           )}
         </div>
 
