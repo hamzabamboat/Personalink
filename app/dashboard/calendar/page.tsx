@@ -331,10 +331,12 @@ export default function CalendarPage() {
           style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <CalendarDays className="w-5 h-5 shrink-0" style={{ color: 'var(--ink-3)' }} />
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 shrink-0" style={{ color: 'var(--ink-2)' }} aria-hidden="true">
+              <path d="M16.365 1.43c0 1.14-.42 2.18-1.12 2.95-.78.85-2.05 1.5-3.1 1.42-.13-1.1.45-2.27 1.1-2.99.75-.82 2.06-1.43 3.12-1.38zM20.5 17.06c-.35.83-.52 1.2-.98 1.93-.66 1.03-1.59 2.32-2.74 2.33-1.02.01-1.28-.66-2.67-.66-1.39 0-1.68.65-2.7.67-1.14.04-2.01-1.11-2.67-2.14-1.85-2.86-2.05-6.22-.9-8 .8-1.27 2.08-2.01 3.28-2.01 1.22 0 1.98.67 2.99.67.98 0 1.57-.67 2.98-.67 1.06 0 2.19.58 3 1.57-2.63 1.44-2.2 5.2.31 6.31z"/>
+            </svg>
             <div className="min-w-0">
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Apple Calendar, Outlook &amp; others</p>
-              <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>Subscribe once — your scheduled posts appear and auto-refresh on all your devices.</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Add to Apple Calendar</p>
+              <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>One tap on iPhone &amp; Mac. For Outlook, Google or any app, use Copy link. Auto-refreshes everywhere.</p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -344,10 +346,10 @@ export default function CalendarPage() {
               style={{
                 background: 'var(--pl-accent)', color: '#fff',
                 borderRadius: 'var(--r-sm)', padding: '6px 14px',
-                fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                fontSize: 12, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
               }}
             >
-              Subscribe
+              Add to Apple Calendar
             </a>
             <button
               onClick={async () => {
