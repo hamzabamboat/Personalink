@@ -182,11 +182,14 @@ export default function CalendarPage() {
     toast('Post deleted')
   }
 
-  // One-click approve & schedule. Posts that already have a time use /approve
-  // (keeps scheduled_at, no 30-min limit, flips status -> scheduled +
-  // human_approved). Otherwise open the inline editor to pick a time.
+  // One-click approve & schedule. Only posts whose existing time is at least 30
+  // minutes out can be approved in place (via /approve, which keeps the time +
+  // sets human_approved). A passed / too-soon / missing time opens the inline
+  // editor so the user picks a valid future time.
   async function approveSchedulePost(post: Post) {
-    if ((post.status === 'draft' || post.status === 'pending_approval') && post.scheduled_at) {
+    const minAllowed = Date.now() + 30 * 60 * 1000
+    const hasValidTime = !!post.scheduled_at && new Date(post.scheduled_at).getTime() >= minAllowed
+    if ((post.status === 'draft' || post.status === 'pending_approval') && hasValidTime) {
       const res = await fetch(`/api/posts/${post.id}/approve`, { method: 'POST' })
       const data = await res.json()
       if (data.error) { toast.error(data.error); return }
@@ -195,7 +198,9 @@ export default function CalendarPage() {
       return
     }
     startEditPost(post)
-    toast('Set a time, then Approve & Schedule')
+    toast(post.scheduled_at && !hasValidTime
+      ? 'That time has passed — set a new time at least 30 min out, then Approve & Schedule'
+      : 'Set a time, then Approve & Schedule')
   }
 
   // From the inline editor: save photos (if any), then schedule for posting.

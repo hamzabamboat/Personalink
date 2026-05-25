@@ -108,12 +108,15 @@ function PostsContent() {
     toast('Post deleted')
   }
 
-  // One-click approve & schedule for rows. Posts that already have a time use
-  // /approve (keeps the scheduled_at, no 30-min restriction, flips status ->
-  // scheduled + human_approved). Posts without a time open the editor so the
-  // user can pick one and use the green "Approve & Schedule" there.
+  // One-click approve & schedule for rows. Only posts whose existing time is at
+  // least 30 minutes out can be approved in place (via /approve, which keeps the
+  // time + sets human_approved). Posts with no time — or a time that's already
+  // passed / less than 30 min away — open the editor so the user picks a valid
+  // future time and uses the green "Approve & Schedule" there.
   async function approveSchedule(post: Post) {
-    if ((post.status === 'draft' || post.status === 'pending_approval') && post.scheduled_at) {
+    const minAllowed = Date.now() + 30 * 60 * 1000
+    const hasValidTime = !!post.scheduled_at && new Date(post.scheduled_at).getTime() >= minAllowed
+    if ((post.status === 'draft' || post.status === 'pending_approval') && hasValidTime) {
       const res = await fetch(`/api/posts/${post.id}/approve`, { method: 'POST' })
       const data = await res.json()
       if (data.error) { toast.error(data.error); return }
@@ -122,7 +125,9 @@ function PostsContent() {
       return
     }
     openEdit(post)
-    toast('Pick a date & time, then Approve & Schedule')
+    toast(post.scheduled_at && !hasValidTime
+      ? 'That time has passed — pick a new time at least 30 min out, then Approve & Schedule'
+      : 'Pick a date & time, then Approve & Schedule')
   }
 
   // From the edit dialog: save the edits, then schedule the post for posting.

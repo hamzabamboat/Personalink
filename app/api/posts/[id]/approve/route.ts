@@ -27,6 +27,18 @@ export async function POST(
       return NextResponse.json({ error: 'Post cannot be approved in its current state' }, { status: 409 })
     }
 
+    // A scheduled time must be at least 30 minutes in the future — never publish
+    // something at a time that has already passed.
+    if (post.scheduled_at) {
+      const minAllowed = new Date(Date.now() + 30 * 60 * 1000)
+      if (new Date(post.scheduled_at) < minAllowed) {
+        return NextResponse.json(
+          { error: 'This post\'s scheduled time has passed. Please pick a new time at least 30 minutes from now.' },
+          { status: 400 },
+        )
+      }
+    }
+
     // If the post already has a scheduled time, move it straight to scheduled
     const newStatus = post.scheduled_at ? 'scheduled' : 'approved'
 
