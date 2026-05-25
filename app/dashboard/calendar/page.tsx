@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ImageSelector } from '@/components/image-selector'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Sparkles, ChevronLeft, ChevronRight, Plus, X, CalendarDays, Pencil, Clock, ImageIcon, RefreshCw } from 'lucide-react'
+import { Sparkles, ChevronLeft, ChevronRight, Plus, X, CalendarDays, Pencil, Clock, ImageIcon, RefreshCw, CheckCircle2, Trash2 } from 'lucide-react'
 import { AiImageButton } from '@/components/ai-image-button'
 
 function utcToLocalInput(utcString: string): string {
@@ -171,6 +171,57 @@ export default function CalendarPage() {
     if (data.post) { setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, ...data.post } : p)); toast.success('Post updated') }
     else toast.error(data.error || 'Failed to update post')
     setSaving(false); setEditingPost(null); setEditTime(''); setEditImages([])
+  }
+
+  async function deletePost(id: string) {
+    if (!confirm('Delete this post?')) return
+    const res = await fetch(`/api/posts/${id}/update`, { method: 'DELETE' })
+    if (!res.ok) { toast.error('Failed to delete post'); return }
+    setPosts(prev => prev.filter(p => p.id !== id))
+    if (editingPost?.id === id) { setEditingPost(null); setEditTime(''); setEditImages([]) }
+    toast('Post deleted')
+  }
+
+  // One-click approve & schedule. Posts that already have a time use /approve
+  // (keeps scheduled_at, no 30-min limit, flips status -> scheduled +
+  // human_approved). Otherwise open the inline editor to pick a time.
+  async function approveSchedulePost(post: Post) {
+    if ((post.status === 'draft' || post.status === 'pending_approval') && post.scheduled_at) {
+      const res = await fetch(`/api/posts/${post.id}/approve`, { method: 'POST' })
+      const data = await res.json()
+      if (data.error) { toast.error(data.error); return }
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, ...data.post } : p))
+      toast.success('Approved & scheduled')
+      return
+    }
+    startEditPost(post)
+    toast('Set a time, then Approve & Schedule')
+  }
+
+  // From the inline editor: save photos (if any), then schedule for posting.
+  async function approveScheduleFromEdit() {
+    if (!editingPost) return
+    if (!editTime) { toast.error('Pick a date & time to schedule this post'); return }
+    setSaving(true)
+    try {
+      if (editImages.length > 0) {
+        await fetch(`/api/posts/${editingPost.id}/update`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_urls: editImages.map(i => i.public_url) }),
+        })
+      }
+      const res = await fetch(`/api/posts/${editingPost.id}/schedule`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledAt: new Date(editTime).toISOString() }),
+      })
+      const data = await res.json()
+      if (data.error) { toast.error(data.error); return }
+      setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, ...data.post } : p))
+      setEditingPost(null); setEditTime(''); setEditImages([])
+      toast.success('Approved & scheduled for posting')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleDayClick(day: number) {
@@ -591,24 +642,46 @@ export default function CalendarPage() {
                               {editImages.length > 0 ? `${editImages.length} selected` : 'Pick from library'}
                             </button>
                           </div>
-                          <div className="flex gap-2">
-                            <button onClick={savePostEdit} disabled={saving}
-                              className="flex-1 transition-opacity"
-                              style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}>
-                              {saving ? 'Saving…' : 'Save'}
+                          <div className="flex flex-col gap-2">
+                            <button onClick={approveScheduleFromEdit} disabled={saving}
+                              className="w-full flex items-center justify-center gap-1.5 transition-opacity"
+                              style={{ background: '#10b981', color: '#fff', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}>
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {saving ? 'Working…' : 'Approve & Schedule'}
                             </button>
-                            <button onClick={() => { setEditingPost(null); setEditTime(''); setEditImages([]) }}
-                              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' }}>
-                              Cancel
-                            </button>
+                            <div className="flex gap-2">
+                              <button onClick={savePostEdit} disabled={saving}
+                                className="flex-1 transition-opacity"
+                                style={{ background: 'var(--surface)', color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}>
+                                {saving ? 'Saving…' : 'Save time'}
+                              </button>
+                              <button onClick={() => { setEditingPost(null); setEditTime(''); setEditImages([]) }}
+                                style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' }}>
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        <button onClick={() => startEditPost(post)}
-                          className="mt-1.5 flex items-center gap-1 transition-all hover:opacity-70"
-                          style={{ fontSize: 11, color: 'var(--ink-4)' }}>
-                          <Pencil className="w-3 h-3" /> Edit time &amp; photos
-                        </button>
+                        <div className="mt-1.5 flex items-center flex-wrap gap-2">
+                          {['draft', 'pending_approval', 'approved'].includes(post.status) && (
+                            <button onClick={() => approveSchedulePost(post)}
+                              className="flex items-center gap-1 transition-opacity hover:opacity-80"
+                              style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: '#10b981', borderRadius: 'var(--r-sm)', padding: '4px 9px' }}>
+                              <CheckCircle2 className="w-3 h-3" /> Approve &amp; Schedule
+                            </button>
+                          )}
+                          <button onClick={() => startEditPost(post)}
+                            className="flex items-center gap-1 transition-all hover:opacity-70"
+                            style={{ fontSize: 11, color: 'var(--ink-4)' }}>
+                            <Pencil className="w-3 h-3" /> Edit
+                          </button>
+                          <button onClick={() => deletePost(post.id)}
+                            className="flex items-center gap-1 transition-all hover:opacity-70"
+                            style={{ fontSize: 11, color: '#ef4444' }}>
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}

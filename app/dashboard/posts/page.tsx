@@ -108,13 +108,50 @@ function PostsContent() {
     toast('Post deleted')
   }
 
-  async function approvePost(id: string) {
-    const res = await fetch(`/api/posts/${id}/approve`, { method: 'POST' })
-    const data = await res.json()
-    if (data.error) { toast.error(data.error); return }
-    setPosts(p => p.map(x => x.id === id ? { ...x, status: data.post.status } : x))
-    const label = data.post.status === 'scheduled' ? 'Post approved and scheduled' : 'Post approved'
-    toast.success(label)
+  // One-click approve & schedule for rows. Posts that already have a time use
+  // /approve (keeps the scheduled_at, no 30-min restriction, flips status ->
+  // scheduled + human_approved). Posts without a time open the editor so the
+  // user can pick one and use the green "Approve & Schedule" there.
+  async function approveSchedule(post: Post) {
+    if ((post.status === 'draft' || post.status === 'pending_approval') && post.scheduled_at) {
+      const res = await fetch(`/api/posts/${post.id}/approve`, { method: 'POST' })
+      const data = await res.json()
+      if (data.error) { toast.error(data.error); return }
+      setPosts(p => p.map(x => x.id === post.id ? { ...x, ...data.post } : x))
+      toast.success('Approved & scheduled')
+      return
+    }
+    openEdit(post)
+    toast('Pick a date & time, then Approve & Schedule')
+  }
+
+  // From the edit dialog: save the edits, then schedule the post for posting.
+  async function saveAndSchedule() {
+    if (!editingPost) return
+    if (!editSchedule) { toast.error('Pick a date & time to schedule this post'); return }
+    setSaving(true)
+    try {
+      const updateBody: Record<string, unknown> = { content: editContent }
+      if (editImages.length > 0) updateBody.image_urls = editImages.map(i => i.public_url)
+      const upRes = await fetch(`/api/posts/${editingPost.id}/update`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateBody),
+      })
+      const upData = await upRes.json()
+      if (upData.error) { toast.error(upData.error); return }
+
+      const schRes = await fetch(`/api/posts/${editingPost.id}/schedule`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledAt: new Date(editSchedule).toISOString() }),
+      })
+      const schData = await schRes.json()
+      if (schData.error) { toast.error(schData.error); return }
+
+      setPosts(p => p.map(x => x.id === editingPost.id ? { ...x, ...upData.post, ...schData.post } : x))
+      setEditingPost(null)
+      toast.success('Approved & scheduled for posting')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function saveEdit() {
@@ -273,29 +310,46 @@ function PostsContent() {
             <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>Time is in your local timezone</p>
           </div>
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col gap-2 pt-1">
             <button
-              onClick={saveEdit}
+              onClick={saveAndSchedule}
               disabled={saving}
-              className="flex-1 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 transition-opacity"
               style={{
-                background: 'var(--pl-accent)', color: '#fff',
-                borderRadius: 'var(--r-sm)', padding: '9px 16px',
+                background: '#10b981', color: '#fff',
+                borderRadius: 'var(--r-sm)', padding: '10px 16px',
                 fontSize: 14, fontWeight: 600,
                 opacity: saving ? 0.6 : 1,
               }}
             >
-              {saving ? 'Saving…' : 'Save Changes'}
+              <CheckCircle2 className="w-4 h-4" />
+              {saving ? 'Working…' : 'Approve & Schedule'}
             </button>
-            <button
-              onClick={() => setEditingPost(null)}
-              style={{
-                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
-                padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-2)',
-              }}
-            >
-              Cancel
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="flex-1 transition-opacity"
+                style={{
+                  background: 'var(--surface-2)', color: 'var(--ink-2)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-sm)', padding: '9px 16px',
+                  fontSize: 14, fontWeight: 600,
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving ? 'Saving…' : 'Save Changes'}
+              </button>
+              <button
+                onClick={() => setEditingPost(null)}
+                style={{
+                  border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                  padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-2)',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -441,15 +495,16 @@ function PostsContent() {
                   </span>
 
                   {/* Actions */}
-                  <div className="pt-more" style={{ display: 'flex', gap: 4 }}>
-                    {['pending_approval', 'draft'].includes(post.status) && post.scheduled_at && (
+                  <div className="pt-more" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    {['pending_approval', 'draft', 'approved'].includes(post.status) && (
                       <button
-                        onClick={() => approvePost(post.id)}
-                        className="btn-dash btn-dash--ghost btn-dash--sm"
+                        onClick={() => approveSchedule(post)}
+                        className="btn-dash btn-dash--sm"
                         title="Approve & schedule"
-                        style={{ color: '#10b981' }}
+                        style={{ background: '#10b981', color: '#fff', border: 'none' }}
                       >
                         <CheckCircle2 />
+                        <span className="hidden sm:inline">Approve</span>
                       </button>
                     )}
                     <button
@@ -515,17 +570,35 @@ function PostsContent() {
                       <em>{post.content}</em>
                     </div>
 
-                    {/* Status + edit */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {/* Status + actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span className={statusStateClass(post.status)}>
                         {STATUS_LABEL[post.status]}
                       </span>
+                      {['pending_approval', 'draft', 'approved'].includes(post.status) && (
+                        <button
+                          onClick={() => approveSchedule(post)}
+                          className="btn-dash btn-dash--sm"
+                          title="Approve & schedule"
+                          style={{ background: '#10b981', color: '#fff', border: 'none' }}
+                        >
+                          <CheckCircle2 />
+                        </button>
+                      )}
                       <button
                         onClick={() => openEdit(post)}
                         className="btn-dash btn-dash--ghost btn-dash--sm"
                         title="Edit"
                       >
                         <Pencil />
+                      </button>
+                      <button
+                        onClick={() => deletePost(post.id)}
+                        className="btn-dash btn-dash--ghost btn-dash--sm btn-dash--danger"
+                        title="Delete"
+                        style={{ background: 'transparent', border: 'none' }}
+                      >
+                        <Trash2 />
                       </button>
                     </div>
                   </div>
