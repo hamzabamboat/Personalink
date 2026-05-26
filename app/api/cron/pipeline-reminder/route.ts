@@ -24,12 +24,12 @@ async function handler(request: NextRequest) {
     return NextResponse.json({ skipped: true, reason: 'already_ran_today', date: today })
   }
 
-  // Fetch standard/pro users with an active or trialing subscription and an email address
+  // Fetch users with active access (paid, trialing, or access_code) and an email address
   const { data: users, error } = await supabaseAdmin
     .from('users')
     .select('id, email, linkedin_name, subscription_status')
     .not('email', 'is', null)
-    .in('subscription_status', ['active', 'trialing'])
+    .in('subscription_status', ['active', 'trialing', 'access_code'])
 
   if (error) {
     console.error('Pipeline reminder: failed to fetch users', error)

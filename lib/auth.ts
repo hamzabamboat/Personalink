@@ -31,7 +31,11 @@ export async function getUserFromRequest(request: NextRequest): Promise<User | n
 }
 
 export function hasActiveSubscription(user: User): boolean {
-  return user.subscription_status === 'active' || user.subscription_status === 'trialing'
+  return (
+    user.subscription_status === 'active' ||
+    user.subscription_status === 'trialing' ||
+    user.subscription_status === 'access_code'
+  )
 }
 
 export function canGeneratePost(user: User): boolean {

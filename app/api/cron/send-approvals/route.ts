@@ -52,8 +52,9 @@ export async function GET(request: NextRequest) {
     const user = userMap.get(post.user_id)
     if (!user?.email || !post.approval_token) continue
 
-    // Skip approval emails for users without an active subscription
-    const activeStatuses = ['active', 'trialing']
+    // Skip approval emails for users without an active subscription.
+    // access_code users are entitled to the same email flow.
+    const activeStatuses = ['active', 'trialing', 'access_code']
     if (!activeStatuses.includes(user.subscription_status ?? '')) continue
 
     try {

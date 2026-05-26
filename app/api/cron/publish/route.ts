@@ -76,8 +76,11 @@ async function handler(_request: NextRequest) {
         autopilot_eligible: boolean | null
       } | null
 
-      // — Subscription check — do not publish for expired/cancelled subscriptions
-      const activeStatuses = ['active', 'trialing']
+      // — Subscription check — do not publish for expired/cancelled subscriptions.
+      // 'access_code' users are entitled to publish (they activated a comp/gift
+      // code via /api/access-codes/apply and the middleware grants them dashboard
+      // access on the same basis).
+      const activeStatuses = ['active', 'trialing', 'access_code']
       if (!activeStatuses.includes(user.subscription_status ?? '')) {
         return { id: post.id, status: 'skipped', reason: 'inactive_subscription' }
       }

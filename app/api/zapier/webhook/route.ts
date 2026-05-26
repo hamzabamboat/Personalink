@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
     .select('status')
     .eq('user_id', user.id)
     .maybeSingle()
-  const hasActiveSub = sub?.status === 'active' || sub?.status === 'trial' || sub?.status === 'trialing'
+  const hasActiveSub =
+    sub?.status === 'active' || sub?.status === 'trial' || sub?.status === 'trialing' ||
+    user.subscription_status === 'access_code'
   const postsUsed = (profile.posts_used_this_month as number) || 0
   if (!hasActiveSub && postsUsed >= 3) {
     return NextResponse.json({ error: 'Trial limit reached. Upgrade to continue.' }, { status: 402 })
