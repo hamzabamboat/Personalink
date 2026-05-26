@@ -5,11 +5,22 @@ import { publishToLinkedIn, isTokenExpired } from '@/lib/linkedin-api'
 import { logComplianceEvent } from '@/lib/compliance-events'
 import { getPostHogClient } from '@/lib/posthog-server'
 
+// Vercel default function timeout is 300s. Pin it explicitly so changes to the
+// platform default don't silently break us. With 0–60s jitter + LinkedIn API +
+// optional image uploads, posts finish well inside this window.
+export const maxDuration = 300
+
 // Max auto-published posts per user per day (cadence protection)
 const MAX_AUTOPOSTS_PER_DAY = 2
 
 // Spam score threshold — above this the post must go to manual review
 const SPAM_BLOCK_THRESHOLD = 60
+
+// A post stuck in 'publishing' for longer than this is assumed to be the
+// fallout of a crashed/timed-out invocation, not a legitimate in-flight call,
+// and gets reset to 'scheduled' so this cron tick can retry it. Threshold is
+// well above any reasonable publish (jitter + API + image upload).
+const STUCK_PUBLISHING_MS = 10 * 60 * 1000
 
 async function countTodayPublished(userId: string): Promise<number> {
   const todayStart = new Date()
@@ -25,13 +36,25 @@ async function countTodayPublished(userId: string): Promise<number> {
   return count ?? 0
 }
 
-// Add a small random delay variance (0–8 min) so posts don't fire at exact scheduled times
+// Add a small random delay variance (0–60s) so posts don't fire at the exact
+// same second. Must stay well under maxDuration so the function never gets
+// killed waiting on the jitter.
 function jitterMs(): number {
-  return Math.floor(Math.random() * 8 * 60 * 1000)
+  return Math.floor(Math.random() * 60 * 1000)
 }
 
 async function handler(_request: NextRequest) {
   const now = new Date().toISOString()
+
+  // Self-heal: posts left in 'publishing' from a prior invocation that died
+  // mid-flight are stranded forever (the main query only picks up 'scheduled').
+  // Reset stale ones so this tick can retry them.
+  const stuckCutoff = new Date(Date.now() - STUCK_PUBLISHING_MS).toISOString()
+  await supabaseAdmin
+    .from('posts')
+    .update({ status: 'scheduled', updated_at: now })
+    .eq('status', 'publishing')
+    .lt('updated_at', stuckCutoff)
 
   // Step 1: fetch scheduled posts + users (direct FK: posts.user_id → users.id)
   const { data: posts, error } = await supabaseAdmin
@@ -167,7 +190,7 @@ async function handler(_request: NextRequest) {
 
       await supabaseAdmin
         .from('posts')
-        .update({ status: 'publishing' })
+        .update({ status: 'publishing', updated_at: new Date().toISOString() })
         .eq('id', post.id)
 
       // Small time jitter so all posts don't fire at exactly the same second
@@ -184,7 +207,7 @@ async function handler(_request: NextRequest) {
       } catch (publishErr) {
         const errMsg = publishErr instanceof Error ? publishErr.message : String(publishErr)
         const codeMatch = errMsg.match(/error (\d{3})/)
-        await supabaseAdmin.from('posts').update({ status: 'failed', failure_reason: errMsg }).eq('id', post.id)
+        await supabaseAdmin.from('posts').update({ status: 'failed', failure_reason: errMsg, updated_at: new Date().toISOString() }).eq('id', post.id)
         getPostHogClient().capture({
           distinctId: post.user_id,
           event: 'post_publish_failed',
@@ -199,6 +222,7 @@ async function handler(_request: NextRequest) {
           status: 'published',
           linkedin_post_id: linkedinPostId,
           published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', post.id)
 
