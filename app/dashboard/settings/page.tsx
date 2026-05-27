@@ -60,6 +60,11 @@ function SettingsContent() {
   const [zapierShowKey, setZapierShowKey] = useState(false)
   const [zapierLoading, setZapierLoading] = useState(false)
 
+  // Calendar subscription feed (Apple Calendar / Outlook / Google Calendar)
+  const [feedUrls, setFeedUrls] = useState<{ httpsUrl: string; webcalUrl: string } | null>(null)
+  const [feedCopied, setFeedCopied] = useState(false)
+  const [feedAdded, setFeedAdded] = useState(false)
+
   // Voice training (past-post import)
   const [importText, setImportText] = useState('')
   const [importing, setImporting] = useState(false)
@@ -115,6 +120,16 @@ function SettingsContent() {
       setTimeout(() => planRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200)
     }
   }, [searchParams, loading])
+
+  // Calendar subscription feed: load the private feed URL and the local
+  // "I've added it" dismissal flag (shared with the banner on the calendar page).
+  useEffect(() => {
+    fetch('/api/calendar/feed-url')
+      .then(r => r.json())
+      .then(d => { if (d.httpsUrl) setFeedUrls({ httpsUrl: d.httpsUrl, webcalUrl: d.webcalUrl }) })
+      .catch(() => { /* non-fatal */ })
+    try { if (localStorage.getItem('pl_apple_cal_added') === '1') setFeedAdded(true) } catch { /* SSR / blocked storage */ }
+  }, [])
 
   async function saveProfile() {
     setSaving(true)
@@ -869,6 +884,84 @@ function SettingsContent() {
               </div>
             ))}
             <SaveButton label="Save Notification Preferences" />
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* ── Calendar Feed (Apple Calendar / Outlook / Google) ── */}
+      <section className="mb-8">
+        <SectionLabel>Calendar Feed</SectionLabel>
+        <Card className="border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+          <div className="px-6 pt-6 pb-5 flex items-start gap-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="size-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="size-5 text-slate-700 dark:text-slate-200" aria-hidden="true">
+                <path d="M16.365 1.43c0 1.14-.42 2.18-1.12 2.95-.78.85-2.05 1.5-3.1 1.42-.13-1.1.45-2.27 1.1-2.99.75-.82 2.06-1.43 3.12-1.38zM20.5 17.06c-.35.83-.52 1.2-.98 1.93-.66 1.03-1.59 2.32-2.74 2.33-1.02.01-1.28-.66-2.67-.66-1.39 0-1.68.65-2.7.67-1.14.04-2.01-1.11-2.67-2.14-1.85-2.86-2.05-6.22-.9-8 .8-1.27 2.08-2.01 3.28-2.01 1.22 0 1.98.67 2.99.67.98 0 1.57-.67 2.98-.67 1.06 0 2.19.58 3 1.57-2.63 1.44-2.2 5.2.31 6.31z"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-slate-900 dark:text-slate-100 text-[15px] mb-1">See your scheduled posts in your calendar</div>
+              <p className="text-[13px] text-slate-500 leading-relaxed">
+                One-tap subscribe on iPhone &amp; Mac. For Outlook, Google Calendar, or any other app, use Copy link — auto-refreshes everywhere.
+              </p>
+            </div>
+          </div>
+          <CardContent className="pt-6">
+            {feedUrls ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={feedUrls.webcalUrl}
+                  className="transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '7px 16px', fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
+                >
+                  Add to Apple Calendar
+                </a>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(feedUrls.httpsUrl)
+                      setFeedCopied(true)
+                      setTimeout(() => setFeedCopied(false), 2000)
+                    } catch { toast.error('Could not copy link') }
+                  }}
+                  className="transition-opacity hover:opacity-80"
+                  style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '7px 14px', fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', background: 'var(--surface-2)' }}
+                >
+                  {feedCopied ? 'Copied!' : 'Copy link'}
+                </button>
+                {feedAdded ? (
+                  <button
+                    onClick={() => {
+                      try { localStorage.removeItem('pl_apple_cal_added') } catch { /* blocked storage */ }
+                      setFeedAdded(false)
+                      toast('Banner will show again on the Calendar page')
+                    }}
+                    className="transition-opacity hover:opacity-80"
+                    title="Show the calendar-page banner again"
+                    style={{ background: 'transparent', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '7px 12px', fontSize: 12, color: 'var(--ink-4)' }}
+                  >
+                    Reset dismissal
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      try { localStorage.setItem('pl_apple_cal_added', '1') } catch { /* blocked storage */ }
+                      setFeedAdded(true)
+                      toast.success('Got it — won’t show this on the Calendar page')
+                    }}
+                    className="transition-opacity hover:opacity-80"
+                    title="Hide the Calendar-page banner"
+                    style={{ background: '#10b98110', border: '1px solid #10b98140', borderRadius: 'var(--r-sm)', padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#10b981' }}
+                  >
+                    I&rsquo;ve added it
+                  </button>
+                )}
+                {feedAdded && (
+                  <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>· Marked as added</span>
+                )}
+              </div>
+            ) : (
+              <p className="text-[12px]" style={{ color: 'var(--ink-4)' }}>Loading…</p>
+            )}
           </CardContent>
         </Card>
       </section>
