@@ -1,8 +1,10 @@
 # Payment Provider Product Copy
 
-Paste the descriptions and feature bullets below into each Dodo / Razorpay product as their public-facing copy. Prices in this document are the **stated price tags only** — they should already match what's set in each provider's pricing field.
+> **Dodo updates are scripted.** Run `npx tsx --env-file=.env.local scripts/update-dodo-descriptions.ts` to push the descriptions below to all 18 Dodo products via their API. Dodo allows partial product updates.
+>
+> **Razorpay updates must be manual.** Razorpay's API does not expose plan items for mutation after creation — neither `items.edit` nor `PATCH /v1/items/{id}` accepts the plan-internal item IDs. Use the [Razorpay Dashboard](https://dashboard.razorpay.com) to update plan names/descriptions, or create new plans and migrate subscribers.
 
-All prices are derived from [`lib/pricing-config.ts`](../lib/pricing-config.ts); if you change a number there, update this file too.
+All prices are derived from [`lib/pricing-config.ts`](../lib/pricing-config.ts); if you change a number there, update this file and re-run the Dodo script.
 
 ---
 
