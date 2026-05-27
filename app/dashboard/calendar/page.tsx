@@ -64,6 +64,13 @@ export default function CalendarPage() {
   const [gcalSyncing, setGcalSyncing] = useState(false)
   const [feedUrls, setFeedUrls] = useState<{ httpsUrl: string; webcalUrl: string } | null>(null)
   const [feedCopied, setFeedCopied] = useState(false)
+  const [feedAdded, setFeedAdded] = useState(false)
+
+  // Persist the "I've added it" dismissal across reloads so the banner doesn't
+  // keep nagging once the user has subscribed in Apple Calendar / Outlook.
+  useEffect(() => {
+    try { if (localStorage.getItem('pl_apple_cal_added') === '1') setFeedAdded(true) } catch { /* SSR / blocked storage */ }
+  }, [])
 
   // Check for ?gcal= query param on mount and show toasts
   useEffect(() => {
@@ -381,7 +388,7 @@ export default function CalendarPage() {
       )}
 
       {/* Apple Calendar / Outlook / other — subscription feed */}
-      {feedUrls && (
+      {feedUrls && !feedAdded && (
         <div
           className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-lg"
           style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}
@@ -423,6 +430,22 @@ export default function CalendarPage() {
               }}
             >
               {feedCopied ? 'Copied!' : 'Copy link'}
+            </button>
+            <button
+              onClick={() => {
+                try { localStorage.setItem('pl_apple_cal_added', '1') } catch { /* blocked storage */ }
+                setFeedAdded(true)
+                toast.success('Got it — won’t show this again')
+              }}
+              className="transition-opacity hover:opacity-80"
+              title="Dismiss this banner — I’ve already added it"
+              style={{
+                border: '1px solid #10b98140', borderRadius: 'var(--r-sm)',
+                padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#10b981',
+                background: '#10b98110',
+              }}
+            >
+              I&rsquo;ve added it
             </button>
           </div>
         </div>
