@@ -125,6 +125,112 @@ Write the fingerprint in under 220 words. Be specific and actionable. Focus on w
   return msg.content[0].type === 'text' ? msg.content[0].text : ''
 }
 
+/**
+ * Structured, scored variant of distillVoiceFingerprint for the public Voice
+ * Analyzer funnel. Returns numeric scores (radar-chart friendly) plus the
+ * signature phrases and avoidances. The prose `summary` is kept for human
+ * display and as an analogue of the legacy fingerprint string.
+ *
+ * Distinct from distillVoiceFingerprint() — that one stays the source of
+ * truth for the in-product voice corpus (prose, used inside generation
+ * prompts). This is a side-channel for the public funnel only.
+ */
+export type ScoredVoiceFingerprint = {
+  scores: {
+    burstiness: number          // 0-100, how much sentence-length variance
+    vocabulary: number          // 0-100, plain → sophisticated
+    personal: number            // 0-100, abstract → personal-story
+    punctuation_play: number    // 0-100, tight → loose (dashes, fragments, line breaks)
+    warmth: number              // 0-100, reserved → warm
+    hook_power: number          // 0-100, how attention-grabbing the openings are
+  }
+  signature_phrases: string[]   // 4-5 phrases the person actually uses
+  avoidances: string[]          // 3-4 things this person never does
+  summary: string               // 2-3 sentence plain-English read of the voice
+  one_liner: string             // a single quotable line for share cards (under 90 chars)
+}
+
+const SCORED_FINGERPRINT_DEFAULT: ScoredVoiceFingerprint = {
+  scores: { burstiness: 50, vocabulary: 50, personal: 50, punctuation_play: 50, warmth: 50, hook_power: 50 },
+  signature_phrases: [],
+  avoidances: [],
+  summary: '',
+  one_liner: '',
+}
+
+export async function distillVoiceFingerprintScored(samples: string[]): Promise<ScoredVoiceFingerprint> {
+  const corpus = samples
+    .filter(s => s && s.trim())
+    .slice(0, 3)
+    .map((s, i) => `Sample ${i + 1}:\n${s.trim().slice(0, 1200)}`)
+    .join('\n\n---\n\n')
+  if (!corpus) return SCORED_FINGERPRINT_DEFAULT
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 900,
+    messages: [{
+      role: 'user',
+      content: `Analyse these LinkedIn-style writing samples from the same person. Score 6 dimensions of their voice on a 0–100 scale and extract signature patterns.
+
+Scoring scale for each dimension:
+- burstiness: 0 = uniform sentence length; 100 = high variance (very short fragments + long winding sentences mixed)
+- vocabulary: 0 = plain everyday words; 100 = sophisticated/specialist vocabulary
+- personal: 0 = abstract/third-person observations; 100 = first-person stories with named people, places, dates
+- punctuation_play: 0 = tight conventional punctuation; 100 = heavy use of dashes, ellipses, fragments, white space
+- warmth: 0 = reserved/clinical; 100 = warm/conversational/openly emotional
+- hook_power: 0 = generic openings; 100 = strong scroll-stopping first lines
+
+Writing samples:
+${corpus}
+
+Respond ONLY with a valid JSON object exactly like this — no markdown fences, no commentary:
+{
+  "scores": {
+    "burstiness": <int 0-100>,
+    "vocabulary": <int 0-100>,
+    "personal": <int 0-100>,
+    "punctuation_play": <int 0-100>,
+    "warmth": <int 0-100>,
+    "hook_power": <int 0-100>
+  },
+  "signature_phrases": ["<actual phrase from the samples>", "<another>", "<3-5 total>"],
+  "avoidances": ["<thing they never do, e.g. 'never uses emoji'>", "<2-4 total>"],
+  "summary": "<2-3 sentences in plain English describing this person's voice, written TO them ('You write like...'). Specific. No platitudes.>",
+  "one_liner": "<a single quotable line under 90 chars describing their voice, share-card friendly>"
+}`,
+    }],
+  })
+
+  try {
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '{}'
+    const stripped = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim()
+    const match = stripped.match(/\{[\s\S]*\}/)
+    if (!match) return SCORED_FINGERPRINT_DEFAULT
+    const parsed = JSON.parse(match[0]) as Partial<ScoredVoiceFingerprint>
+    const clamp = (n: unknown) => {
+      const v = Math.round(Number(n))
+      return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 50
+    }
+    return {
+      scores: {
+        burstiness: clamp(parsed.scores?.burstiness),
+        vocabulary: clamp(parsed.scores?.vocabulary),
+        personal: clamp(parsed.scores?.personal),
+        punctuation_play: clamp(parsed.scores?.punctuation_play),
+        warmth: clamp(parsed.scores?.warmth),
+        hook_power: clamp(parsed.scores?.hook_power),
+      },
+      signature_phrases: Array.isArray(parsed.signature_phrases) ? parsed.signature_phrases.slice(0, 5) : [],
+      avoidances: Array.isArray(parsed.avoidances) ? parsed.avoidances.slice(0, 4) : [],
+      summary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 600) : '',
+      one_liner: typeof parsed.one_liner === 'string' ? parsed.one_liner.slice(0, 120) : '',
+    }
+  } catch {
+    return SCORED_FINGERPRINT_DEFAULT
+  }
+}
+
 export async function generateLinkedInPosts(options: GeneratePostOptions): Promise<string[]> {
   const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext, voiceExemplars } = options
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendWelcomeEmail } from '@/lib/email'
 import { runProfileAnalysis } from '@/lib/profile-analyzer'
+import { attachVoiceAnalyzerFingerprint } from '@/lib/voice-analyzer'
 
 import { getPostHogClient } from '@/lib/posthog-server'
 
@@ -170,6 +171,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (dbError) throw dbError
+    if (!user) throw new Error('linkedin callback: user record missing after insert/update')
+
+    // Voice Analyzer handoff: if this user came in via the public voice analyzer
+    // funnel, the email they typed at the gate is in the pl_va_email cookie.
+    // Attach any matching voice_reports to this user and seed their fingerprint.
+    const vaCookieEmail = request.cookies.get('pl_va_email')?.value
+      ? decodeURIComponent(request.cookies.get('pl_va_email')!.value)
+      : null
+    const vaAttach = await attachVoiceAnalyzerFingerprint({
+      userId: user.id as string,
+      linkedinEmail: (user.email as string | null | undefined) ?? null,
+      cookieEmail: vaCookieEmail,
+    })
 
     if (isNew && user.email) {
       sendWelcomeEmail({ to: user.email, userName: user.linkedin_name || 'there' }).catch(
@@ -234,8 +248,25 @@ export async function GET(request: NextRequest) {
     posthog.capture({
       distinctId: user.id,
       event: isNew ? 'user_signed_up' : 'user_logged_in',
-      properties: { provider: 'linkedin', is_new_user: isNew },
+      properties: {
+        provider: 'linkedin',
+        is_new_user: isNew,
+        voice_analyzer_attached: vaAttach.matched > 0,
+        voice_analyzer_reports_matched: vaAttach.matched,
+        voice_analyzer_fingerprint_seeded: vaAttach.attachedFingerprint,
+      },
     })
+    if (vaAttach.matched > 0) {
+      posthog.capture({
+        distinctId: user.id,
+        event: 'voice_analyzer_signup_attached',
+        properties: {
+          reports_matched: vaAttach.matched,
+          fingerprint_seeded: vaAttach.attachedFingerprint,
+          is_new_user: isNew,
+        },
+      })
+    }
 
     const response = NextResponse.redirect(redirectTo)
     response.cookies.set('session_user_id', user.id, {
@@ -264,12 +295,14 @@ export async function GET(request: NextRequest) {
       response.cookies.set('trial_ends_at', sub.trial_ends_at, { ...cookieOpts, maxAge: 60 * 60 * 24 * 8 })
     }
     response.cookies.delete('linkedin_oauth_state')
+    response.cookies.delete('pl_va_email')
     return response
   } catch (err) {
     console.error('[linkedin/callback] unhandled error:', err)
     const res = NextResponse.redirect(`${APP_URL}/?error=oauth_failed`)
     res.cookies.delete('linkedin_oauth_state')
     res.cookies.delete('agency_oauth_client_user_id')
+    res.cookies.delete('pl_va_email')
     return res
   }
 }

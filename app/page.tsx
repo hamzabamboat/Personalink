@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, useInView } from 'framer-motion'
+import posthog from 'posthog-js'
 import { useCurrency } from '@/hooks/use-currency'
 import { AppearanceTrigger } from '@/components/appearance-trigger'
 import { WordMark } from '@/components/word-mark'
@@ -233,16 +234,29 @@ const SAMPLES = [
 function HomeContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+  const fromVoiceAnalyzer = searchParams.get('from') === 'voice-analyzer'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [activeSample, setActiveSample] = useState(0)
   const [accountType, setAccountType] = useState<'personal' | 'business'>('personal')
   const currency = useCurrency()
+  const vaArrivalFiredRef = useRef(false)
 
   function handleLinkedInAuth() {
     document.cookie = `account_type=${accountType}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`
     window.location.href = '/api/auth/linkedin'
   }
+
+  // Voice Analyzer arrival event. The email is already stashed in an httpOnly
+  // pl_va_email cookie by /api/voice-analyzer/claim — nothing for the client
+  // to do here besides telemetry.
+  useEffect(() => {
+    if (!fromVoiceAnalyzer || vaArrivalFiredRef.current) return
+    vaArrivalFiredRef.current = true
+    try {
+      posthog.capture('voice_analyzer_landing_arrived')
+    } catch { /* posthog optional */ }
+  }, [fromVoiceAnalyzer])
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60)
@@ -391,20 +405,68 @@ function HomeContent() {
 
           {/* Left copy */}
           <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}>
-            {/* Eyebrow */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 28,
-              fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em',
-              color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)',
-              borderRadius: 'var(--r-xs)', background: 'var(--surface)',
-            }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%', background: 'var(--pl-accent)',
-                animation: 'pulseDot 2.4s ease-in-out infinite', flexShrink: 0,
-                boxShadow: '0 0 0 3px rgba(var(--pl-accent-glow),.15)',
-              }} />
-              // 01 — Personal brand, on autopilot
-            </div>
+            {/* Eyebrow — Voice Analyzer arrival gets its own variant */}
+            {fromVoiceAnalyzer ? (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 18,
+                  fontFamily: 'var(--f-mono)',
+                  fontSize: 11.5,
+                  fontWeight: 500,
+                  letterSpacing: '0.04em',
+                  color: '#fff',
+                  padding: '6px 12px',
+                  border: '1px solid color-mix(in srgb, var(--pl-accent) 60%, transparent)',
+                  borderRadius: 'var(--r-xs)',
+                  background: 'var(--pl-accent)',
+                  boxShadow: 'var(--sh-blue)',
+                }}
+              >
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', background: '#fff',
+                  animation: 'pulseDot 2.4s ease-in-out infinite', flexShrink: 0,
+                  boxShadow: '0 0 0 3px rgba(255,255,255,.25)',
+                }} />
+                // welcome from the voice analyzer
+              </div>
+            ) : (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 28,
+                fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em',
+                color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)',
+                borderRadius: 'var(--r-xs)', background: 'var(--surface)',
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', background: 'var(--pl-accent)',
+                  animation: 'pulseDot 2.4s ease-in-out infinite', flexShrink: 0,
+                  boxShadow: '0 0 0 3px rgba(var(--pl-accent-glow),.15)',
+                }} />
+                // 01 — Personal brand, on autopilot
+              </div>
+            )}
+
+            {/* Voice Analyzer welcome strip */}
+            {fromVoiceAnalyzer && (
+              <div
+                style={{
+                  marginBottom: 28,
+                  padding: '14px 16px',
+                  border: '1px solid color-mix(in srgb, var(--pl-accent) 30%, var(--line))',
+                  borderRadius: 'var(--r-md)',
+                  background: 'color-mix(in srgb, var(--pl-accent) 6%, var(--surface))',
+                  color: 'var(--ink-2)',
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  maxWidth: 520,
+                }}
+              >
+                <strong style={{ color: 'var(--ink)' }}>Your fingerprint is saved.</strong> Sign in with LinkedIn below
+                and we&apos;ll load it into your account so every post sounds like you from day one.
+              </div>
+            )}
 
             {/* H1 */}
             <h1 className="pl-hero-h1" style={{
