@@ -645,7 +645,7 @@ a.dcard__sub { color: var(--accent); }
 
 /* posts table */
 .posts-table { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
-.pt-row { display: grid; grid-template-columns: minmax(0,2.4fr) 140px 120px 160px 80px 100px 40px; gap: 14px; padding: 16px 22px; align-items: center; font-size: 13px; border-bottom: 1px solid var(--line); }
+.pt-row { display: grid; grid-template-columns: minmax(0,2.4fr) 140px 120px 160px 80px 100px 120px; gap: 14px; padding: 16px 22px; align-items: center; font-size: 13px; border-bottom: 1px solid var(--line); }
 .pt-row:last-child { border-bottom: none; }
 .pt-row:hover { background: var(--surface-2); }
 .pt-row--head { background: var(--surface-2); font-size: 10.5px; letter-spacing: .04em; color: var(--ink-4); font-weight: 500; }

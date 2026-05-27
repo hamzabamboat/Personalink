@@ -500,7 +500,7 @@ function PostsContent() {
                   </span>
 
                   {/* Actions */}
-                  <div className="pt-more" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <div className="pt-more" style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
                     {['pending_approval', 'draft', 'approved'].includes(post.status) && (
                       <button
                         onClick={() => approveSchedule(post)}
@@ -509,7 +509,6 @@ function PostsContent() {
                         style={{ background: '#10b981', color: '#fff', border: 'none' }}
                       >
                         <CheckCircle2 />
-                        <span className="hidden sm:inline">Approve</span>
                       </button>
                     )}
                     <button
