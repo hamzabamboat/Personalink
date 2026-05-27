@@ -73,15 +73,24 @@ async function handler(_request: NextRequest) {
     return NextResponse.json({ processed: 0, results: [] })
   }
 
-  // Step 2: fetch user_profiles separately (no direct FK from posts → user_profiles)
+  // Step 2: fetch user_profiles and subscriptions separately
   const userIds = [...new Set(posts.map((p) => p.user_id as string))]
-  const { data: profileRows } = await supabaseAdmin
-    .from('user_profiles')
-    .select('user_id, control_preference, trust_score, risk_score, autopilot_eligible')
-    .in('user_id', userIds)
+  const [{ data: profileRows }, { data: subRows }] = await Promise.all([
+    supabaseAdmin
+      .from('user_profiles')
+      .select('user_id, control_preference, trust_score, risk_score, autopilot_eligible')
+      .in('user_id', userIds),
+    supabaseAdmin
+      .from('subscriptions')
+      .select('user_id, status, trial_ends_at')
+      .in('user_id', userIds),
+  ])
 
   const profileByUserId = Object.fromEntries(
     (profileRows ?? []).map((p) => [p.user_id, p])
+  )
+  const subByUserId = Object.fromEntries(
+    (subRows ?? []).map((s) => [s.user_id, s])
   )
 
   const results = await Promise.allSettled(
@@ -100,11 +109,23 @@ async function handler(_request: NextRequest) {
       } | null
 
       // — Subscription check — do not publish for expired/cancelled subscriptions.
-      // 'access_code' users are entitled to publish (they activated a comp/gift
-      // code via /api/access-codes/apply and the middleware grants them dashboard
-      // access on the same basis).
-      const activeStatuses = ['active', 'trialing', 'access_code']
-      if (!activeStatuses.includes(user.subscription_status ?? '')) {
+      // Mirrors the middleware's "has access" logic so we don't rely solely on
+      // users.subscription_status, which webhooks can flip to transient values
+      // like 'pending' even when the subscriptions row says the trial is valid.
+      // Allow when ANY of these holds:
+      //  - users.subscription_status === 'access_code'  (comp / gift code)
+      //  - subscriptions.status === 'active'            (paid)
+      //  - subscriptions.status in ('trial','trialing') AND trial_ends_at in future
+      const sub = subByUserId[post.user_id as string] as
+        | { status: string | null; trial_ends_at: string | null }
+        | undefined
+      const hasAccess =
+        user.subscription_status === 'access_code' ||
+        sub?.status === 'active' ||
+        ((sub?.status === 'trial' || sub?.status === 'trialing') &&
+          !!sub?.trial_ends_at &&
+          new Date(sub.trial_ends_at) > new Date())
+      if (!hasAccess) {
         return { id: post.id, status: 'skipped', reason: 'inactive_subscription' }
       }
 
