@@ -4,6 +4,7 @@ import { getUserFromRequest } from '@/lib/auth'
 import { analyzeVoiceFingerprint } from '@/lib/anthropic'
 import { addVoiceSample } from '@/lib/voice'
 import { PLAN_LIMITS } from '@/lib/supabase'
+import { getTierLimits, TIER_LIMITS, type TierID } from '@/lib/pricing-config'
 import { getPostHogClient } from '@/lib/posthog-server'
 
 export async function POST(request: NextRequest) {
@@ -26,7 +27,10 @@ export async function POST(request: NextRequest) {
     } catch {}
   }
 
-  const planData = PLAN_LIMITS[plan] || PLAN_LIMITS.starter
+  // Default new users to the Free tier; only known tiers are written.
+  const resolvedPlan: TierID = (TIER_LIMITS[plan as TierID] ? plan : 'free') as TierID
+  const planData = PLAN_LIMITS[resolvedPlan] || PLAN_LIMITS.free
+  const tierLimits = getTierLimits(resolvedPlan)
 
   const { error } = await supabaseAdmin
     .from('user_profiles')
@@ -44,8 +48,9 @@ export async function POST(request: NextRequest) {
       writing_sample,
       content_pillars,
       control_preference,
-      plan,
+      plan: resolvedPlan,
       posts_limit: planData.posts,
+      voice_fingerprint_limit: tierLimits.voiceFingerprints,
       posts_used_this_month: 0,
       onboarding_completed_at: new Date().toISOString(),
       preferred_days: ['Monday', 'Wednesday', 'Friday'],
@@ -62,7 +67,7 @@ export async function POST(request: NextRequest) {
   getPostHogClient().capture({
     distinctId: user.id,
     event: 'onboarding_completed',
-    properties: { plan, industry, role, content_pillars, control_preference },
+    properties: { plan: resolvedPlan, industry, role, content_pillars, control_preference },
   })
 
   return NextResponse.json({ success: true })

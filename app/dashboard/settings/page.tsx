@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
+import { TIER_LIMITS } from '@/lib/pricing-config'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import Script from 'next/script'
 import { toast } from 'sonner'
@@ -348,27 +349,27 @@ function SettingsContent() {
     }
   }
 
-  const plan = (profile.plan as string) || 'starter'
-  const planColor = plan === 'pro' ? '#7c3aed' : plan === 'standard' ? '#0A66C2' : '#64748b'
+  const plan = (profile.plan as string) || 'free'
+  const planColor = plan === 'pro' ? '#7c3aed' : plan === 'standard' ? '#0A66C2' : plan === 'starter' ? '#64748b' : '#10b981'
   const currencyInfo = getCurrency(userCountry)
   const processor = getPaymentProcessor(userCountry)
 
   const isAnnual = billingPeriod === 'annual'
   const PLANS = [
     {
-      id: 'starter', label: 'Starter', posts: 12, features: PLAN_FEATURES.starter, color: '#64748b',
+      id: 'starter', label: 'Starter', posts: TIER_LIMITS.starter.postsPerMonth ?? 12, features: PLAN_FEATURES.starter, color: '#64748b',
       monthlyPrice: currencyInfo.starter,
       price: isAnnual ? Math.round(currencyInfo.annualStarter / 12 * 10) / 10 : currencyInfo.starter,
       annualTotal: currencyInfo.annualStarter,
     },
     {
-      id: 'standard', label: 'Standard', posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2',
+      id: 'standard', label: 'Standard', posts: TIER_LIMITS.standard.postsPerMonth ?? 22, features: PLAN_FEATURES.standard, color: '#0A66C2',
       monthlyPrice: currencyInfo.standard,
       price: isAnnual ? Math.round(currencyInfo.annualStandard / 12 * 10) / 10 : currencyInfo.standard,
       annualTotal: currencyInfo.annualStandard,
     },
     {
-      id: 'pro', label: 'Pro', posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed',
+      id: 'pro', label: 'Pro', posts: TIER_LIMITS.pro.postsPerMonth ?? 50, features: PLAN_FEATURES.pro, color: '#7c3aed',
       monthlyPrice: currencyInfo.pro,
       price: isAnnual ? Math.round(currencyInfo.annualPro / 12 * 10) / 10 : currencyInfo.pro,
       annualTotal: currencyInfo.annualPro,
@@ -651,7 +652,7 @@ function SettingsContent() {
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Posts Used</div>
                   <div className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                     {(profile.posts_used_this_month as number) || 0}
-                    <span className="text-sm font-normal text-slate-400">/{(profile.posts_limit as number) || 12}</span>
+                    <span className="text-sm font-normal text-slate-400">/{(profile.posts_limit as number) || 3}</span>
                   </div>
                 </div>
                 {subscription?.status === 'trial' && subscription.trial_ends_at && (

@@ -8,6 +8,7 @@ import { useCurrency } from '@/hooks/use-currency'
 import { AppearanceTrigger } from '@/components/appearance-trigger'
 import { WordMark } from '@/components/word-mark'
 import { Check } from 'lucide-react'
+import { TIER_LIMITS, TIER_FEATURE_BULLETS } from '@/lib/pricing-config'
 
 /* ─── SVG icons ─── */
 function LinkedinIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -1270,16 +1271,16 @@ function HomeContent() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, alignItems: 'stretch' }}>
             {[
               {
-                id: 'starter', name: 'Starter', posts: '12 posts per month', popular: false,
-                features: ['AI generation in your voice', 'Story bank · 10 entries · 5 conversions', 'Trend refreshes · 5/month', 'Image uploads · 10/month', 'Profile analyses · 2/month', 'Batch generation · 1 run/month'],
+                id: 'starter', name: 'Starter', posts: `${TIER_LIMITS.starter.postsPerMonth} posts per month`, popular: false,
+                features: TIER_FEATURE_BULLETS.starter.slice(1, 7),
               },
               {
-                id: 'standard', name: 'Standard', posts: '20 posts per month', popular: true,
-                features: ['Everything in Starter, plus —', 'Voice notes → post · 8/month', 'AI image generations · 3/month', 'Story bank · 30 entries · 10 conversions', 'Image uploads · 30/month', 'Batch runs · 2/month'],
+                id: 'standard', name: 'Standard', posts: `${TIER_LIMITS.standard.postsPerMonth} posts per month`, popular: true,
+                features: TIER_FEATURE_BULLETS.standard.slice(4, 10),
               },
               {
-                id: 'pro', name: 'Pro', posts: '30 posts per month', popular: false,
-                features: ['Everything in Standard, plus —', 'Repurpose engine · 10 runs/month', 'Voice notes · 20/month · 60 min', 'AI image generations · 10/month', 'Story bank · 60 entries · 20 conversions', 'Batch runs · 4/month'],
+                id: 'pro', name: 'Pro', posts: `${TIER_LIMITS.pro.postsPerMonth} posts per month`, popular: false,
+                features: TIER_FEATURE_BULLETS.pro.slice(4, 10),
               },
             ].map(plan => {
               const price = plan.id === 'starter' ? currency.starter : plan.id === 'standard' ? currency.standard : currency.pro

@@ -6,6 +6,7 @@ import { verifyPaymentSignature, TRIAL_DAYS, PLAN_IDS } from '@/lib/razorpay'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendTrialStartedEmail } from '@/lib/email'
+import { getTierLimits, type TierID } from '@/lib/pricing-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +39,9 @@ export async function POST(request: NextRequest) {
   const trialEndsAtIso = trialEndsAt.toISOString()
 
   const planName: string = plan || 'standard'
-  const planLimits: Record<string, number> = { starter: 12, standard: 20, pro: 30 }
+  const postsLimit = getTierLimits(planName as TierID).postsPerMonth
+    ?? getTierLimits('standard').postsPerMonth
+    ?? 22
   const razorpayPlanId = PLAN_IDS[planName] || process.env.RAZORPAY_PLAN_ID!
 
   await Promise.all([
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
       .from('user_profiles')
       .update({
         plan: planName,
-        posts_limit: planLimits[planName] || 20,
+        posts_limit: postsLimit,
         updated_at: nowIso,
       })
       .eq('user_id', user.id),

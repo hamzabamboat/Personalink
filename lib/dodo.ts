@@ -1,4 +1,5 @@
 import DodoPayments from 'dodopayments'
+import { TIER_PRICING, DODO_PRODUCT_IDS, type BillingPeriod as PCBillingPeriod, type TierID } from './pricing-config'
 
 export function getDodo() {
   return new DodoPayments({
@@ -7,44 +8,43 @@ export function getDodo() {
   })
 }
 
+// Derived from lib/pricing-config.ts — do not edit prices or product IDs here.
 export const DODO_PLANS = {
   starter: {
-    USD: { price: 12, productId: process.env.DODO_PRODUCT_STARTER_USD! },
-    GBP: { price: 10, productId: process.env.DODO_PRODUCT_STARTER_GBP! },
-    EUR: { price: 11, productId: process.env.DODO_PRODUCT_STARTER_EUR! },
+    USD: { price: TIER_PRICING.starter.USD.monthly, productId: DODO_PRODUCT_IDS.starter.monthly.USD },
+    GBP: { price: TIER_PRICING.starter.GBP.monthly, productId: DODO_PRODUCT_IDS.starter.monthly.GBP },
+    EUR: { price: TIER_PRICING.starter.EUR.monthly, productId: DODO_PRODUCT_IDS.starter.monthly.EUR },
   },
   standard: {
-    USD: { price: 30, productId: process.env.DODO_PRODUCT_STANDARD_USD! },
-    GBP: { price: 25, productId: process.env.DODO_PRODUCT_STANDARD_GBP! },
-    EUR: { price: 28, productId: process.env.DODO_PRODUCT_STANDARD_EUR! },
+    USD: { price: TIER_PRICING.standard.USD.monthly, productId: DODO_PRODUCT_IDS.standard.monthly.USD },
+    GBP: { price: TIER_PRICING.standard.GBP.monthly, productId: DODO_PRODUCT_IDS.standard.monthly.GBP },
+    EUR: { price: TIER_PRICING.standard.EUR.monthly, productId: DODO_PRODUCT_IDS.standard.monthly.EUR },
   },
   pro: {
-    USD: { price: 60, productId: process.env.DODO_PRODUCT_PRO_USD! },
-    GBP: { price: 50, productId: process.env.DODO_PRODUCT_PRO_GBP! },
-    EUR: { price: 55, productId: process.env.DODO_PRODUCT_PRO_EUR! },
+    USD: { price: TIER_PRICING.pro.USD.monthly, productId: DODO_PRODUCT_IDS.pro.monthly.USD },
+    GBP: { price: TIER_PRICING.pro.GBP.monthly, productId: DODO_PRODUCT_IDS.pro.monthly.GBP },
+    EUR: { price: TIER_PRICING.pro.EUR.monthly, productId: DODO_PRODUCT_IDS.pro.monthly.EUR },
   },
 } as const
 
-// Annual plans — 25% off monthly × 12, billed as a single yearly charge.
-// Requires separate products created in Dodo with annual billing interval.
 export const DODO_ANNUAL_PLANS = {
   starter: {
-    USD: { price: 108, productId: process.env.DODO_PRODUCT_STARTER_USD_ANNUAL! },
-    GBP: { price: 90, productId: process.env.DODO_PRODUCT_STARTER_GBP_ANNUAL! },
-    EUR: { price: 99, productId: process.env.DODO_PRODUCT_STARTER_EUR_ANNUAL! },
+    USD: { price: TIER_PRICING.starter.USD.annual, productId: DODO_PRODUCT_IDS.starter.annual.USD },
+    GBP: { price: TIER_PRICING.starter.GBP.annual, productId: DODO_PRODUCT_IDS.starter.annual.GBP },
+    EUR: { price: TIER_PRICING.starter.EUR.annual, productId: DODO_PRODUCT_IDS.starter.annual.EUR },
   },
   standard: {
-    USD: { price: 270, productId: process.env.DODO_PRODUCT_STANDARD_USD_ANNUAL! },
-    GBP: { price: 225, productId: process.env.DODO_PRODUCT_STANDARD_GBP_ANNUAL! },
-    EUR: { price: 252, productId: process.env.DODO_PRODUCT_STANDARD_EUR_ANNUAL! },
+    USD: { price: TIER_PRICING.standard.USD.annual, productId: DODO_PRODUCT_IDS.standard.annual.USD },
+    GBP: { price: TIER_PRICING.standard.GBP.annual, productId: DODO_PRODUCT_IDS.standard.annual.GBP },
+    EUR: { price: TIER_PRICING.standard.EUR.annual, productId: DODO_PRODUCT_IDS.standard.annual.EUR },
   },
   pro: {
-    USD: { price: 540, productId: process.env.DODO_PRODUCT_PRO_USD_ANNUAL! },
-    GBP: { price: 450, productId: process.env.DODO_PRODUCT_PRO_GBP_ANNUAL! },
-    EUR: { price: 495, productId: process.env.DODO_PRODUCT_PRO_EUR_ANNUAL! },
+    USD: { price: TIER_PRICING.pro.USD.annual, productId: DODO_PRODUCT_IDS.pro.annual.USD },
+    GBP: { price: TIER_PRICING.pro.GBP.annual, productId: DODO_PRODUCT_IDS.pro.annual.GBP },
+    EUR: { price: TIER_PRICING.pro.EUR.annual, productId: DODO_PRODUCT_IDS.pro.annual.EUR },
   },
 } as const
 
-export type DodoPlan = keyof typeof DODO_PLANS
+export type DodoPlan = Exclude<TierID, 'free' | 'agency'>
 export type DodoCurrency = keyof typeof DODO_PLANS.starter
-export type BillingPeriod = 'monthly' | 'annual'
+export type BillingPeriod = PCBillingPeriod

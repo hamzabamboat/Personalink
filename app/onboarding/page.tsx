@@ -6,6 +6,7 @@ import Script from 'next/script'
 import posthog from 'posthog-js'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
+import { TIER_LIMITS } from '@/lib/pricing-config'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,9 +47,10 @@ const INDUSTRIES = [
 ]
 
 const PLAN_META = [
-  { id: 'starter', label: 'Starter', posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-  { id: 'standard', label: 'Standard', posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
-  { id: 'pro', label: 'Pro', posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
+  { id: 'free', label: 'Free', posts: TIER_LIMITS.free.postsPerMonth ?? 3, features: PLAN_FEATURES.free, color: '#10b981' },
+  { id: 'starter', label: 'Starter', posts: TIER_LIMITS.starter.postsPerMonth ?? 12, features: PLAN_FEATURES.starter, color: '#64748b' },
+  { id: 'standard', label: 'Standard', posts: TIER_LIMITS.standard.postsPerMonth ?? 22, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
+  { id: 'pro', label: 'Pro', posts: TIER_LIMITS.pro.postsPerMonth ?? 50, features: PLAN_FEATURES.pro, color: '#7c3aed' },
 ]
 
 type FormData = {
@@ -68,7 +70,7 @@ export default function OnboardingPage() {
   const [userCountry, setUserCountry] = useState('IN')
   const [form, setForm] = useState<FormData>({
     name: '', role: '', industry: '', company: '', age: '', linkedin_url: '',
-    mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'standard',
+    mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'free',
   })
   const [codeInput, setCodeInput] = useState('')
   const [codeChecking, setCodeChecking] = useState(false)
@@ -181,6 +183,12 @@ export default function OnboardingPage() {
       if (!res.ok || data.error) { setError(data.error || 'Failed to save'); setSaving(false); return }
       sessionStorage.removeItem(STORAGE_KEY)
 
+      // Free tier — no checkout needed, jump straight to the dashboard.
+      if (form.plan === 'free') {
+        router.push('/dashboard')
+        return
+      }
+
       const processor = getPaymentProcessor(userCountry)
       const currencyInfo = getCurrency(userCountry)
 
@@ -241,7 +249,7 @@ export default function OnboardingPage() {
   const currencyInfo = getCurrency(userCountry)
   const PLANS = PLAN_META.map(p => ({
     ...p,
-    price: currencyInfo[p.id as keyof typeof currencyInfo] as number,
+    price: p.id === 'free' ? 0 : (currencyInfo[p.id as keyof typeof currencyInfo] as number),
   }))
 
   return (
@@ -586,8 +594,17 @@ export default function OnboardingPage() {
                         <div className="text-[13px] text-slate-500">{p.posts} posts/month</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[13px] font-bold text-emerald-600 mb-0.5">Free for 7 days</div>
-                        <div className="text-sm text-slate-400">then {currencyInfo.symbol}{p.price.toLocaleString()}/mo</div>
+                        {p.id === 'free' ? (
+                          <>
+                            <div className="text-[13px] font-bold text-emerald-600 mb-0.5">Free forever</div>
+                            <div className="text-sm text-slate-400">No card required</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-[13px] font-bold text-emerald-600 mb-0.5">Free for 7 days</div>
+                            <div className="text-sm text-slate-400">then {currencyInfo.symbol}{p.price.toLocaleString()}/mo</div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">

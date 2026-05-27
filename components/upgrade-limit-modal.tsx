@@ -3,48 +3,65 @@
 import { X, Zap, ArrowRight, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { FEATURE_LABELS, TIER_LABEL, TIER_LIMITS, getNextTier, type TierID } from '@/lib/pricing-config'
 
-const PLAN_NAMES: Record<string, string> = { starter: 'Starter', standard: 'Standard', pro: 'Pro' }
-const NEXT_PLAN: Record<string, string> = { starter: 'standard', standard: 'pro' }
+/**
+ * Toast-style soft paywall shown when a per-feature limit is reached.
+ * Benefits surfaced for upgrading match the next tier in the ladder
+ * (free → starter → standard → pro). Pro users see a quiet "resets on the 1st" line.
+ */
 
-const FEATURE_LABELS: Record<string, string> = {
-  posts_generated: 'Post Generations',
-  profile_analyses: 'Profile Analyses',
-  voice_transcriptions: 'Voice Transcriptions',
-  image_uploads: 'Image Uploads',
-  trend_refreshes: 'Trend Refreshes',
-  story_entries: 'Story Bank Entries',
-  story_conversions: 'Story Conversions',
-  batch_runs: 'Batch Generation Runs',
-  repurpose_runs: 'Repurpose Runs',
-}
+function nextTierBenefits(currentPlan: TierID, nextPlan: TierID, feature: string): string[] {
+  const cur = TIER_LIMITS[currentPlan]
+  const nxt = TIER_LIMITS[nextPlan]
+  const benefits: string[] = []
 
-const UPGRADE_BENEFITS: Record<string, Record<string, string[]>> = {
-  starter: {
-    standard: [
-      '20 posts/month (was 12)',
-      '8 voice note transcriptions',
-      '30 image uploads (was 10)',
-      '15 trend refreshes',
-      'Analytics dashboard',
-    ],
-    pro: [
-      '30 posts/month',
-      '20 voice transcriptions',
-      '80 image uploads',
-      '10 repurpose runs/month',
-      'Bulk generate 30 days',
-    ],
-  },
-  standard: {
-    pro: [
-      '30 posts/month (was 20)',
-      '20 voice transcriptions (was 8)',
-      '80 image uploads (was 30)',
-      '10 repurpose runs/month',
-      'Bulk generate 30 days',
-    ],
-  },
+  const curPosts = cur.postsPerMonth
+  const nxtPosts = nxt.postsPerMonth
+  if (nxtPosts != null && (curPosts == null || nxtPosts > curPosts)) {
+    benefits.push(
+      curPosts != null
+        ? `${nxtPosts} posts/month (was ${curPosts})`
+        : `${nxtPosts} posts/month`
+    )
+  } else if (nxtPosts == null) {
+    benefits.push(`Unlimited posts/month`)
+  }
+
+  const curFp = cur.voiceFingerprints
+  const nxtFp = nxt.voiceFingerprints
+  if (nxtFp == null && curFp != null) {
+    benefits.push('Unlimited voice fingerprints')
+  } else if (nxtFp != null && (curFp == null || nxtFp > curFp)) {
+    benefits.push(`${nxtFp} voice fingerprint${nxtFp !== 1 ? 's' : ''} (was ${curFp ?? 0})`)
+  }
+
+  // Per-feature deltas — show the one the user just bumped into, plus 2 other notable gains.
+  const featuresToHighlight: Array<keyof typeof cur.perFeature> = [
+    feature as keyof typeof cur.perFeature,
+    'voice_transcriptions',
+    'image_uploads',
+    'ai_image_generations',
+    'repurpose_runs',
+  ]
+  for (const fk of featuresToHighlight) {
+    if (!(fk in nxt.perFeature)) continue
+    const curVal = cur.perFeature[fk] as number
+    const nxtVal = nxt.perFeature[fk] as number
+    if (nxtVal > curVal && benefits.length < 5) {
+      const label = FEATURE_LABELS[fk] ?? String(fk)
+      benefits.push(`${nxtVal} ${label.toLowerCase()}/month`)
+    }
+  }
+
+  // Boolean entitlement gains
+  if (nxt.features.scheduling && !cur.features.scheduling) benefits.push('Post scheduling')
+  if (!nxt.features.watermark && cur.features.watermark) benefits.push('No watermark')
+  if (nxt.features.carousel && !cur.features.carousel) benefits.push('Carousel generator')
+  if (nxt.features.api && !cur.features.api) benefits.push('Zapier + API access')
+
+  // Dedupe and cap at 5.
+  return Array.from(new Set(benefits)).slice(0, 5)
 }
 
 type Config = {
@@ -56,9 +73,10 @@ type Config = {
 }
 
 function UpgradeModalContent({ feature, plan, used, limit, toastId }: Config) {
-  const nextPlan = NEXT_PLAN[plan]
-  const featureLabel = FEATURE_LABELS[feature] || feature
-  const benefits = nextPlan ? (UPGRADE_BENEFITS[plan]?.[nextPlan] ?? []) : []
+  const currentPlan = (plan ?? 'free') as TierID
+  const nextPlan = getNextTier(currentPlan)
+  const featureLabel = FEATURE_LABELS[feature as keyof typeof FEATURE_LABELS] || feature
+  const benefits = nextPlan ? nextTierBenefits(currentPlan, nextPlan, feature) : []
 
   function dismiss() {
     if (toastId !== undefined) toast.dismiss(toastId)
@@ -80,14 +98,14 @@ function UpgradeModalContent({ feature, plan, used, limit, toastId }: Config) {
       </h3>
       <p className="text-slate-500 text-sm mb-4">
         {used}/{limit} used on the{' '}
-        <span className="font-semibold text-slate-700">{PLAN_NAMES[plan] ?? plan} plan</span>{' '}
+        <span className="font-semibold text-slate-700">{TIER_LABEL[currentPlan] ?? currentPlan} plan</span>{' '}
         this month.
       </p>
 
       {nextPlan && benefits.length > 0 && (
         <div className="rounded-xl p-3.5 mb-4" style={{ background: 'var(--pl-accent-soft)', border: '1px solid color-mix(in oklab, var(--pl-accent) 20%, transparent)' }}>
           <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--pl-accent)' }}>
-            Upgrade to {PLAN_NAMES[nextPlan]}
+            Upgrade to {TIER_LABEL[nextPlan]}
           </div>
           <ul className="flex flex-col gap-1.5">
             {benefits.map(b => (
@@ -107,7 +125,7 @@ function UpgradeModalContent({ feature, plan, used, limit, toastId }: Config) {
             onClick={dismiss}
             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-white font-bold text-sm hover:opacity-90 transition-opacity" style={{ background: 'var(--pl-accent)' }}
           >
-            Upgrade to {PLAN_NAMES[nextPlan]}
+            Upgrade to {TIER_LABEL[nextPlan]}
             <ArrowRight className="w-4 h-4" />
           </Link>
         ) : (

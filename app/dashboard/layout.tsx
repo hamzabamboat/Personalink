@@ -44,6 +44,7 @@ import { AppearanceTrigger } from '@/components/appearance-trigger'
 import { WordMark } from '@/components/word-mark'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PWAInstallSidebarButton } from '@/components/pwa-install-prompt'
+import { tierRank, getNextTier, TIER_LABEL, TIER_LIMITS, type TierID } from '@/lib/pricing-config'
 
 type NavItem = {
   href: string
@@ -120,7 +121,22 @@ const SEARCH_TARGETS: { href: string; label: string }[] = [
 ]
 
 function planRank(plan: string) {
-  return plan === 'pro' ? 3 : plan === 'standard' ? 2 : 1
+  return tierRank(plan)
+}
+
+const USAGE_COLOR_DEFAULT = 'var(--pl-accent)'
+const USAGE_COLOR_60 = '#eab308'
+const USAGE_COLOR_80 = '#f97316'
+const USAGE_COLOR_100 = '#ef4444'
+function usageColor(pct: number): string {
+  if (pct >= 100) return USAGE_COLOR_100
+  if (pct >= 80) return USAGE_COLOR_80
+  if (pct >= 60) return USAGE_COLOR_60
+  return USAGE_COLOR_DEFAULT
+}
+
+function defaultPostsLimit(plan: string): number {
+  return TIER_LIMITS[plan as TierID]?.postsPerMonth ?? TIER_LIMITS.free.postsPerMonth ?? 3
 }
 
 /* ── Topbar search (quick command palette) ───────────────── */
@@ -266,8 +282,8 @@ function WorkspaceSwitcher({ user, profile, plan }: { user: User | null; profile
   const router = useRouter()
 
   const postsUsed  = profile?.posts_used_this_month ?? 0
-  const postsLimit = profile?.posts_limit ?? 12
-  const planLabel  = plan.charAt(0).toUpperCase() + plan.slice(1)
+  const postsLimit = profile?.posts_limit ?? defaultPostsLimit(plan)
+  const planLabel  = TIER_LABEL[plan as TierID] ?? (plan.charAt(0).toUpperCase() + plan.slice(1))
   const firstName  = user?.linkedin_name?.split(' ')[0] ?? 'You'
 
   useEffect(() => {
@@ -313,7 +329,7 @@ function WorkspaceSwitcher({ user, profile, plan }: { user: User | null; profile
             <div className="text-[11px] truncate" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>{user?.email}</div>
           </div>
           <div className="py-1">
-            {plan !== 'pro' && (
+            {getNextTier(plan as TierID) && (
               <Link href="/dashboard/upgrade" onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-surface-3"
                 style={{ color: 'var(--pl-accent)' }}>
@@ -419,9 +435,11 @@ function SidebarContent({ user, profile, plan, pathname, collapsed = false }: {
   collapsed?: boolean
 }) {
   const postsUsed  = profile?.posts_used_this_month ?? 0
-  const postsLimit = profile?.posts_limit ?? 12
-  const planLabel  = plan.charAt(0).toUpperCase() + plan.slice(1)
-  const pct        = Math.min((postsUsed / postsLimit) * 100, 100)
+  const postsLimit = profile?.posts_limit ?? defaultPostsLimit(plan)
+  const planLabel  = TIER_LABEL[plan as TierID] ?? (plan.charAt(0).toUpperCase() + plan.slice(1))
+  const pct        = postsLimit > 0 ? Math.min((postsUsed / postsLimit) * 100, 100) : 0
+  const barColor   = usageColor(pct)
+  const nextTier   = getNextTier(plan as TierID)
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--surface)', borderRight: '1px solid var(--line)' }}>
@@ -454,21 +472,21 @@ function SidebarContent({ user, profile, plan, pathname, collapsed = false }: {
       <SidebarNav plan={plan} pathname={pathname} collapsed={collapsed} />
 
       {/* Upgrade banner */}
-      {!collapsed && plan !== 'pro' && (
+      {!collapsed && nextTier && (
         <div className="px-3 pb-2" style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
           <div className="rounded-lg p-3" style={{ background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)' }}>
-                {postsUsed}/{postsLimit} posts left
+              <span className="text-[11px]" style={{ fontFamily: 'var(--f-mono)', color: pct >= 100 ? barColor : 'var(--ink-4)' }}>
+                {postsUsed}/{postsLimit} posts {pct >= 100 ? '— limit reached' : 'used'}
               </span>
               <Link href="/dashboard/upgrade"
                 className="text-[11px] font-semibold flex items-center gap-0.5 transition-opacity hover:opacity-70"
-                style={{ color: 'var(--pl-accent)' }}>
-                Upgrade to Pro <ChevronRight size={10} />
+                style={{ color: pct >= 80 ? barColor : 'var(--pl-accent)' }}>
+                Upgrade to {TIER_LABEL[nextTier]} <ChevronRight size={10} />
               </Link>
             </div>
             <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'var(--line-2)' }}>
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: 'var(--pl-accent)' }} />
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: barColor }} />
             </div>
           </div>
         </div>

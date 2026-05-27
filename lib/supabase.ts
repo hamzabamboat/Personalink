@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import { TIER_LIMITS, TIER_PRICING, TIER_FEATURE_BULLETS, TIER_LABEL, type TierID } from './pricing-config'
+
+export type Plan = TierID
 
 export type User = {
   id: string
@@ -19,7 +22,7 @@ export type User = {
 export type AccessCode = {
   id: string
   code: string
-  plan: 'starter' | 'standard' | 'pro'
+  plan: Plan
   max_uses: number
   uses_count: number
   expires_at: string | null
@@ -51,7 +54,7 @@ export type UserProfile = {
   content_pillars: string[] | null
   control_preference: 'autopilot' | 'approve' | 'suggest' | null
   writing_sample: string | null
-  plan: 'starter' | 'standard' | 'pro' | null
+  plan: Plan | null
   onboarding_completed_at: string | null
   posts_used_this_month: number
   posts_limit: number
@@ -209,7 +212,7 @@ export type LinkedInAccount = {
   picture_url: string | null
   subscription_status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled'
   dodo_subscription_id: string | null
-  plan: 'starter' | 'standard' | 'pro' | null
+  plan: Plan | null
   posts_limit: number
   posts_used_this_month: number
   created_at: string
@@ -242,41 +245,20 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+/**
+ * Plan posts + price + label — derived from lib/pricing-config.ts.
+ * Kept for back-compat with onboarding/save and access-codes/apply that read .posts.
+ * Use TIER_LIMITS / TIER_PRICING directly for new code.
+ */
 export const PLAN_LIMITS: Record<string, { posts: number; price: number; label: string }> = {
-  starter: { posts: 12, price: 999, label: 'Starter' },
-  standard: { posts: 20, price: 2499, label: 'Standard' },
-  pro: { posts: 30, price: 4999, label: 'Pro' },
+  free:     { posts: TIER_LIMITS.free.postsPerMonth ?? 0,     price: 0,                              label: TIER_LABEL.free },
+  starter:  { posts: TIER_LIMITS.starter.postsPerMonth ?? 0,  price: TIER_PRICING.starter.INR.monthly,  label: TIER_LABEL.starter },
+  standard: { posts: TIER_LIMITS.standard.postsPerMonth ?? 0, price: TIER_PRICING.standard.INR.monthly, label: TIER_LABEL.standard },
+  pro:      { posts: TIER_LIMITS.pro.postsPerMonth ?? 0,      price: TIER_PRICING.pro.INR.monthly,      label: TIER_LABEL.pro },
+  agency:   { posts: 0,                                       price: 0,                              label: TIER_LABEL.agency },
 }
 
-export const PLAN_FEATURES = {
-  starter: [
-    'AI generation in your voice',
-    'Story bank · 10 entries · 5 conversions',
-    'Trend refreshes · 5/month',
-    'Image uploads · 10/month',
-    'Profile analyses · 2/month',
-    'Batch generation · 1 run/month',
-  ],
-  standard: [
-    'Everything in Starter, plus —',
-    'Voice notes → post · 8/month',
-    'AI image generations · 3/month',
-    'Story bank · 30 entries · 10 conversions',
-    'Image uploads · 30/month',
-    'Profile analyses · 4/month',
-    'Batch runs · 2/month',
-  ],
-  pro: [
-    'Everything in Standard, plus —',
-    'Repurpose engine · 10 runs/month',
-    'Voice notes · 20/month · 60 min',
-    'AI image generations · 10/month',
-    'Story bank · 60 entries · 20 conversions',
-    'Image uploads · 80/month',
-    'Profile analyses · 8/month',
-    'Batch runs · 4/month',
-  ],
-}
+export const PLAN_FEATURES = TIER_FEATURE_BULLETS
 
 export const CONTENT_PILLARS = [
   'Leadership', 'Innovation', 'Industry Insights', 'Personal Growth',

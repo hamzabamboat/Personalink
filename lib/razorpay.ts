@@ -1,5 +1,6 @@
 import Razorpay from 'razorpay'
 import crypto from 'crypto'
+import { TIER_PRICING, RAZORPAY_PLAN_IDS } from './pricing-config'
 
 export function getRazorpay() {
   return new Razorpay({
@@ -8,34 +9,33 @@ export function getRazorpay() {
   })
 }
 
-// Map plan names to Razorpay plan IDs
-// Supports both naming conventions for the env vars
+// Public maps widened to Record<string, …> so DB-string callers can index without narrowing.
 export const PLAN_IDS: Record<string, string> = {
-  starter: process.env.RAZORPAY_PLAN_ID_PERSONALINK_STARTER_PLAN || process.env.RAZORPAY_PLAN_ID_STARTER || process.env.RAZORPAY_PLAN_ID!,
-  standard: process.env.RAZORPAY_PLAN_ID_PERSONALINK_STANDARD_PLAN || process.env.RAZORPAY_PLAN_ID_STANDARD || process.env.RAZORPAY_PLAN_ID!,
-  pro: process.env.RAZORPAY_PLAN_ID_PERSONALINK_PRO_PLAN || process.env.RAZORPAY_PLAN_ID_PRO || process.env.RAZORPAY_PLAN_ID!,
+  starter: RAZORPAY_PLAN_IDS.starter.monthly,
+  standard: RAZORPAY_PLAN_IDS.standard.monthly,
+  pro: RAZORPAY_PLAN_IDS.pro.monthly,
 }
 
-// Annual plans — 25% off monthly × 12. Create in Razorpay with period: 'yearly', interval: 1.
 export const ANNUAL_PLAN_IDS: Record<string, string> = {
-  starter: process.env.RAZORPAY_PLAN_ID_STARTER_ANNUAL!,
-  standard: process.env.RAZORPAY_PLAN_ID_STANDARD_ANNUAL!,
-  pro: process.env.RAZORPAY_PLAN_ID_PRO_ANNUAL!,
+  starter: RAZORPAY_PLAN_IDS.starter.annual,
+  standard: RAZORPAY_PLAN_IDS.standard.annual,
+  pro: RAZORPAY_PLAN_IDS.pro.annual,
 }
 
 // Legacy single plan ID
 export const PLAN_ID = process.env.RAZORPAY_PLAN_ID!
 
+// Razorpay amounts are in paise (₹ × 100).
 export const PLAN_AMOUNTS: Record<string, number> = {
-  starter: 99900,    // ₹999 × 100
-  standard: 249900,  // ₹2,499 × 100
-  pro: 499900,       // ₹4,999 × 100
+  starter: TIER_PRICING.starter.INR.monthly * 100,
+  standard: TIER_PRICING.standard.INR.monthly * 100,
+  pro: TIER_PRICING.pro.INR.monthly * 100,
 }
 
 export const ANNUAL_PLAN_AMOUNTS: Record<string, number> = {
-  starter: 899100,   // ₹8,991 × 100
-  standard: 2249100, // ₹22,491 × 100
-  pro: 4499100,      // ₹44,991 × 100
+  starter: TIER_PRICING.starter.INR.annual * 100,
+  standard: TIER_PRICING.standard.INR.annual * 100,
+  pro: TIER_PRICING.pro.INR.annual * 100,
 }
 
 export const PLAN_CURRENCY = 'INR'

@@ -264,7 +264,7 @@ export default function AgencyDashboardPage() {
           {clients.map(client => {
             const linkedIn = isLinkedInConnected(client)
             const postsUsed = client.user_profiles?.posts_used_this_month ?? 0
-            const postsLimit = client.user_profiles?.posts_limit ?? 30
+            const postsLimit = client.user_profiles?.posts_limit ?? 50
             const plan = client.user_profiles?.plan ?? 'pro'
 
             return (

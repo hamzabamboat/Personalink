@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { TIER_PRICING, TIER_LIMITS, TIER_LABEL, formatPrice, type TierID } from '@/lib/pricing-config'
 
 let _resend: Resend | null = null
 const resend = () => {
@@ -8,6 +9,13 @@ const resend = () => {
 
 const FROM_EMAIL = 'PersonaLink <noreply@personalink.in>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
+
+function inrAmountFor(plan: string): string {
+  if (plan === 'starter' || plan === 'standard' || plan === 'pro') {
+    return formatPrice('INR', TIER_PRICING[plan].INR.monthly)
+  }
+  return formatPrice('INR', TIER_PRICING.starter.INR.monthly)
+}
 
 export async function sendApprovalEmail({
   to,
@@ -295,9 +303,8 @@ export async function sendTrialStartedEmail({
 }) {
   const firstName = userName.split(' ')[0]
   const endsDate = trialEndsAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-  const planAmounts: Record<string, string> = { starter: '₹999', standard: '₹2,500', pro: '₹5,000' }
-  const amount = planAmounts[plan] || '₹999'
-  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
+  const amount = inrAmountFor(plan)
+  const planLabel = TIER_LABEL[plan as TierID] ?? (plan.charAt(0).toUpperCase() + plan.slice(1))
 
   return resend().emails.send({
     from: FROM_EMAIL,
@@ -473,5 +480,155 @@ export async function sendAdminAlert({ subject, body }: { subject: string; body:
     subject,
     html: `<div style="font-family:monospace;white-space:pre-wrap;padding:24px;background:#f8fafc;border-radius:8px;">${body}</div>`,
     text: body,
+  })
+}
+
+/* ─────────────────────────────────────────────
+ * Quota-aware lifecycle emails
+ * ─────────────────────────────────────────────
+ * These derive copy from lib/pricing-config so quotas stay correct
+ * as the tier table changes. They are library-only — wire up triggers
+ * (cron or webhook) when needed.
+ */
+
+export async function sendQuotaWarningEmail({
+  to,
+  userName,
+  plan,
+  used,
+  limit,
+}: {
+  to: string
+  userName: string
+  plan: TierID
+  used: number
+  limit: number
+}) {
+  const { getNextTier, getTierLimits } = await import('@/lib/pricing-config')
+  const firstName = userName.split(' ')[0]
+  const nextTier = getNextTier(plan)
+  const nextLimit = nextTier ? getTierLimits(nextTier).postsPerMonth : null
+  const cta = nextTier && nextLimit != null
+    ? `Upgrade to ${TIER_LABEL[nextTier]} for ${nextLimit} posts`
+    : `Manage your plan`
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `You're close to your monthly limit`,
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,sans-serif;">
+      <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;padding:36px;">
+        <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">Heads up, ${firstName}</h1>
+        <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 16px;">
+          You've used <strong>${used} of ${limit}</strong> post generations on the ${TIER_LABEL[plan]} plan this month.
+          You have <strong>${Math.max(0, limit - used)} left</strong> before reset on the 1st.
+        </p>
+        <a href="${APP_URL}/dashboard/upgrade" style="display:inline-block;background:#0A66C2;color:white;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;font-size:14px;">${cta} →</a>
+      </div></body></html>`,
+    text: `You've used ${used} of ${limit} posts this month on the ${TIER_LABEL[plan]} plan. ${cta}: ${APP_URL}/dashboard/upgrade`,
+  })
+}
+
+export async function sendQuotaReachedEmail({
+  to,
+  userName,
+  plan,
+  limit,
+}: {
+  to: string
+  userName: string
+  plan: TierID
+  limit: number
+}) {
+  const { getNextTier, getTierLimits } = await import('@/lib/pricing-config')
+  const firstName = userName.split(' ')[0]
+  const nextTier = getNextTier(plan)
+  const nextLimit = nextTier ? getTierLimits(nextTier).postsPerMonth : null
+  const cta = nextTier && nextLimit != null
+    ? `Upgrade to ${TIER_LABEL[nextTier]} (${nextLimit} posts)`
+    : `Manage your plan`
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Out of posts? Upgrade in 30 seconds`,
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,sans-serif;">
+      <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;padding:36px;">
+        <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">You've hit your monthly limit, ${firstName}</h1>
+        <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 16px;">
+          ${limit} of ${limit} posts used on the ${TIER_LABEL[plan]} plan. Quotas reset on the 1st of every month —
+          or you can upgrade now and pick up where you left off in 30 seconds.
+        </p>
+        <a href="${APP_URL}/dashboard/upgrade" style="display:inline-block;background:#0A66C2;color:white;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;font-size:14px;">${cta} →</a>
+      </div></body></html>`,
+    text: `You've hit your ${limit}-post limit on the ${TIER_LABEL[plan]} plan. ${cta}: ${APP_URL}/dashboard/upgrade`,
+  })
+}
+
+export async function sendUpgradeConfirmationEmail({
+  to,
+  userName,
+  plan,
+}: {
+  to: string
+  userName: string
+  plan: TierID
+}) {
+  const { getTierLimits } = await import('@/lib/pricing-config')
+  const firstName = userName.split(' ')[0]
+  const limits = getTierLimits(plan)
+  const posts = limits.postsPerMonth == null ? 'unlimited' : `${limits.postsPerMonth}`
+  const fingerprints = limits.voiceFingerprints == null ? 'unlimited' : `${limits.voiceFingerprints}`
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Welcome to PersonaLink ${TIER_LABEL[plan]}`,
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,sans-serif;">
+      <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;padding:36px;">
+        <h1 style="color:#0f172a;font-size:22px;margin:0 0 8px;">You're on ${TIER_LABEL[plan]}, ${firstName} 🎉</h1>
+        <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+          Your new plan unlocks <strong>${posts} posts per month</strong> and
+          <strong>${fingerprints} voice fingerprint${fingerprints === '1' ? '' : 's'}</strong>.
+          Quota resets on the 1st of each month — manage billing anytime from Settings.
+        </p>
+        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#0A66C2;color:white;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;font-size:14px;">Open dashboard →</a>
+      </div></body></html>`,
+    text: `Welcome to PersonaLink ${TIER_LABEL[plan]}. You now have ${posts} posts/month and ${fingerprints} voice fingerprint${fingerprints === '1' ? '' : 's'}.`,
+  })
+}
+
+export async function sendDowngradeConfirmationEmail({
+  to,
+  userName,
+  plan,
+  effectiveDate,
+}: {
+  to: string
+  userName: string
+  plan: TierID
+  effectiveDate: Date
+}) {
+  const { getTierLimits } = await import('@/lib/pricing-config')
+  const firstName = userName.split(' ')[0]
+  const dateLabel = effectiveDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+  const limits = getTierLimits(plan)
+  const posts = limits.postsPerMonth == null ? 'unlimited' : `${limits.postsPerMonth}`
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Your plan will change to ${TIER_LABEL[plan]} on ${dateLabel}`,
+    html: `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,sans-serif;">
+      <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;padding:36px;">
+        <h1 style="color:#0f172a;font-size:20px;margin:0 0 8px;">Plan change scheduled, ${firstName}</h1>
+        <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 16px;">
+          Your plan will switch to <strong>${TIER_LABEL[plan]}</strong> on <strong>${dateLabel}</strong>.
+          From that date you'll have <strong>${posts} posts per month</strong>. You can re-upgrade anytime
+          before then to cancel the change.
+        </p>
+        <a href="${APP_URL}/dashboard/settings?tab=plan" style="display:inline-block;background:#0A66C2;color:white;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;font-size:14px;">Manage plan →</a>
+      </div></body></html>`,
+    text: `Your plan will change to ${TIER_LABEL[plan]} on ${dateLabel} (${posts} posts/month).`,
   })
 }

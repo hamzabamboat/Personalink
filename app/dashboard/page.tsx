@@ -261,7 +261,7 @@ function DashboardContent() {
   const greeting   = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night'
   const todayStr   = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
   const postsUsed  = profile?.posts_used_this_month || 0
-  const postsLimit = profile?.posts_limit || 12
+  const postsLimit = profile?.posts_limit || 3
   const _now       = new Date()
   const _dayOfYear = Math.floor((_now.getTime() - new Date(_now.getFullYear(), 0, 0).getTime()) / 86400000)
   const tipOfDay   = TIPS[_dayOfYear % TIPS.length]
@@ -447,7 +447,7 @@ function DashboardContent() {
         {[
           { href: '/dashboard/generate',            icon: Sparkles,     label: 'Generate post',     sub: 'AI · in your voice' },
           { href: '/dashboard/generate?tab=voice',  icon: Mic,          label: 'Voice note → post', sub: 'Ramble. Get a draft.' },
-          { href: '/dashboard/generate?tab=bulk',   icon: CalendarDays, label: 'Bulk plan month',   sub: '30 posts · 8 minutes' },
+          { href: '/dashboard/generate?tab=bulk',   icon: CalendarDays, label: 'Bulk plan month',   sub: 'Up to 30 at once · 8 minutes' },
         ].map(a => {
           const Icon = a.icon
           return (

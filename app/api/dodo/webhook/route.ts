@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { getTierLimits, type TierID } from '@/lib/pricing-config'
 import crypto from 'crypto'
+
+const FALLBACK_LIMIT = getTierLimits('standard').postsPerMonth ?? 22
+function postsLimitFor(plan: string): number {
+  return getTierLimits(plan as TierID).postsPerMonth ?? FALLBACK_LIMIT
+}
 
 function verifyDodoWebhook(rawBody: string, headers: Headers): boolean {
   const webhookId = headers.get('webhook-id') ?? ''
@@ -20,8 +26,6 @@ function verifyDodoWebhook(rawBody: string, headers: Headers): boolean {
     .map(s => s.replace('v1,', ''))
     .some(sig => sig === computed)
 }
-
-const PLAN_LIMITS: Record<string, number> = { starter: 12, standard: 20, pro: 30 }
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text()
@@ -56,7 +60,7 @@ export async function POST(request: NextRequest) {
         .update({
           subscription_status: 'active',
           plan,
-          posts_limit: PLAN_LIMITS[plan] ?? 20,
+          posts_limit: postsLimitFor(plan),
           updated_at: now,
         })
         .eq('id', accountId)
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
         .update({
           subscription_status: 'active',
           plan,
-          posts_limit: PLAN_LIMITS[plan] ?? 20,
+          posts_limit: postsLimitFor(plan),
           updated_at: now,
         })
         .eq('dodo_subscription_id', subscriptionId)
@@ -98,7 +102,7 @@ export async function POST(request: NextRequest) {
       if (personalAccount?.account_type === 'personal') {
         await supabaseAdmin
           .from('user_profiles')
-          .update({ plan, posts_limit: PLAN_LIMITS[plan] ?? 20, updated_at: now })
+          .update({ plan, posts_limit: postsLimitFor(plan), updated_at: now })
           .eq('user_id', userId)
       }
     }

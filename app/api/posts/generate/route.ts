@@ -10,6 +10,7 @@ import { getVoiceExemplars, addVoiceSample } from '@/lib/voice'
 import { humanizeText } from '@/lib/humanize'
 import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { getNextTier, getTierLimits, tierLabel, type TierID } from '@/lib/pricing-config'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 import { buildScheduleSlots } from '@/lib/scheduling'
@@ -42,30 +43,22 @@ export async function POST(request: NextRequest) {
 
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 400 })
 
-  const plan = profile.plan || 'starter'
-
-  // Trial guard (3 free posts before subscription)
-  const { data: sub } = await supabaseAdmin
-    .from('subscriptions')
-    .select('status')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const hasActiveSub =
-    sub?.status === 'active' || sub?.status === 'trial' || sub?.status === 'trialing' ||
-    user.subscription_status === 'access_code'
+  const plan = (profile.plan || 'free') as TierID
   const postsUsed = profile.posts_used_this_month || 0
-  if (!hasActiveSub && postsUsed >= 3) {
-    return NextResponse.json({ error: 'trial_exhausted' }, { status: 402 })
-  }
 
   const { topic, voiceNoteId, storyBankId, additionalContext, imageIds } = await request.json()
 
-  // Check posts_generated limit
+  // Check posts_generated limit (free tier replaces the old hardcoded 3-post trial guard).
   const postsCheck = await checkLimit(user.id, plan, 'posts_generated')
   if (!postsCheck.allowed) {
     await logViolation(user.id, 'posts_generated', plan)
+    const nextTier = getNextTier(plan)
+    const nextTierPosts = nextTier ? getTierLimits(nextTier).postsPerMonth : null
+    const upgradeMsg = nextTier && nextTierPosts != null
+      ? ` Upgrade to ${tierLabel(nextTier)} for ${nextTierPosts} posts.`
+      : ''
     return NextResponse.json({
-      error: `You've used all ${postsCheck.limit} post generations this month. Upgrade to ${plan === 'starter' ? 'Standard for 20' : 'Pro for 30'} posts.`,
+      error: `You've used all ${postsCheck.limit} post generations this month.${upgradeMsg}`,
       feature: 'posts_generated',
       used: postsCheck.used,
       limit: postsCheck.limit,

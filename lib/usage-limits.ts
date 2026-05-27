@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase-admin'
+import { TIER_LIMITS, FEATURE_LABELS as PC_FEATURE_LABELS, type TierID, type FeatureKey as PCFeatureKey, type PerFeatureQuota } from './pricing-config'
 
 // Env var fallback for local dev (no DB round-trip needed)
 const UNLIMITED_USER_IDS = new Set(
@@ -25,68 +26,19 @@ export async function isUserBypassed(userId: string): Promise<boolean> {
   return bypassed
 }
 
-export const PLAN_LIMITS = {
-  starter: {
-    posts_generated: 12,
-    profile_analyses: 2,
-    profile_beautifications: 0,
-    voice_transcriptions: 0,
-    voice_minutes: 0,
-    image_uploads: 10,
-    trend_refreshes: 5,
-    story_entries: 10,
-    story_conversions: 5,
-    batch_runs: 1,
-    repurpose_runs: 0,
-    ai_image_generations: 0,
-  },
-  standard: {
-    posts_generated: 20,
-    profile_analyses: 4,
-    profile_beautifications: 1,
-    voice_transcriptions: 8,
-    voice_minutes: 16,
-    image_uploads: 30,
-    trend_refreshes: 15,
-    story_entries: 30,
-    story_conversions: 10,
-    batch_runs: 2,
-    repurpose_runs: 0,
-    ai_image_generations: 3,
-  },
-  pro: {
-    posts_generated: 30,
-    profile_analyses: 8,
-    profile_beautifications: 2,
-    voice_transcriptions: 20,
-    voice_minutes: 60,
-    image_uploads: 80,
-    trend_refreshes: 30,
-    story_entries: 60,
-    story_conversions: 20,
-    batch_runs: 4,
-    repurpose_runs: 10,
-    ai_image_generations: 10,
-  },
-} as const
-
-export type PlanType = keyof typeof PLAN_LIMITS
-export type FeatureKey = keyof typeof PLAN_LIMITS.starter
-
-export const FEATURE_LABELS: Record<FeatureKey, string> = {
-  posts_generated: 'Post Generations',
-  profile_analyses: 'Profile Analyses',
-  profile_beautifications: 'Profile Beautifications',
-  voice_transcriptions: 'Voice Transcriptions',
-  voice_minutes: 'Voice Minutes',
-  image_uploads: 'Image Uploads',
-  trend_refreshes: 'Trend Refreshes',
-  story_entries: 'Story Bank Entries',
-  story_conversions: 'Story Conversions',
-  batch_runs: 'Batch Generation Runs',
-  repurpose_runs: 'Repurpose Runs',
-  ai_image_generations: 'AI Image Generations',
+// Derived from the single source of truth in lib/pricing-config.ts.
+export const PLAN_LIMITS: Record<TierID, PerFeatureQuota> = {
+  free: TIER_LIMITS.free.perFeature,
+  starter: TIER_LIMITS.starter.perFeature,
+  standard: TIER_LIMITS.standard.perFeature,
+  pro: TIER_LIMITS.pro.perFeature,
+  agency: TIER_LIMITS.agency.perFeature,
 }
+
+export type PlanType = TierID
+export type FeatureKey = PCFeatureKey
+
+export const FEATURE_LABELS = PC_FEATURE_LABELS
 
 export function getResetAt(): string {
   const now = new Date()
@@ -95,7 +47,7 @@ export function getResetAt(): string {
 
 function getPlanLimits(plan: string) {
   const p = plan as PlanType
-  return PLAN_LIMITS[p] ?? PLAN_LIMITS.starter
+  return PLAN_LIMITS[p] ?? PLAN_LIMITS.free
 }
 
 export async function checkLimit(

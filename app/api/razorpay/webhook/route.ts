@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhookSignature } from '@/lib/razorpay'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { getTierLimits, type TierID } from '@/lib/pricing-config'
 
 // Razorpay sends webhooks as JSON with x-razorpay-signature header
 export async function POST(request: NextRequest) {
@@ -85,7 +86,9 @@ export async function POST(request: NextRequest) {
       .eq('id', resolvedUserId)
 
     const planFromNotes = (subEntity.notes as Record<string, string> | undefined)?.plan || 'standard'
-    const planLimits: Record<string, number> = { starter: 12, standard: 20, pro: 30 }
+    const postsLimit = getTierLimits(planFromNotes as TierID).postsPerMonth
+      ?? getTierLimits('standard').postsPerMonth
+      ?? 22
 
     // Update user_profiles with plan and post limit derived from Razorpay notes
     if (newStatus === 'active') {
@@ -93,7 +96,7 @@ export async function POST(request: NextRequest) {
         .from('user_profiles')
         .update({
           plan: planFromNotes,
-          posts_limit: planLimits[planFromNotes] || 20,
+          posts_limit: postsLimit,
           updated_at: now,
         })
         .eq('user_id', resolvedUserId)

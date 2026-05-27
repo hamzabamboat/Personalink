@@ -4,8 +4,7 @@ import { getUserFromRequest } from '@/lib/auth'
 import { analyzeVoiceFingerprint } from '@/lib/anthropic'
 import { addVoiceSample } from '@/lib/voice'
 import { PLAN_LIMITS } from '@/lib/supabase'
-
-const PLAN_LIMITS_MAP: Record<string, number> = { starter: 12, standard: 20, pro: 30 }
+import { getTierLimits, type TierID } from '@/lib/pricing-config'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -43,6 +42,7 @@ export async function POST(request: NextRequest) {
   }
 
   const planData = PLAN_LIMITS[plan] || PLAN_LIMITS.starter
+  const tierLimits = getTierLimits(plan as TierID)
   const now = new Date().toISOString()
 
   await Promise.all([
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       control_preference,
       plan,
       posts_limit: planData.posts,
+      voice_fingerprint_limit: tierLimits.voiceFingerprints,
       posts_used_this_month: 0,
       onboarding_completed_at: now,
       preferred_days: ['Monday', 'Wednesday', 'Friday'],

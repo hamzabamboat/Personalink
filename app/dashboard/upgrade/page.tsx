@@ -6,6 +6,7 @@ import Link from 'next/link'
 import posthog from 'posthog-js'
 import { PLAN_FEATURES } from '@/lib/supabase'
 import { getCurrency } from '@/lib/currency'
+import { TIER_LIMITS } from '@/lib/pricing-config'
 import { ChevronLeft, Check, BarChart3, Mic, Repeat2, Zap, Users, CheckCircle2 } from 'lucide-react'
 
 const FEATURE_MAP: Record<string, { title: string; desc: string; icon: React.ElementType; iconColor: string; minPlan: string }> = {
@@ -36,8 +37,8 @@ function UpgradeContent() {
 
   const currencyInfo = getCurrency(userCountry)
   const ALL_PLANS = [
-    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
-    { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed', popular: false },
+    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: TIER_LIMITS.standard.postsPerMonth ?? 22, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
+    { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: TIER_LIMITS.pro.postsPerMonth ?? 50, features: PLAN_FEATURES.pro, color: '#7c3aed', popular: false },
   ]
 
   const plansToShow = currentPlan === 'standard'

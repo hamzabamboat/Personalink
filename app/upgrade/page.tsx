@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { PLAN_FEATURES } from '@/lib/supabase'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
+import { TIER_LIMITS } from '@/lib/pricing-config'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -69,19 +70,19 @@ export default function UpgradePage() {
   const isAnnual = billingPeriod === 'annual'
   const PLANS = [
     {
-      id: 'starter', label: 'Starter', posts: 12, features: PLAN_FEATURES.starter, color: '#64748b',
+      id: 'starter', label: 'Starter', posts: TIER_LIMITS.starter.postsPerMonth ?? 12, features: PLAN_FEATURES.starter, color: '#64748b',
       monthlyPrice: currencyInfo.starter,
       price: isAnnual ? Math.round(currencyInfo.annualStarter / 12 * 10) / 10 : currencyInfo.starter,
       annualTotal: currencyInfo.annualStarter,
     },
     {
-      id: 'standard', label: 'Standard', posts: 20, features: PLAN_FEATURES.standard, color: '#2B4DFF', popular: true,
+      id: 'standard', label: 'Standard', posts: TIER_LIMITS.standard.postsPerMonth ?? 22, features: PLAN_FEATURES.standard, color: '#2B4DFF', popular: true,
       monthlyPrice: currencyInfo.standard,
       price: isAnnual ? Math.round(currencyInfo.annualStandard / 12 * 10) / 10 : currencyInfo.standard,
       annualTotal: currencyInfo.annualStandard,
     },
     {
-      id: 'pro', label: 'Pro', posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed',
+      id: 'pro', label: 'Pro', posts: TIER_LIMITS.pro.postsPerMonth ?? 50, features: PLAN_FEATURES.pro, color: '#7c3aed',
       monthlyPrice: currencyInfo.pro,
       price: isAnnual ? Math.round(currencyInfo.annualPro / 12 * 10) / 10 : currencyInfo.pro,
       annualTotal: currencyInfo.annualPro,

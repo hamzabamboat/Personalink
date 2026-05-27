@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgencyFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { TIER_LIMITS } from '@/lib/pricing-config'
 import crypto from 'crypto'
 
 // GET — list all clients for the logged-in agency
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
       name: clientName.trim(),
       subscription_status: 'active',
       plan: 'pro',
-      posts_limit: 30,
+      posts_limit: TIER_LIMITS.pro.postsPerMonth ?? 50,
       posts_used_this_month: 0,
     },
     { onConflict: 'user_id,linkedin_id', ignoreDuplicates: true }
@@ -111,7 +112,8 @@ export async function POST(request: NextRequest) {
   await supabaseAdmin.from('user_profiles').insert({
     user_id: newUser.id,
     name: clientName.trim(),
-    posts_limit: 30,
+    posts_limit: TIER_LIMITS.pro.postsPerMonth ?? 50,
+    voice_fingerprint_limit: TIER_LIMITS.pro.voiceFingerprints,
     posts_used_this_month: 0,
     plan: 'pro',
     onboarding_completed_at: new Date().toISOString(),
