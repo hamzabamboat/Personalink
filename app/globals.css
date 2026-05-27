@@ -495,6 +495,11 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   /* Animated post card — clip rotated ghost cards so they don't overflow viewport */
   .pl-animated-post { overflow: hidden; border-radius: 20px; }
 
+  /* Hero H1 — let text flow naturally on mobile (no forced linebreaks),
+     so we don't get single-word orphans on short screens. */
+  .pl-hero-br { display: none; }
+  .pl-hero-h1 { text-wrap: balance; }
+
   /* ── Dashboard: page header ── */
   .db-screen { padding: 16px !important; }
   .db-screen__head { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; margin-bottom: 20px !important; }
@@ -512,6 +517,16 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   .filter-controls { width: 100%; }
   .filter-controls .db-input { width: 100% !important; }
   .filter-controls .chip-btn { flex: 1; justify-content: center; }
+
+  /* Gen page — tighter padding on small screens */
+  .gen-card { padding: 16px !important; }
+  .gen-card--out { padding: 14px 16px !important; }
+
+  /* Suggestions / generate tab strip — keep it horizontally scrollable */
+  .gtab { padding: 8px 12px !important; font-size: 12.5px !important; }
+
+  /* Voice dimension bars / tighter labels on mobile */
+  .pl-voice-label { min-width: 100px !important; }
 
   /* Posts table — collapse to card layout on mobile */
   .pt-row--head { display: none !important; }

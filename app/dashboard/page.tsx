@@ -94,7 +94,16 @@ function ScheduleList({ posts }: { posts: Post[] }) {
     )
   }
   return (
-    <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+    <ol className="sched-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      <style>{`
+        @media (max-width: 640px) {
+          .sched-row { grid-template-columns: 1fr auto !important; row-gap: 4px !important; }
+          .sched-row__day { grid-row: 1; grid-column: 1; font-size: 11px !important; }
+          .sched-row__time { grid-row: 1; grid-column: 1; padding-left: 36px; }
+          .sched-row__title { grid-row: 2; grid-column: 1 / span 2; }
+          .sched-row__state { grid-row: 1; grid-column: 2; justify-self: end; }
+        }
+      `}</style>
       {posts.map((post, i) => {
         const scheduled = post.scheduled_at ? new Date(post.scheduled_at) : null
         const day  = scheduled ? scheduled.toLocaleDateString('en-IN', { weekday: 'short' }) : '—'
@@ -117,6 +126,7 @@ function ScheduleList({ posts }: { posts: Post[] }) {
         return (
           <li
             key={post.id}
+            className="sched-row"
             style={{
               display: 'grid',
               gridTemplateColumns: '40px 80px 1fr auto',
@@ -126,16 +136,17 @@ function ScheduleList({ posts }: { posts: Post[] }) {
               borderBottom: isLast ? 'none' : '1px dashed var(--line)',
             }}
           >
-            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{day}</span>
-            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--ink-2)' }}>{time}</span>
-            <span style={{
+            <span className="sched-row__day" style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{day}</span>
+            <span className="sched-row__time" style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--ink-2)' }}>{time}</span>
+            <span className="sched-row__title" style={{
               color: 'var(--ink)', fontWeight: 500, fontSize: 13.5,
               overflow: 'hidden', display: '-webkit-box',
-              WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', lineHeight: 1.35,
+              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.4,
+              minWidth: 0,
             }}>
               {title}
             </span>
-            <span style={{
+            <span className="sched-row__state" style={{
               fontFamily: 'var(--f-mono)', fontSize: 10.5,
               padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap',
               color: stateColor, background: stateBg,
@@ -432,7 +443,7 @@ function DashboardContent() {
       </div>
 
       {/* ── Quick Actions ── */}
-      <div className="grid grid-cols-3 gap-2.5 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-6">
         {[
           { href: '/dashboard/generate',            icon: Sparkles,     label: 'Generate post',     sub: 'AI · in your voice' },
           { href: '/dashboard/generate?tab=voice',  icon: Mic,          label: 'Voice note → post', sub: 'Ramble. Get a draft.' },
@@ -443,16 +454,18 @@ function DashboardContent() {
             <Link
               key={a.href}
               href={a.href}
-              className="flex flex-col items-start gap-1 p-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+              className="qa-card flex flex-row sm:flex-col items-center sm:items-start gap-3 sm:gap-1 p-3.5 rounded-xl transition-all duration-200 sm:hover:-translate-y-0.5"
               style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}
             >
-              <Icon size={18} style={{ color: 'var(--pl-accent)', marginBottom: 6 }} strokeWidth={1.5} />
-              <strong style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.25, display: 'block' }}>
-                {a.label}
-              </strong>
-              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.4, display: 'block' }}>
-                {a.sub}
-              </span>
+              <Icon size={18} style={{ color: 'var(--pl-accent)', flexShrink: 0 }} strokeWidth={1.5} className="sm:mb-1.5" />
+              <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                <strong style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.25, display: 'block' }}>
+                  {a.label}
+                </strong>
+                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.4, display: 'block' }}>
+                  {a.sub}
+                </span>
+              </div>
             </Link>
           )
         })}

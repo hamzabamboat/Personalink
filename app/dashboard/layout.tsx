@@ -743,13 +743,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Topbar pathname={pathname} user={user} />
 
         {/* Mobile top bar */}
-        <div className="md:hidden safe-pt flex items-center justify-between px-4 shrink-0"
+        <div className="md:hidden safe-pt flex items-center justify-between gap-2 px-3 shrink-0"
           style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', boxShadow: 'var(--sh-1)', minHeight: 54 }}>
-          <Link href="/dashboard">
-            <WordMark icon wordmark={false} iconSize={30} />
+          <Link href="/dashboard" className="flex items-center shrink-0">
+            <WordMark icon wordmark iconSize={28} />
           </Link>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setMobileOpen(o => !o)} className="p-2 rounded-md transition-colors hover:bg-surface-3" style={{ color: 'var(--ink-3)' }}>
+          <div className="flex items-center gap-1.5">
+            <Link href="/dashboard/generate"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-full text-[12.5px] font-semibold transition-opacity active:opacity-80"
+              style={{ background: 'var(--ink)', color: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
+              <Plus size={14} strokeWidth={2.5} />
+              New
+            </Link>
+            <button onClick={() => setMobileOpen(o => !o)}
+              aria-label="Menu"
+              className="p-2 rounded-md transition-colors hover:bg-surface-3 active:bg-surface-3"
+              style={{ color: 'var(--ink-3)' }}>
               <Menu size={20} />
             </button>
           </div>
@@ -787,9 +796,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )
           })}
           <button onClick={() => setMoreOpen(true)}
+            aria-label="More"
             className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors"
             style={{ color: 'var(--ink-4)' }}>
             <MoreHorizontal size={20} strokeWidth={1.75} />
+            <span className="text-[9px] font-semibold opacity-50">More</span>
           </button>
         </div>
       </nav>

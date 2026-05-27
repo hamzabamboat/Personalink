@@ -131,15 +131,15 @@ function AnimatedPost() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 700, fontSize: 18, flexShrink: 0,
           }}>A</div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>Arjun Mehta</div>
-            <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Founder &amp; CEO · 2nd</div>
+          <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Arjun Mehta</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Founder &amp; CEO · 2nd</div>
           </div>
           <span style={{
             marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5,
             fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--pl-accent)',
             background: 'var(--pl-accent-soft)', border: '1px solid var(--pl-accent)',
-            borderRadius: 'var(--r-pill)', padding: '3px 10px',
+            borderRadius: 'var(--r-pill)', padding: '3px 10px', whiteSpace: 'nowrap', flexShrink: 0,
           }}>
             <span style={{
               width: 6, height: 6, borderRadius: '50%', background: 'var(--pl-accent)',
@@ -157,7 +157,7 @@ function AnimatedPost() {
         </div>
 
         {/* Card footer */}
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)', display: 'flex', gap: 18, alignItems: 'center' }}>
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
           {[
             { label: 'Like', svg: <svg style={{ width: 14, height: 14 }} viewBox="0 0 16 16" fill="currentColor"><path d="M8 14s-5-3.4-5-7a3 3 0 0 1 5-2.2A3 3 0 0 1 13 7c0 3.6-5 7-5 7z"/></svg> },
             { label: 'Comment', svg: <svg style={{ width: 14, height: 14 }} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M14 9.5a2 2 0 0 1-2 2H6l-3 2.5v-9a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v4.5z"/></svg> },
@@ -167,8 +167,8 @@ function AnimatedPost() {
               {a.svg} {a.label}
             </span>
           ))}
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink-4)' }}>
-            <svg style={{ width: 13, height: 13 }} viewBox="0 0 16 16" fill="currentColor"><path d="M2 13h12v1H2zM3 12V8h2v4zM6 12V5h2v7zM9 12V9h2v3zM12 12V6h2v6z"/></svg>
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink-4)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <svg style={{ width: 13, height: 13, flexShrink: 0 }} viewBox="0 0 16 16" fill="currentColor"><path d="M2 13h12v1H2zM3 12V8h2v4zM6 12V5h2v7zM9 12V9h2v3zM12 12V6h2v6z"/></svg>
             4,218 impressions
           </span>
         </div>
@@ -407,14 +407,14 @@ function HomeContent() {
             </div>
 
             {/* H1 */}
-            <h1 style={{
+            <h1 className="pl-hero-h1" style={{
               fontFamily: 'var(--f-sans)', fontWeight: 700, lineHeight: 1.06,
-              fontSize: 'clamp(36px,5.5vw,64px)', letterSpacing: '-0.035em',
+              fontSize: 'clamp(32px,4.2vw,52px)', letterSpacing: '-0.035em',
               color: 'var(--ink)', marginBottom: 24,
             }}>
-              Write LinkedIn posts<br />
+              Write LinkedIn posts <br className="pl-hero-br" />
               {serif('that sound')}{' '}
-              exactly like<br />
+              exactly like <br className="pl-hero-br" />
               {serif('you wrote them.')}
             </h1>
 

@@ -131,7 +131,14 @@ export default function ProfilePage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }} className="prof-grid-responsive">
         <style>{`
           @media (max-width: 1100px) { .prof-grid-responsive { grid-template-columns: 1fr 1fr !important; } .prof-lg { grid-column: span 2 !important; } }
-          @media (max-width: 700px) { .prof-grid-responsive { grid-template-columns: 1fr !important; } .prof-lg { grid-column: span 1 !important; } }
+          @media (max-width: 700px) {
+            .prof-grid-responsive { grid-template-columns: 1fr !important; }
+            .prof-lg { grid-column: span 1 !important; }
+            .prof-voice-row { grid-template-columns: 110px 1fr 42px !important; gap: 10px !important; }
+            .prof-ref-row { grid-template-columns: 1fr 28px !important; row-gap: 2px !important; }
+            .prof-ref-meta { grid-column: 1 !important; text-align: left !important; }
+            .prof-ref-action { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+          }
         `}</style>
 
         {/* ── Identity card ── */}
@@ -234,7 +241,7 @@ export default function ProfilePage() {
               {VOICE_DIMENSIONS.map(dim => {
                 const pct = dimensions[dim.key] || 0
                 return (
-                  <li key={dim.key} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 50px', gap: 12, alignItems: 'center', fontSize: 13, color: 'var(--ink-2)' }}>
+                  <li key={dim.key} className="prof-voice-row" style={{ display: 'grid', gridTemplateColumns: '140px 1fr 50px', gap: 12, alignItems: 'center', fontSize: 13, color: 'var(--ink-2)' }}>
                     <span>{dim.label}</span>
                     <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, var(--accent), var(--accent-2))', borderRadius: 99 }} />
@@ -292,13 +299,13 @@ export default function ProfilePage() {
                 const date = new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
                 const title = post.content.split('\n')[0].replace(/[*#]/g, '').slice(0, 55) + (post.content.length > 55 ? '…' : '')
                 return (
-                  <li key={post.id} style={{
+                  <li key={post.id} className="prof-ref-row" style={{
                     display: 'grid', gridTemplateColumns: '1fr 140px 32px', gap: 12, alignItems: 'center',
                     padding: '12px 0', borderBottom: i < refPosts.length - 1 ? '1px dashed var(--line)' : 'none',
                   }}>
-                    <strong style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</strong>
-                    <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', textAlign: 'right' }}>{words} words · {date}</span>
-                    <Link href={`/dashboard/posts?id=${post.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 'var(--r-sm)', border: '1px solid var(--line)', color: 'var(--ink-3)', textDecoration: 'none' }}>
+                    <strong style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{title}</strong>
+                    <span className="prof-ref-meta" style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', textAlign: 'right' }}>{words} words · {date}</span>
+                    <Link className="prof-ref-action" href={`/dashboard/posts?id=${post.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 'var(--r-sm)', border: '1px solid var(--line)', color: 'var(--ink-3)', textDecoration: 'none' }}>
                       <MoreHorizontal className="size-3.5" />
                     </Link>
                   </li>
