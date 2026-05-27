@@ -108,25 +108,46 @@ async function handler(_request: NextRequest) {
         autopilot_eligible: boolean | null
       } | null
 
-      // — Subscription check — do not publish for expired/cancelled subscriptions.
-      // Mirrors the middleware's "has access" logic so we don't rely solely on
-      // users.subscription_status, which webhooks can flip to transient values
-      // like 'pending' even when the subscriptions row says the trial is valid.
-      // Allow when ANY of these holds:
-      //  - users.subscription_status === 'access_code'  (comp / gift code)
-      //  - subscriptions.status === 'active'            (paid)
-      //  - subscriptions.status in ('trial','trialing') AND trial_ends_at in future
+      // — Subscription check — only publish for users who currently have access.
+      //
+      // Truth table (see full audit of every writer in the codebase):
+      //   ALLOW if any of these hold:
+      //     A. users.subscription_status === 'access_code'           (comp / gift code, no subs row)
+      //     B. subscriptions.status === 'active'                     (paid)
+      //     C. subscriptions.status in ('trial','trialing') AND trial_ends_at > now
+      //     D. users.subscription_status in ('active','trialing') AND the subscriptions
+      //        row isn't in an explicit terminal state — defensive fallback for the
+      //        rare case where a webhook updated users but not subscriptions, or the
+      //        subscriptions row is missing entirely.
+      //   SKIP otherwise (inactive, past_due, cancelled, canceled, expired, halted,
+      //     completed, pending without a valid sub row).
+      //
+      // Note: Razorpay's webhook can flip users.subscription_status to transient
+      // values like 'pending' even while the subscriptions row remains 'trial' with
+      // a future trial_ends_at — rule C catches those correctly.
       const sub = subByUserId[post.user_id as string] as
         | { status: string | null; trial_ends_at: string | null }
         | undefined
-      const hasAccess =
-        user.subscription_status === 'access_code' ||
-        sub?.status === 'active' ||
-        ((sub?.status === 'trial' || sub?.status === 'trialing') &&
+      const subStatus = sub?.status ?? ''
+      const subValid =
+        subStatus === 'active' ||
+        ((subStatus === 'trial' || subStatus === 'trialing') &&
           !!sub?.trial_ends_at &&
           new Date(sub.trial_ends_at) > new Date())
+      const userStatus = user.subscription_status ?? ''
+      // access_code always wins (comp users have no subs row by design).
+      // Otherwise, the user-table fallback only kicks in when the subscriptions
+      // row is genuinely missing — never to override a sub row that says the
+      // subscription is in a bad state (cancelled, past_due, expired trial, etc.).
+      const userValid =
+        userStatus === 'access_code' ||
+        (!sub && ['active', 'trialing'].includes(userStatus))
+      const hasAccess = subValid || userValid
+
       if (!hasAccess) {
-        return { id: post.id, status: 'skipped', reason: 'inactive_subscription' }
+        const reason = `inactive: user=${userStatus || 'none'} sub=${subStatus || 'none'}`
+        console.log(`[publish] skip ${post.id}: ${reason}`)
+        return { id: post.id, status: 'skipped', reason }
       }
 
       // — Token check —
