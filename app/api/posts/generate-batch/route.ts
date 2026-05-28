@@ -8,8 +8,6 @@ import { UserProfile } from '@/lib/supabase'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
-import { analyzeContent } from '@/lib/compliance'
-import { calculateSimilarityScore } from '@/lib/similarity'
 
 export const maxDuration = 300
 
@@ -143,7 +141,9 @@ function buildScheduleSlots(
   const slots: Date[] = []
 
   // Get current date/time in user's timezone to determine valid starting point
-  const userNowStr = now.toLocaleString('en-US', { timeZone: timezone })
+  let userNowStr: string
+  try { userNowStr = now.toLocaleString('en-US', { timeZone: timezone }) }
+  catch { userNowStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) }
   const userNow = new Date(userNowStr)
   const userHour = userNow.getHours()
 
@@ -180,15 +180,22 @@ export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Circuit breaker
-  const cb = await checkCircuitBreaker()
+  // Circuit breaker — default to open=false if the check itself fails
+  let cb = { open: false }
+  try { cb = await checkCircuitBreaker() } catch (e) { console.warn('[generate-batch] circuit breaker check failed (non-fatal):', e) }
   if (cb.open) return NextResponse.json({ error: 'Service temporarily unavailable. Please try again in a few minutes.' }, { status: 503 })
 
-  // Per-user hourly rate limits
-  const [rlClaude, rlBatch] = await Promise.all([
-    checkRateLimit(user.id, 'claude_calls'),
-    checkRateLimit(user.id, 'batch_generation'),
-  ])
+  // Per-user hourly rate limits — default to allowed=true if the check fails
+  let rlClaude = { allowed: true, count: 0, limit: 0, retryAfterSeconds: 60 }
+  let rlBatch = { allowed: true, count: 0, limit: 0, retryAfterSeconds: 60 }
+  try {
+    const [_rlc, _rlb] = await Promise.all([
+      checkRateLimit(user.id, 'claude_calls'),
+      checkRateLimit(user.id, 'batch_generation'),
+    ])
+    rlClaude = _rlc
+    rlBatch = _rlb
+  } catch (e) { console.warn('[generate-batch] rate limit check failed (non-fatal):', e) }
   if (!rlClaude.allowed) return NextResponse.json({ error: `Too many AI calls this hour (limit: ${rlClaude.limit}). Try again in ${Math.ceil(rlClaude.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
   if (!rlBatch.allowed) return NextResponse.json({ error: 'You have already run batch generation this hour. Try again next hour.' }, { status: 429 })
 
@@ -204,10 +211,11 @@ export async function POST(request: NextRequest) {
 
   const plan = profile.plan || 'starter'
 
-  // Check batch_runs limit
-  const batchCheck = await checkLimit(user.id, plan, 'batch_runs')
+  // Check batch_runs limit — default to allowed=true if the check fails
+  let batchCheck = { allowed: true, used: 0, limit: 0, remaining: 0 }
+  try { batchCheck = await checkLimit(user.id, plan, 'batch_runs') } catch (e) { console.warn('[generate-batch] batch_runs limit check failed (non-fatal):', e) }
   if (!batchCheck.allowed) {
-    await logViolation(user.id, 'batch_runs', plan)
+    try { await logViolation(user.id, 'batch_runs', plan) } catch { /* non-fatal */ }
     return NextResponse.json({
       error: `You've used all ${batchCheck.limit} batch generation run${batchCheck.limit !== 1 ? 's' : ''} this month. Upgrade to get more.`,
       feature: 'batch_runs',
@@ -217,8 +225,9 @@ export async function POST(request: NextRequest) {
     }, { status: 429 })
   }
 
-  // Check how many posts are remaining this month
-  const postsCheck = await checkLimit(user.id, plan, 'posts_generated')
+  // Check how many posts are remaining this month — default to large remaining if the check fails
+  let postsCheck = { allowed: true, used: 0, limit: 999, remaining: 999 }
+  try { postsCheck = await checkLimit(user.id, plan, 'posts_generated') } catch (e) { console.warn('[generate-batch] posts_generated limit check failed (non-fatal):', e) }
   if (postsCheck.remaining === 0) {
     return NextResponse.json({
       error: `You've used all ${postsCheck.limit} post generations this month.`,
@@ -247,7 +256,8 @@ export async function POST(request: NextRequest) {
 
   // Few-shot voice exemplars from the person's real writing (fall back to the
   // onboarding writing sample for users with an empty corpus).
-  let voiceExemplars = await getVoiceExemplars(user.id)
+  let voiceExemplars: string[] = []
+  try { voiceExemplars = await getVoiceExemplars(user.id) } catch (e) { console.warn('[generate-batch] getVoiceExemplars failed (non-fatal):', e) }
   if (voiceExemplars.length === 0 && profile.writing_sample) {
     voiceExemplars = [profile.writing_sample as string]
   }
@@ -332,28 +342,24 @@ export async function POST(request: NextRequest) {
 
   const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays, takenDateStrings, timezone)
 
-  // Pre-load recent post content for similarity analysis
-  const { data: recentPostsData } = await supabaseAdmin
-    .from('posts')
-    .select('content')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(30)
-  const recentContents = (recentPostsData || []).map(p => p.content).filter(Boolean) as string[]
-
   const postStatus = controlPreference === 'autopilot' ? 'scheduled'
     : controlPreference === 'suggest' ? 'draft'
     : 'pending_approval'
 
-  const insertPayloads = allPosts.map((post, i) => ({
-    user_id: user.id,
-    content: humanizeText(post.content),
-    content_pillar: post.content_pillar || pillars[i % pillars.length],
-    source: 'ai_generated',
-    status: postStatus,
-    scheduled_at: slots[i]?.toISOString() ?? null,
-    ...(post.story_bank_id ? { story_bank_id: post.story_bank_id } : {}),
-  }))
+  const insertPayloads = allPosts.map((post, i) => {
+    // humanizeText can theoretically throw — fall back to raw AI content
+    let content = post.content
+    try { content = humanizeText(post.content) } catch { /* non-fatal: use raw content */ }
+    return {
+      user_id: user.id,
+      content,
+      content_pillar: post.content_pillar || pillars[i % pillars.length],
+      source: 'ai_generated',
+      status: postStatus,
+      scheduled_at: slots[i]?.toISOString() ?? null,
+      ...(post.story_bank_id ? { story_bank_id: post.story_bank_id } : {}),
+    }
+  })
 
   const { data: insertedPosts, error: insertError } = await supabaseAdmin
     .from('posts')
@@ -366,7 +372,7 @@ export async function POST(request: NextRequest) {
 
   // Mark converted stories as converted — best-effort, non-fatal
   if (convertedStoryIds.length > 0) {
-    supabaseAdmin.from('story_bank').update({ status: 'converted' }).in('id', convertedStoryIds).then().catch(console.error)
+    Promise.resolve(supabaseAdmin.from('story_bank').update({ status: 'converted' }).in('id', convertedStoryIds)).catch(console.error)
   }
 
   // Increment usage counters — best-effort, non-fatal.
