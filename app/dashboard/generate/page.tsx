@@ -196,13 +196,27 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
     intervalRef.current = setInterval(() => setCurrentStep(s => Math.min(s + 1, steps.length - 2)), 4000)
     try {
       const res = await fetch('/api/posts/generate-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ count: effectiveCount, instructions }) })
+      // Guard: if Vercel returns a gateway error (502/504) the body is HTML, not JSON
+      const contentType = res.headers.get('content-type') || ''
+      if (!contentType.includes('application/json')) {
+        setError(`Server error (HTTP ${res.status}). Please try again in a moment.`)
+        return
+      }
       const data = await res.json()
       if (data.error) { setError(data.error); return }
       setResult({ postsGenerated: data.postsGenerated, nextPostDate: data.nextPostDate })
+      // Load the newly-generated posts. This is best-effort — if it fails the
+      // posts were still created; don't mask the success with a scary error.
       setLoadingPosts(true)
-      const postsData = await fetch(`/api/posts?since=${encodeURIComponent(batchStartRef.current)}&order=scheduled_at`).then(r => r.json())
-      setBatchPosts(postsData.posts || []); setLoadingPosts(false)
-    } catch { setError('Something went wrong. Please try again.') }
+      try {
+        const postsData = await fetch(`/api/posts?since=${encodeURIComponent(batchStartRef.current)}&order=scheduled_at`).then(r => r.json())
+        setBatchPosts(postsData.posts || [])
+      } catch { /* non-fatal: posts exist in DB, UI just won't preview them */ }
+      setLoadingPosts(false)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      setError(msg.includes('fetch') ? 'Network error — check your connection and try again.' : 'Something went wrong. Please try again.')
+    }
     finally { if (intervalRef.current) clearInterval(intervalRef.current); setLoading(false) }
   }
 

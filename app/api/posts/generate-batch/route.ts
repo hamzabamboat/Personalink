@@ -305,19 +305,25 @@ export async function POST(request: NextRequest) {
     if (allPosts.length >= postsToGenerate) break
   }
 
-  // Step 2: fill remaining quota with AI batch generation
+  // Step 2: fill remaining quota with AI batch generation (parallel for speed)
   const aiPostsNeeded = postsToGenerate - allPosts.length
   if (aiPostsNeeded > 0) {
     const BATCH_SIZE = 10
-    let batchIdx = 0
-    while (allPosts.length < postsToGenerate) {
-      const remaining = postsToGenerate - allPosts.length
-      const batchCount = Math.min(remaining, BATCH_SIZE)
-      const batch = await generateBatch(batchCount, profile as Record<string, unknown>, pillars, instructions, tone, voiceExemplars)
-      allPosts.push(...batch)
-      batchIdx++
-      if (batch.length === 0) break
+    // Build all batch sizes upfront, then fire them concurrently.
+    // This cuts total latency from (N batches × ~20s) to max(~20s per batch).
+    const batches: number[] = []
+    let remaining = aiPostsNeeded
+    while (remaining > 0) {
+      batches.push(Math.min(remaining, BATCH_SIZE))
+      remaining -= BATCH_SIZE
     }
+    const results = await Promise.all(
+      batches.map(count =>
+        generateBatch(count, profile as Record<string, unknown>, pillars, instructions, tone, voiceExemplars)
+          .catch(() => [] as Array<{ content: string; content_pillar: string; format: string }>)
+      )
+    )
+    for (const batch of results) allPosts.push(...batch)
   }
 
   if (allPosts.length === 0) {
