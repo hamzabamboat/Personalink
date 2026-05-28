@@ -98,8 +98,11 @@ Member since: ${new Date(userData.created_at).toLocaleDateString('en-IN')}`
   const { intent, confidence, reply_draft, escalation_reason } = aiResult
   const action: 'auto_sent' | 'escalated' = confidence >= CONFIDENCE_THRESHOLD ? 'auto_sent' : 'escalated'
 
+  // Generate human-readable ticket ID: PL- + 8 uppercase hex chars
+  const ticketNumber = 'PL-' + crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()
+
   if (action === 'auto_sent') {
-    await sendSupportReply({ to: from, subject, body: reply_draft })
+    await sendSupportReply({ to: from, subject, body: reply_draft, ticketNumber })
   } else {
     await sendEscalationEmail({
       originalFrom: from,
@@ -109,6 +112,7 @@ Member since: ${new Date(userData.created_at).toLocaleDateString('en-IN')}`
       userContext,
       escalationReason: escalation_reason,
       confidence,
+      ticketNumber,
     })
   }
 
@@ -120,6 +124,7 @@ Member since: ${new Date(userData.created_at).toLocaleDateString('en-IN')}`
     confidence,
     ai_reply: reply_draft,
     action,
+    ticket_number: ticketNumber,
     user_plan: profile?.plan ?? null,
     user_id: userData?.id ?? null,
   })

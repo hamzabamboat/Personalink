@@ -476,18 +476,22 @@ export async function sendSupportReply({
   to,
   subject,
   body,
+  ticketNumber,
 }: {
   to: string
   subject: string
   body: string
+  ticketNumber: string
 }) {
   const reSubject = subject.startsWith('Re:') ? subject : `Re: ${subject}`
+  const footerHtml = `<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;">Support ticket: <strong style="color:#64748b;">${ticketNumber}</strong> — Reply to this email to follow up.</div>`
+  const footerText = `\n\n---\nSupport ticket: ${ticketNumber} — Reply to this email to follow up.`
   return resend().emails.send({
     from: 'PersonaLink Support <support@personalink.in>',
     to,
     subject: reSubject,
-    text: body,
-    html: `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;line-height:1.7;font-size:15px;">${body.split('\n').map(l => `<p style="margin:0 0 12px;">${l}</p>`).join('')}</div>`,
+    text: body + footerText,
+    html: `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;line-height:1.7;font-size:15px;">${body.split('\n').map(l => `<p style="margin:0 0 12px;">${l}</p>`).join('')}${footerHtml}</div>`,
   })
 }
 
@@ -499,6 +503,7 @@ export async function sendEscalationEmail({
   userContext,
   escalationReason,
   confidence,
+  ticketNumber,
 }: {
   originalFrom: string
   subject: string
@@ -507,6 +512,7 @@ export async function sendEscalationEmail({
   userContext: string
   escalationReason: string | null
   confidence: number
+  ticketNumber: string
 }) {
   const adminEmail = process.env.ADMIN_EMAIL || 'hamzabamboat@gmail.com'
   const confidencePct = Math.round(confidence * 100)
@@ -515,12 +521,12 @@ export async function sendEscalationEmail({
     from: 'PersonaLink Support <support@personalink.in>',
     to: adminEmail,
     replyTo: originalFrom,
-    subject: `[SUPPORT] ${subject}`,
+    subject: `[SUPPORT] ${ticketNumber} — ${subject}`,
     html: `
 <div style="font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#0f172a;font-size:14px;line-height:1.6;">
 
   <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:20px;color:#92400e;">
-    <strong>AI confidence: ${confidencePct}%</strong>${escalationReason ? ` — ${escalationReason}` : ''}
+    <strong>${ticketNumber}</strong> &nbsp;·&nbsp; AI confidence: ${confidencePct}%${escalationReason ? ` — ${escalationReason}` : ''}
     <br><span style="font-size:12px;">Hit Reply to respond directly to ${originalFrom}</span>
   </div>
 
@@ -535,7 +541,7 @@ export async function sendEscalationEmail({
   ` : ''}
 
 </div>`,
-    text: `AI confidence: ${confidencePct}%${escalationReason ? ` — ${escalationReason}` : ''}\nReply to this email to respond directly to ${originalFrom}.\n\n--- USER CONTEXT ---\n${userContext}\n\n--- ORIGINAL EMAIL ---\n${originalBody}${aiDraft ? `\n\n--- AI DRAFT (edit before sending) ---\n${aiDraft}` : ''}`,
+    text: `${ticketNumber} · AI confidence: ${confidencePct}%${escalationReason ? ` — ${escalationReason}` : ''}\nReply to this email to respond directly to ${originalFrom}.\n\n--- USER CONTEXT ---\n${userContext}\n\n--- ORIGINAL EMAIL ---\n${originalBody}${aiDraft ? `\n\n--- AI DRAFT (edit before sending) ---\n${aiDraft}` : ''}`,
   })
 }
 
