@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   // Atomically validate and claim the code
   const { data: codeRow } = await supabaseAdmin
     .from('access_codes')
-    .select('id, plan, max_uses, uses_count, expires_at, is_active')
+    .select('id, plan, max_uses, uses_count, expires_at, is_active, duration_days')
     .eq('code', code.toUpperCase().trim())
     .single()
 
@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
   const planData = PLAN_LIMITS[plan] || PLAN_LIMITS.starter
   const tierLimits = getTierLimits(plan as TierID)
   const now = new Date().toISOString()
+
+  // Time-limited codes: redemption sets plan_expires_at. Cron at
+  // /api/cron/expire-plans reverts to 'free' when that date passes.
+  const planExpiresAt = (typeof codeRow.duration_days === 'number' && codeRow.duration_days > 0)
+    ? new Date(Date.now() + codeRow.duration_days * 24 * 60 * 60 * 1000).toISOString()
+    : null
 
   await Promise.all([
     // Increment code uses
@@ -70,6 +76,7 @@ export async function POST(request: NextRequest) {
       plan,
       posts_limit: planData.posts,
       voice_fingerprint_limit: tierLimits.voiceFingerprints,
+      plan_expires_at: planExpiresAt,
       posts_used_this_month: 0,
       onboarding_completed_at: now,
       preferred_days: ['Monday', 'Wednesday', 'Friday'],

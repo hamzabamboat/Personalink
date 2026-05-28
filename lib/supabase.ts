@@ -26,6 +26,8 @@ export type AccessCode = {
   max_uses: number
   uses_count: number
   expires_at: string | null
+  /** NULL = lifetime grant. Positive int = days of access before auto-revert. */
+  duration_days: number | null
   created_by: string | null
   is_active: boolean
   created_at: string

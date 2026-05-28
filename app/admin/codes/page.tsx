@@ -26,7 +26,7 @@ export default function AccessCodesPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    code: '', plan: 'standard', max_uses: 1, expires_at: '', created_by: '',
+    code: '', plan: 'standard', max_uses: 1, expires_at: '', created_by: '', duration_days: '',
   })
   const [error, setError] = useState('')
 
@@ -56,10 +56,11 @@ export default function AccessCodesPage() {
         max_uses: Number(form.max_uses),
         expires_at: form.expires_at || null,
         created_by: form.created_by || null,
+        duration_days: form.duration_days ? Number(form.duration_days) : null,
       }),
     })
     if (res.ok) {
-      setForm({ code: '', plan: 'standard', max_uses: 1, expires_at: '', created_by: '' })
+      setForm({ code: '', plan: 'standard', max_uses: 1, expires_at: '', created_by: '', duration_days: '' })
       loadCodes()
     } else {
       const d = await res.json()
@@ -136,6 +137,20 @@ export default function AccessCodesPage() {
             />
           </div>
 
+          <div className="flex flex-col gap-1.5 w-32">
+            <label className="text-xs font-semibold text-slate-500" title="Days the user keeps the granted plan before auto-revert to free. Leave blank for lifetime.">
+              Duration (days)
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={form.duration_days}
+              onChange={e => setForm(f => ({ ...f, duration_days: e.target.value }))}
+              placeholder="lifetime"
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+            />
+          </div>
+
           <div className="flex flex-col gap-1.5 flex-1 min-w-[140px]">
             <label className="text-xs font-semibold text-slate-500">Created For (optional)</label>
             <input
@@ -171,7 +186,7 @@ export default function AccessCodesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
-                  {['Code', 'Plan', 'Uses', 'Expires', 'Created For', 'Created', 'Status', ''].map(h => (
+                  {['Code', 'Plan', 'Uses', 'Code Expires', 'Grants', 'Created For', 'Created', 'Status', ''].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                       {h}
                     </th>
@@ -193,6 +208,9 @@ export default function AccessCodesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{fmt(c.expires_at)}</td>
+                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                      {c.duration_days ? `${c.duration_days}d of ${c.plan}` : 'Lifetime'}
+                    </td>
                     <td className="px-4 py-3 text-slate-500">{c.created_by || '—'}</td>
                     <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{fmt(c.created_at)}</td>
                     <td className="px-4 py-3">
