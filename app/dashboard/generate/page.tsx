@@ -251,6 +251,31 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
     )
   }
 
+  // All quota used — show a clear "done" card instead of a disabled button
+  if (remaining === 0 && !result) {
+    return (
+      <div className="gen-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CheckCircle2 size={18} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 14 }}>All posts for {monthName} are generated</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>You&apos;ve used your full generation quota this month.</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/dashboard/calendar" className="btn-dash btn-dash--primary btn-dash--sm">
+            View in Calendar <ArrowRight size={12} />
+          </Link>
+          <Link href="/dashboard/posts" className="btn-dash btn-dash--ghost btn-dash--sm">
+            All posts
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   if (result) {
     return (
       <div className="gen-card">
@@ -361,7 +386,7 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
       </div>
 
       {error && <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca' }}>{error}</div>}
-      <button onClick={() => setShowConfirm(true)} disabled={remaining === 0} className="btn-dash btn-dash--primary" style={{ alignSelf: 'flex-start' }}>
+      <button onClick={() => setShowConfirm(true)} className="btn-dash btn-dash--primary" style={{ alignSelf: 'flex-start' }}>
         <Sparkles size={13} /> Generate posts →
       </button>
     </div>

@@ -364,13 +364,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save posts: ' + insertError.message }, { status: 500 })
   }
 
-  // Mark converted stories as converted
+  // Mark converted stories as converted — best-effort, non-fatal
   if (convertedStoryIds.length > 0) {
-    await supabaseAdmin.from('story_bank').update({ status: 'converted' }).in('id', convertedStoryIds)
+    supabaseAdmin.from('story_bank').update({ status: 'converted' }).in('id', convertedStoryIds).then().catch(console.error)
   }
 
-  // Increment usage: one batch_run + all posts_generated + story_conversions
-  await Promise.all([
+  // Increment usage counters — best-effort, non-fatal.
+  // Posts are ALREADY inserted above; never let a tracking failure surface as
+  // a generation error to the user.
+  Promise.all([
     incrementUsage(user.id, 'batch_runs'),
     incrementUsage(user.id, 'posts_generated', allPosts.length),
     convertedStoryIds.length > 0 ? incrementUsage(user.id, 'story_conversions', convertedStoryIds.length) : Promise.resolve(),
@@ -380,7 +382,7 @@ export async function POST(request: NextRequest) {
     supabaseAdmin.from('user_profiles').update({
       posts_used_this_month: (profile.posts_used_this_month || 0) + allPosts.length,
     }).eq('user_id', user.id),
-  ])
+  ]).catch(err => console.error('[generate-batch] usage increment error (non-fatal):', err))
 
   const nextScheduled = (insertedPosts || [])
     .filter(p => p.scheduled_at)
