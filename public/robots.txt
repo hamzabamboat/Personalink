@@ -3,4 +3,5 @@ Allow: /
 Disallow: /dashboard/
 Disallow: /admin/
 Disallow: /api/
+Disallow: /agency-inquiry/thank-you
 Sitemap: https://personalink.in/sitemap.xml

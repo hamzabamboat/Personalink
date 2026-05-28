@@ -705,3 +705,155 @@ export async function sendDowngradeConfirmationEmail({
     text: `Your plan will change to ${TIER_LABEL[plan]} on ${dateLabel} (${posts} posts/month).`,
   })
 }
+
+/* ─────────────────────────────────────────────
+ * Agency inquiry funnel — /for-agencies
+ * ───────────────────────────────────────────── */
+
+export type AgencyInquiryRecord = {
+  id: string
+  agency_name: string
+  owner_name: string
+  owner_role: string | null
+  email: string
+  phone: string | null
+  website: string | null
+  linkedin_url: string | null
+  client_count: string
+  current_tools: string[] | null
+  primary_problem: string | null
+  preferred_currency: string | null
+  timeline: string | null
+  source: string | null
+  ip: string | null
+  user_agent: string | null
+  submitted_at: string
+}
+
+function escapeAgencyHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+export async function sendAgencyInquiryAdminAlert(record: AgencyInquiryRecord) {
+  const adminEmail =
+    process.env.AGENCY_INQUIRY_ADMIN_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    'hello@personalink.in'
+
+  const row = (label: string, value: string | null | undefined) =>
+    value
+      ? `<tr><td style="padding:6px 14px 6px 0;color:#64748b;font-size:13px;white-space:nowrap;vertical-align:top;">${label}</td><td style="padding:6px 0;color:#0f172a;font-size:14px;">${escapeAgencyHtml(value)}</td></tr>`
+      : ''
+
+  const tools = record.current_tools?.length ? record.current_tools.join(', ') : null
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to: adminEmail,
+    replyTo: record.email,
+    subject: `Agency inquiry — ${record.agency_name} (${record.client_count} clients)`,
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;border:1px solid #e2e8f0;">
+    <h1 style="margin:0 0 4px;font-size:18px;color:#0f172a;font-weight:600;">Agency inquiry</h1>
+    <p style="margin:0 0 20px;color:#64748b;font-size:13px;">Reply within 24h.</p>
+    <table style="width:100%;border-collapse:collapse;">
+      ${row('Agency', record.agency_name)}
+      ${row('Contact', record.owner_name)}
+      ${row('Role', record.owner_role)}
+      ${row('Email', record.email)}
+      ${row('Phone', record.phone)}
+      ${row('Website', record.website)}
+      ${row('LinkedIn', record.linkedin_url)}
+      ${row('Clients', record.client_count)}
+      ${row('Currently using', tools)}
+      ${row('#1 problem', record.primary_problem)}
+      ${row('Preferred currency', record.preferred_currency)}
+      ${row('Timeline', record.timeline)}
+      ${row('Source', record.source)}
+    </table>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+    <p style="margin:0;color:#94a3b8;font-size:11px;font-family:monospace;">
+      id ${record.id} · ${new Date(record.submitted_at).toISOString()}<br/>
+      ip ${record.ip ?? '-'} · ua ${escapeAgencyHtml((record.user_agent ?? '').slice(0, 80))}
+    </p>
+  </div>
+</body>
+</html>`,
+    text: [
+      `Agency inquiry — ${record.agency_name} (${record.client_count} clients)`,
+      '',
+      `Agency: ${record.agency_name}`,
+      `Contact: ${record.owner_name} (${record.owner_role ?? '-'})`,
+      `Email: ${record.email}`,
+      `Phone: ${record.phone ?? '-'}`,
+      `Website: ${record.website ?? '-'}`,
+      `LinkedIn: ${record.linkedin_url ?? '-'}`,
+      `Clients: ${record.client_count}`,
+      `Currently using: ${tools ?? '-'}`,
+      `#1 problem: ${record.primary_problem ?? '-'}`,
+      `Preferred currency: ${record.preferred_currency ?? '-'}`,
+      `Timeline: ${record.timeline ?? '-'}`,
+      `Source: ${record.source ?? '-'}`,
+      '',
+      `id: ${record.id}`,
+      `submitted_at: ${record.submitted_at}`,
+      `ip: ${record.ip ?? '-'}`,
+    ].join('\n'),
+  })
+}
+
+export async function sendAgencyInquiryAutoReply(params: {
+  to: string
+  firstName: string
+  agencyName: string
+  clientCount: string
+}) {
+  const { to, firstName, agencyName, clientCount } = params
+  const calUrl = process.env.NEXT_PUBLIC_CAL_COM_URL
+
+  const calLine = calUrl
+    ? `If you want to skip the wait, you can pick a slot here: <a href="${escapeAgencyHtml(calUrl)}" style="color:#0f766e;">${escapeAgencyHtml(calUrl)}</a>`
+    : ''
+
+  const calLineText = calUrl ? `If you want to skip the wait, you can pick a slot here: ${calUrl}\n\n` : ''
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    replyTo: 'hello@personalink.in',
+    subject: `Got your inquiry — ${agencyName}`,
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:32px 16px;background:#fafaf7;font-family:system-ui,-apple-system,sans-serif;color:#1a1a1a;line-height:1.6;">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e7e5df;">
+    <p style="margin:0 0 16px;font-size:15px;">Hi ${escapeAgencyHtml(firstName)},</p>
+    <p style="margin:0 0 16px;font-size:15px;">
+      Thanks for the note about ${escapeAgencyHtml(agencyName)}. I will review your details and reply within 24 hours with a Loom demo tailored to your setup (${escapeAgencyHtml(clientCount)} clients).
+    </p>
+    ${calLine ? `<p style="margin:0 0 16px;font-size:15px;">${calLine}</p>` : ''}
+    <p style="margin:24px 0 0;font-size:15px;color:#475569;">— Hamza, PersonaLink</p>
+  </div>
+  <p style="max-width:520px;margin:16px auto 0;font-size:11px;color:#94a3b8;text-align:center;">
+    You received this because you submitted an inquiry at personalink.in/for-agencies.
+  </p>
+</body>
+</html>`,
+    text: [
+      `Hi ${firstName},`,
+      '',
+      `Thanks for the note about ${agencyName}. I will review your details and reply within 24 hours with a Loom demo tailored to your setup (${clientCount} clients).`,
+      '',
+      calLineText,
+      '— Hamza, PersonaLink',
+    ].join('\n'),
+  })
+}
