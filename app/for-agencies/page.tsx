@@ -161,13 +161,7 @@ export default function ForAgenciesPage() {
           >
             Run 5, 15, or 50 client accounts. White-label everything. INR or international billing. GST invoices on day one.
           </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <a href="#inquiry" style={ctaPrimary}>Request a demo</a>
-            <a href="#" style={ctaSecondary} aria-disabled>
-              {/* TODO: replace href with Loom URL */}
-              Watch 90-sec demo
-            </a>
-          </div>
+          <a href="#inquiry" style={ctaPrimary}>Request a demo</a>
         </div>
       </section>
 
@@ -223,46 +217,7 @@ export default function ForAgenciesPage() {
         </div>
       </section>
 
-      {/* ─── 6. Social proof placeholder ─── */}
-      <section style={{ padding: 'clamp(40px, 6vw, 72px) var(--pad)', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
-          <p
-            style={{
-              fontSize: 13,
-              fontFamily: 'var(--f-mono)',
-              color: 'var(--ink-4)',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              marginBottom: 16,
-            }}
-          >
-            // case studies coming soon
-          </p>
-          {/* TODO: agency case studies + logos */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-            {[0, 1, 2].map(i => (
-              <div
-                key={i}
-                style={{
-                  height: 80,
-                  background: 'var(--surface)',
-                  border: '1px dashed var(--line)',
-                  borderRadius: 'var(--r-md)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--ink-4)',
-                  fontSize: 12,
-                }}
-              >
-                logo {i + 1}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 7. FAQ ─── */}
+      {/* ─── 6. FAQ ─── */}
       <section style={{ padding: 'clamp(56px, 8vw, 96px) var(--pad)', borderBottom: '1px solid var(--line)' }}>
         <div style={{ maxWidth: 780, margin: '0 auto' }}>
           <h2 style={h2Style}>Questions agencies ask.</h2>
@@ -272,7 +227,7 @@ export default function ForAgenciesPage() {
         </div>
       </section>
 
-      {/* ─── 8. Inquiry form ─── */}
+      {/* ─── 7. Inquiry form ─── */}
       <section
         id="inquiry"
         style={{ padding: 'clamp(56px, 8vw, 96px) var(--pad)', background: 'var(--surface-2)', borderBottom: '1px solid var(--line)' }}
@@ -288,7 +243,7 @@ export default function ForAgenciesPage() {
         </div>
       </section>
 
-      {/* ─── 9. Final CTA ─── */}
+      {/* ─── 8. Final CTA ─── */}
       <section style={{ padding: 'clamp(48px, 6vw, 80px) var(--pad)' }}>
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: 'clamp(18px, 2.4vw, 24px)', color: 'var(--ink-2)', margin: '0 0 18px', fontWeight: 500 }}>
@@ -364,19 +319,6 @@ const ctaPrimary: React.CSSProperties = {
   color: 'var(--bg)',
   borderRadius: 'var(--r-md)',
   fontWeight: 600,
-  fontSize: 15,
-  textDecoration: 'none',
-}
-const ctaSecondary: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '14px 28px',
-  background: 'var(--surface)',
-  color: 'var(--ink-2)',
-  border: '1px solid var(--line)',
-  borderRadius: 'var(--r-md)',
-  fontWeight: 500,
   fontSize: 15,
   textDecoration: 'none',
 }
