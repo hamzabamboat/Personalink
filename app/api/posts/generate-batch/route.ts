@@ -130,6 +130,28 @@ Respond with ONLY a valid JSON object (no markdown, no explanation):
   } catch { return null }
 }
 
+/**
+ * Build schedule slots for a batch of posts.
+ *
+ * PROPORTIONAL 30-DAY WINDOW
+ * Posts must fill only their fair share of the 30-day billing period so users
+ * always feel the need to generate more next month.
+ *
+ *   windowDays = max(count, round(count / planMonthlyLimit * 30))
+ *
+ * Examples (standard plan — 22 posts/month):
+ *   Generate 22/22  =>  30-day window  (full month, uses any-day fill)
+ *   Generate 10/22  =>  14-day window  (first ~half; second half stays empty)
+ *   Generate  5/22  =>   7-day window  (first week)
+ *
+ * Pass 1 fills preferred days within the window.
+ * Pass 2 fills any remaining days within the window (so dense plans like
+ *   Standard-22 aren't accidentally pushed past 30 days just because the
+ *   user only prefers 3 posting days/week).
+ * Pass 3 is an overflow fallback that only fires for high-volume plans
+ *   (e.g. Pro-50) where count > 30 makes a 30-day window physically impossible
+ *   with a 1-post-per-day constraint.
+ */
 function buildScheduleSlots(
   now: Date,
   count: number,
@@ -137,6 +159,7 @@ function buildScheduleSlots(
   preferredDays: string[],
   takenDateStrings: Set<string>,
   timezone: string,
+  planMonthlyLimit: number,
 ): Date[] {
   const slots: Date[] = []
 
@@ -147,32 +170,44 @@ function buildScheduleSlots(
   const userNow = new Date(userNowStr)
   const userHour = userNow.getHours()
 
-  // If preferred hour has already passed today in user's timezone, start from tomorrow.
-  // We work in day-offsets from today (not day-of-month) so month/year boundaries
-  // are handled naturally — JS Date() rolls over Dec 31 → Jan 1, May 31 → Jun 1, etc.
+  // If preferred hour has passed today, start from tomorrow.
+  // Day-offsets let JS handle month/year rollovers automatically.
   const startOffset = userHour >= preferredHour ? 1 : 0
   const todayYear = now.getFullYear()
   const todayMonth = now.getMonth()
   const todayDate = now.getDate()
 
-  // First pass: preferred days only, no month-boundary cap (up to 365 days out)
-  for (let offset = startOffset; offset < 365 && slots.length < count; offset++) {
-    const slotLocal = new Date(todayYear, todayMonth, todayDate + offset, preferredHour, 0, 0)
-    const dateStr = slotLocal.toDateString()
-    if (takenDateStrings.has(dateStr)) continue
-    const dayName = slotLocal.toLocaleDateString('en-US', { weekday: 'long' })
-    if (!preferredDays.length || preferredDays.includes(dayName)) {
-      slots.push(slotLocal)
-    }
+  // Proportional window calculation
+  const effectivePlanLimit = Math.max(planMonthlyLimit, 1)
+  const proportionalDays = Math.round((count / effectivePlanLimit) * 30)
+  const windowDays = Math.max(count, proportionalDays)
+
+  const slotAt = (offset: number) =>
+    new Date(todayYear, todayMonth, todayDate + offset, preferredHour, 0, 0)
+
+  // Pass 1: preferred days, within the proportional window
+  for (let offset = startOffset; offset < startOffset + windowDays && slots.length < count; offset++) {
+    const d = slotAt(offset)
+    if (takenDateStrings.has(d.toDateString())) continue
+    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' })
+    if (!preferredDays.length || preferredDays.includes(dayName)) slots.push(d)
   }
 
-  // Second pass: fill any remaining slots with any weekday
-  // (runs when preferred-days filter didn't produce enough)
-  for (let offset = startOffset; offset < 365 && slots.length < count; offset++) {
-    const slotLocal = new Date(todayYear, todayMonth, todayDate + offset, preferredHour, 0, 0)
-    const dateStr = slotLocal.toDateString()
-    if (takenDateStrings.has(dateStr)) continue
-    if (!slots.some(s => s.toDateString() === dateStr)) slots.push(slotLocal)
+  // Pass 2: any day, within the proportional window
+  // Ensures all posts land inside the window even when preferred-day cadence
+  // (e.g. 3 days/week) is too sparse to fill the window on its own.
+  for (let offset = startOffset; offset < startOffset + windowDays && slots.length < count; offset++) {
+    const d = slotAt(offset)
+    if (takenDateStrings.has(d.toDateString())) continue
+    if (!slots.some(s => s.toDateString() === d.toDateString())) slots.push(d)
+  }
+
+  // Pass 3: overflow (only for high-volume plans where count > 30 — e.g. Pro/50
+  // generating its full quota; physically impossible to fit 50 unique days in 30)
+  for (let offset = startOffset + windowDays; slots.length < count && offset < startOffset + windowDays + 90; offset++) {
+    const d = slotAt(offset)
+    if (takenDateStrings.has(d.toDateString())) continue
+    if (!slots.some(s => s.toDateString() === d.toDateString())) slots.push(d)
   }
 
   return slots
@@ -343,7 +378,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate posts. Please try again.' }, { status: 500 })
   }
 
-  const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays, takenDateStrings, timezone)
+  const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays, takenDateStrings, timezone, postsCheck.limit)
 
   const postStatus = controlPreference === 'autopilot' ? 'scheduled'
     : controlPreference === 'suggest' ? 'draft'
