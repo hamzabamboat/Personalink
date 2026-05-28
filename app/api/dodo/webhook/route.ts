@@ -52,6 +52,24 @@ export async function POST(request: NextRequest) {
   const amount = (data.amount as number | undefined) ?? 0
   const now = new Date().toISOString()
 
+  // ── Billing period fields (Dodo-specific) ──────────────────────────────
+  // Dodo sends next_billing_date (ISO string) and payment_frequency_interval
+  // ('Month' | 'Year') in every subscription event.
+  // We map these to our internal billing_period ('monthly' | 'annual') and
+  // store next_billing_date so the scheduler can enforce period caps.
+  const rawNextBilling = data.next_billing_date as string | undefined
+  const rawInterval    = data.payment_frequency_interval as string | undefined
+  const billingPeriod: 'monthly' | 'annual' =
+    rawInterval?.toLowerCase().startsWith('year') ? 'annual' : 'monthly'
+
+  // Fallback: if Dodo didn't send next_billing_date, derive it from now
+  function derivedNextBilling(): string {
+    const d = new Date()
+    billingPeriod === 'annual' ? d.setFullYear(d.getFullYear() + 1) : d.setMonth(d.getMonth() + 1)
+    return d.toISOString()
+  }
+  const nextBillingDate: string = rawNextBilling ?? derivedNextBilling()
+
   async function activateAccount() {
     // 1. Activate the specific linkedin_account
     if (accountId) {
@@ -81,7 +99,15 @@ export async function POST(request: NextRequest) {
     if (subscriptionId) {
       await supabaseAdmin
         .from('subscriptions')
-        .update({ status: 'active', payment_processor: 'dodo', currency, amount, updated_at: now })
+        .update({
+          status: 'active',
+          payment_processor: 'dodo',
+          currency,
+          amount,
+          billing_period: billingPeriod,
+          next_billing_date: nextBillingDate,
+          updated_at: now,
+        })
         .eq('dodo_subscription_id', subscriptionId)
     }
 

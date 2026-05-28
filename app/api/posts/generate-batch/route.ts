@@ -8,6 +8,7 @@ import { UserProfile } from '@/lib/supabase'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
+import { buildOptimalSlots } from '@/lib/linkedin-schedule'
 
 export const maxDuration = 300
 
@@ -130,88 +131,7 @@ Respond with ONLY a valid JSON object (no markdown, no explanation):
   } catch { return null }
 }
 
-/**
- * Build schedule slots for a batch of posts.
- *
- * PROPORTIONAL 30-DAY WINDOW
- * Posts must fill only their fair share of the 30-day billing period so users
- * always feel the need to generate more next month.
- *
- *   windowDays = max(count, round(count / planMonthlyLimit * 30))
- *
- * Examples (standard plan — 22 posts/month):
- *   Generate 22/22  =>  30-day window  (full month, uses any-day fill)
- *   Generate 10/22  =>  14-day window  (first ~half; second half stays empty)
- *   Generate  5/22  =>   7-day window  (first week)
- *
- * Pass 1 fills preferred days within the window.
- * Pass 2 fills any remaining days within the window (so dense plans like
- *   Standard-22 aren't accidentally pushed past 30 days just because the
- *   user only prefers 3 posting days/week).
- * Pass 3 is an overflow fallback that only fires for high-volume plans
- *   (e.g. Pro-50) where count > 30 makes a 30-day window physically impossible
- *   with a 1-post-per-day constraint.
- */
-function buildScheduleSlots(
-  now: Date,
-  count: number,
-  preferredHour: number,
-  preferredDays: string[],
-  takenDateStrings: Set<string>,
-  timezone: string,
-  planMonthlyLimit: number,
-): Date[] {
-  const slots: Date[] = []
-
-  // Get current hour in user's timezone to determine if today is still valid
-  let userNowStr: string
-  try { userNowStr = now.toLocaleString('en-US', { timeZone: timezone }) }
-  catch { userNowStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) }
-  const userNow = new Date(userNowStr)
-  const userHour = userNow.getHours()
-
-  // If preferred hour has passed today, start from tomorrow.
-  // Day-offsets let JS handle month/year rollovers automatically.
-  const startOffset = userHour >= preferredHour ? 1 : 0
-  const todayYear = now.getFullYear()
-  const todayMonth = now.getMonth()
-  const todayDate = now.getDate()
-
-  // Proportional window calculation
-  const effectivePlanLimit = Math.max(planMonthlyLimit, 1)
-  const proportionalDays = Math.round((count / effectivePlanLimit) * 30)
-  const windowDays = Math.max(count, proportionalDays)
-
-  const slotAt = (offset: number) =>
-    new Date(todayYear, todayMonth, todayDate + offset, preferredHour, 0, 0)
-
-  // Pass 1: preferred days, within the proportional window
-  for (let offset = startOffset; offset < startOffset + windowDays && slots.length < count; offset++) {
-    const d = slotAt(offset)
-    if (takenDateStrings.has(d.toDateString())) continue
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' })
-    if (!preferredDays.length || preferredDays.includes(dayName)) slots.push(d)
-  }
-
-  // Pass 2: any day, within the proportional window
-  // Ensures all posts land inside the window even when preferred-day cadence
-  // (e.g. 3 days/week) is too sparse to fill the window on its own.
-  for (let offset = startOffset; offset < startOffset + windowDays && slots.length < count; offset++) {
-    const d = slotAt(offset)
-    if (takenDateStrings.has(d.toDateString())) continue
-    if (!slots.some(s => s.toDateString() === d.toDateString())) slots.push(d)
-  }
-
-  // Pass 3: overflow (only for high-volume plans where count > 30 — e.g. Pro/50
-  // generating its full quota; physically impossible to fit 50 unique days in 30)
-  for (let offset = startOffset + windowDays; slots.length < count && offset < startOffset + windowDays + 90; offset++) {
-    const d = slotAt(offset)
-    if (takenDateStrings.has(d.toDateString())) continue
-    if (!slots.some(s => s.toDateString() === d.toDateString())) slots.push(d)
-  }
-
-  return slots
-}
+// buildScheduleSlots replaced by buildOptimalSlots (lib/linkedin-schedule.ts)
 
 export async function POST(request: NextRequest) {
   try {
@@ -303,16 +223,47 @@ export async function POST(request: NextRequest) {
   const now = new Date()
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
-  // Fetch already-scheduled posts this month to avoid calendar overlap
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
+  // ── Subscription billing period ──────────────────────────────────────────
+  // Fetch the user's next billing date so we can cap scheduling to it.
+  // Annual subscribers have next_billing_date ~365 days out; monthly ~30 days.
+  // We treat any renewal date > 60 days away as annual and skip the cap.
+  let periodEndDate: Date | undefined
+  try {
+    const { data: sub } = await supabaseAdmin
+      .from('subscriptions')
+      .select('next_billing_date, billing_period, status')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .maybeSingle()
+
+    if (sub?.next_billing_date) {
+      const nextBilling = new Date(sub.next_billing_date)
+      const daysUntilRenewal = (nextBilling.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+
+      // Annual subscribers: billing_period === 'annual' OR next renewal > 60 days out.
+      // Either signal means the user has paid for the year — no period cap applied.
+      const isAnnual = sub.billing_period === 'annual' || daysUntilRenewal > 60
+
+      if (!isAnnual && daysUntilRenewal > 0) {
+        periodEndDate = nextBilling
+      }
+    }
+  } catch (e) {
+    console.warn('[generate-batch] subscription period fetch failed (non-fatal):', e)
+  }
+
+  // ── Already-scheduled posts (wider window to cover cross-month slots) ────
+  // Use a 65-day forward window instead of the calendar month so we don't
+  // miss taken days that land in the next month (e.g. generating on May 28).
+  const windowStart = now.toISOString()
+  const windowEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 65, 23, 59, 59).toISOString()
   const { data: existingScheduled } = await supabaseAdmin
     .from('posts')
     .select('scheduled_at')
     .eq('user_id', user.id)
     .in('status', ['scheduled', 'pending_approval'])
-    .gte('scheduled_at', monthStart)
-    .lte('scheduled_at', monthEnd)
+    .gte('scheduled_at', windowStart)
+    .lte('scheduled_at', windowEnd)
   const takenDateStrings = new Set(
     (existingScheduled || [])
       .filter(p => p.scheduled_at)
@@ -378,7 +329,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate posts. Please try again.' }, { status: 500 })
   }
 
-  const slots = buildScheduleSlots(now, allPosts.length, preferredHour, preferredDays, takenDateStrings, timezone, postsCheck.limit)
+  const slots = buildOptimalSlots({
+    now,
+    count: allPosts.length,
+    planMonthlyLimit: postsCheck.limit,
+    timezone,
+    pillars,
+    takenDateStrings,
+    userPreferredDays: preferredDays,
+    userPreferredHour: preferredHour,
+    periodEndDate,   // caps window to subscription renewal date (monthly plans only)
+  })
 
   const postStatus = controlPreference === 'autopilot' ? 'scheduled'
     : controlPreference === 'suggest' ? 'draft'
