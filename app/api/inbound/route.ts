@@ -83,7 +83,9 @@ Member since: ${new Date(userData.created_at).toLocaleDateString('en-IN')}`
   let aiResult: AiResult
   try {
     const raw = response.content[0].type === 'text' ? response.content[0].text : ''
-    aiResult = JSON.parse(raw)
+    // Claude sometimes wraps JSON in markdown fences despite instructions — strip them
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+    aiResult = JSON.parse(cleaned)
   } catch {
     aiResult = {
       intent: 'parse_error',
