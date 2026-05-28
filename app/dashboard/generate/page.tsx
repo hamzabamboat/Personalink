@@ -57,7 +57,7 @@ function buildBatchSteps(postsLimit: number): string[] {
     'Researching trending topics in your industry',
     ...writingSteps,
     'Adding hashtags and optimising reach',
-    'Scheduling across the month',
+    'Scheduling your posts',
     'Done!',
   ]
 }
@@ -148,8 +148,12 @@ function ImageUploadSection({ onUpload }: { onUpload: (url: string) => void }) {
 }
 
 /* ── Batch generate tab ──────────────────────────────────── */
+const LAST_BATCH_KEY = 'pl_last_batch_ts'
+const BATCH_GUARD_MINS = 8
+
 function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { plan: string; postsLimit: number | null; postsRemaining: number | null; monthName: string; storyCount: number }) {
   const [showConfirm, setShowConfirm] = useState(false)
+  const [recentGenMins, setRecentGenMins] = useState<number | null>(null) // minutes since last batch
   const [loading, setLoading] = useState(false)
   const [instructions, setInstructions] = useState('')
   const [selectedCount, setSelectedCount] = useState<number | null>(null)
@@ -189,8 +193,21 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
     return () => clearInterval(timer)
   }, [loading])
 
+  function openConfirm() {
+    // Check if posts were generated recently — warn before allowing a second run
+    try {
+      const lastTs = localStorage.getItem(LAST_BATCH_KEY)
+      if (lastTs) {
+        const minsAgo = Math.floor((Date.now() - parseInt(lastTs, 10)) / 60000)
+        if (minsAgo < BATCH_GUARD_MINS) { setRecentGenMins(minsAgo); setShowConfirm(true); return }
+      }
+    } catch { /* localStorage unavailable */ }
+    setRecentGenMins(null)
+    setShowConfirm(true)
+  }
+
   async function handleBatchGenerate() {
-    setShowConfirm(false); setLoading(true); setError(''); setResult(null); setBatchPosts([])
+    setShowConfirm(false); setRecentGenMins(null); setLoading(true); setError(''); setResult(null); setBatchPosts([])
     setCurrentStep(0); setSimulatedPostCount(0)
     batchStartRef.current = new Date().toISOString()
     intervalRef.current = setInterval(() => setCurrentStep(s => Math.min(s + 1, steps.length - 2)), 4000)
@@ -204,6 +221,8 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
       }
       const data = await res.json()
       if (data.error) { setError(data.error); return }
+      // Mark generation timestamp so the double-gen guard works on refresh / retry
+      try { localStorage.setItem(LAST_BATCH_KEY, Date.now().toString()) } catch { /* non-fatal */ }
       setResult({ postsGenerated: data.postsGenerated, nextPostDate: data.nextPostDate })
       // Load the newly-generated posts. This is best-effort — if it fails the
       // posts were still created; don't mask the success with a scary error.
@@ -311,6 +330,22 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
     const presets = Array.from(new Set([1, 5, 10, 15, 20, 25, 30].filter(n => n < remaining).concat([remaining]))).sort((a, b) => a - b)
     return (
       <div className="gen-card">
+        {/* Recent-generation warning — shown when user tries to generate again within the guard window */}
+        {recentGenMins !== null && (
+          <div style={{ display: 'flex', gap: 12, padding: '12px 14px', borderRadius: 'var(--r-sm)', background: '#fffbeb', border: '1px solid #fcd34d' }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#92400e' }}>
+                Posts were already generated {recentGenMins < 1 ? 'just now' : `${recentGenMins} minute${recentGenMins !== 1 ? 's' : ''} ago`}
+              </div>
+              <div style={{ fontSize: 12, color: '#b45309', marginTop: 3, lineHeight: 1.5 }}>
+                Generating again will use more of your monthly quota. Check{' '}
+                <Link href="/dashboard/posts" style={{ color: '#b45309', fontWeight: 600, textDecoration: 'underline' }}>All Posts</Link>{' '}
+                first to confirm they were saved.
+              </div>
+            </div>
+          </div>
+        )}
         <label className="db-label">// how many posts?</label>
         <div className="pill-row">
           {presets.map(n => (
@@ -329,14 +364,19 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
           {effectiveCount === remaining
-            ? `Generating all ${remaining} remaining post${remaining !== 1 ? 's' : ''} this month`
-            : `Generating ${effectiveCount} of ${remaining} remaining post${remaining !== 1 ? 's' : ''} this month`}
+            ? `Generating all ${remaining} remaining post${remaining !== 1 ? 's' : ''}`
+            : `Generating ${effectiveCount} of ${remaining} remaining post${remaining !== 1 ? 's' : ''}`}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={handleBatchGenerate} className="btn-dash btn-dash--primary">
-            <Sparkles size={13} /> Generate {effectiveCount} post{effectiveCount !== 1 ? 's' : ''}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={handleBatchGenerate} className={`btn-dash ${recentGenMins !== null ? 'btn-dash--outline' : 'btn-dash--primary'}`}>
+            <Sparkles size={13} /> {recentGenMins !== null ? 'Generate anyway' : `Generate ${effectiveCount} post${effectiveCount !== 1 ? 's' : ''}`}
           </button>
-          <button onClick={() => setShowConfirm(false)} className="btn-dash btn-dash--outline">
+          {recentGenMins !== null && (
+            <Link href="/dashboard/posts" className="btn-dash btn-dash--primary">
+              View existing posts <ArrowRight size={12} />
+            </Link>
+          )}
+          <button onClick={() => { setShowConfirm(false); setRecentGenMins(null) }} className="btn-dash btn-dash--ghost">
             Cancel
           </button>
         </div>
@@ -386,7 +426,7 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
       </div>
 
       {error && <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca' }}>{error}</div>}
-      <button onClick={() => setShowConfirm(true)} className="btn-dash btn-dash--primary" style={{ alignSelf: 'flex-start' }}>
+      <button onClick={openConfirm} className="btn-dash btn-dash--primary" style={{ alignSelf: 'flex-start' }}>
         <Sparkles size={13} /> Generate posts →
       </button>
     </div>

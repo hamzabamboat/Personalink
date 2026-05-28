@@ -140,22 +140,24 @@ function buildScheduleSlots(
 ): Date[] {
   const slots: Date[] = []
 
-  // Get current date/time in user's timezone to determine valid starting point
+  // Get current hour in user's timezone to determine if today is still valid
   let userNowStr: string
   try { userNowStr = now.toLocaleString('en-US', { timeZone: timezone }) }
   catch { userNowStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) }
   const userNow = new Date(userNowStr)
   const userHour = userNow.getHours()
 
-  // If preferred hour has already passed today in user's timezone, start from tomorrow
-  const startDay = userHour >= preferredHour ? now.getDate() + 1 : now.getDate()
+  // If preferred hour has already passed today in user's timezone, start from tomorrow.
+  // We work in day-offsets from today (not day-of-month) so month/year boundaries
+  // are handled naturally — JS Date() rolls over Dec 31 → Jan 1, May 31 → Jun 1, etc.
+  const startOffset = userHour >= preferredHour ? 1 : 0
+  const todayYear = now.getFullYear()
+  const todayMonth = now.getMonth()
+  const todayDate = now.getDate()
 
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-
-  // First pass: preferred days only, skipping already-scheduled dates
-  for (let day = startDay; day <= daysInMonth && slots.length < count; day++) {
-    // Build the slot time in user's timezone by using a UTC offset calculation
-    const slotLocal = new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0)
+  // First pass: preferred days only, no month-boundary cap (up to 365 days out)
+  for (let offset = startOffset; offset < 365 && slots.length < count; offset++) {
+    const slotLocal = new Date(todayYear, todayMonth, todayDate + offset, preferredHour, 0, 0)
     const dateStr = slotLocal.toDateString()
     if (takenDateStrings.has(dateStr)) continue
     const dayName = slotLocal.toLocaleDateString('en-US', { weekday: 'long' })
@@ -164,9 +166,10 @@ function buildScheduleSlots(
     }
   }
 
-  // Second pass: any remaining days (still skip taken), to fill up to count
-  for (let day = startDay; day <= daysInMonth && slots.length < count; day++) {
-    const slotLocal = new Date(now.getFullYear(), now.getMonth(), day, preferredHour, 0, 0)
+  // Second pass: fill any remaining slots with any weekday
+  // (runs when preferred-days filter didn't produce enough)
+  for (let offset = startOffset; offset < 365 && slots.length < count; offset++) {
+    const slotLocal = new Date(todayYear, todayMonth, todayDate + offset, preferredHour, 0, 0)
     const dateStr = slotLocal.toDateString()
     if (takenDateStrings.has(dateStr)) continue
     if (!slots.some(s => s.toDateString() === dateStr)) slots.push(slotLocal)
