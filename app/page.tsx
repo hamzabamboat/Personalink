@@ -9,6 +9,9 @@ import { AppearanceTrigger } from '@/components/appearance-trigger'
 import { WordMark } from '@/components/word-mark'
 import { Check } from 'lucide-react'
 import { TIER_LIMITS, TIER_FEATURE_BULLETS } from '@/lib/pricing-config'
+import { Hero } from '@/components/landing/Hero'
+import { AuthenticityStack } from '@/components/landing/AuthenticityStack'
+import { BuiltForIndia } from '@/components/landing/BuiltForIndia'
 
 /* ─── SVG icons ─── */
 function LinkedinIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -31,184 +34,6 @@ function FadeUp({ children, delay = 0, className = '' }: { children: React.React
       transition={{ duration: 0.65, delay, ease }} className={className}>
       {children}
     </motion.div>
-  )
-}
-
-/* ─── Animated post card ─── */
-function AnimatedPost() {
-  const postLines = [
-    '3 things I wish someone told me before my first VC meeting:',
-    '',
-    '1. They fund trajectories, not snapshots. Come with a narrative.',
-    '',
-    '2. The best pitch decks have 1 memorable slide. Not 30 okay ones.',
-    '',
-    "3. \"We'll follow\" usually means \"we won't lead.\" Ask directly.",
-    '',
-    "P.S. — The meeting that changed everything for us started with a cold LinkedIn DM.",
-    '',
-    '#FounderLife #StartupAdvice #VentureCapital',
-  ]
-  const fullText = postLines.join('\n')
-  const [displayed, setDisplayed] = useState('')
-  const [cursor, setCursor] = useState(true)
-  const idx = useRef(0)
-  const done = useRef(false)
-
-  useEffect(() => {
-    const t = setInterval(() => setCursor(c => !c), 530)
-    return () => clearInterval(t)
-  }, [])
-
-  useEffect(() => {
-    if (done.current) return
-    const timer = setInterval(() => {
-      if (idx.current >= fullText.length) { done.current = true; clearInterval(timer); return }
-      setDisplayed(fullText.slice(0, idx.current + 1))
-      idx.current++
-    }, 18)
-    return () => clearInterval(timer)
-  }, [fullText])
-
-  return (
-    <div className="pl-animated-post" style={{ position: 'relative', width: '100%', maxWidth: 440 }}>
-      {/* Ghost cards behind */}
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: 20,
-        background: 'var(--surface)', border: '1px solid var(--line)',
-        transform: 'rotate(4deg) translateY(8px)',
-        boxShadow: 'var(--sh-1)', zIndex: 0,
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: 20,
-        background: 'var(--surface)', border: '1px solid var(--line)',
-        transform: 'rotate(2deg) translateY(4px)',
-        boxShadow: 'var(--sh-1)', zIndex: 1,
-      }} />
-
-      {/* Floating chip A — top-right */}
-      <div className="pl-float-chip-a" style={{
-        position: 'absolute', top: -18, right: -10, zIndex: 10,
-        background: 'var(--surface)', border: '1px solid var(--line)',
-        borderRadius: 'var(--r-pill)', padding: '6px 12px',
-        fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-3)',
-        boxShadow: 'var(--sh-2)',
-        animation: 'floaty 3.2s ease-in-out infinite',
-        whiteSpace: 'nowrap',
-      }}>
-        ⌘&nbsp; draft&nbsp; →&nbsp; scheduled tue 9:14
-      </div>
-
-      {/* Floating chip B — bottom-left */}
-      <div className="pl-float-chip-b" style={{
-        position: 'absolute', bottom: 52, left: -16, zIndex: 10,
-        background: 'var(--pl-accent)', borderRadius: 'var(--r-pill)', padding: '6px 12px',
-        fontFamily: 'var(--f-mono)', fontSize: 11, color: '#fff',
-        boxShadow: 'var(--sh-blue)',
-        animation: 'floaty 3.8s ease-in-out infinite',
-        animationDelay: '-1.2s',
-        whiteSpace: 'nowrap',
-      }}>
-        tone match&nbsp; 98%
-      </div>
-
-      {/* Main card */}
-      <motion.div
-        initial={{ opacity: 0, x: 36, scale: 0.96 }}
-        animate={{ opacity: 1, x: 0, scale: 1 }}
-        transition={{ duration: 0.85, delay: 0.4, ease }}
-        style={{
-          position: 'relative', zIndex: 2,
-          background: 'var(--surface)',
-          borderRadius: 20, padding: '24px 28px',
-          boxShadow: 'var(--sh-3)',
-          border: '1px solid var(--line)',
-        }}
-      >
-        {/* Card header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'var(--pl-accent)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, fontSize: 18, flexShrink: 0,
-          }}>A</div>
-          <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Arjun Mehta</div>
-            <div style={{ fontSize: 12, color: 'var(--ink-4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Founder &amp; CEO · 2nd</div>
-          </div>
-          <span style={{
-            marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--pl-accent)',
-            background: 'var(--pl-accent-soft)', border: '1px solid var(--pl-accent)',
-            borderRadius: 'var(--r-pill)', padding: '3px 10px', whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%', background: 'var(--pl-accent)',
-              animation: 'pulseDot 2.4s ease-in-out infinite', flexShrink: 0,
-            }} />
-            in your voice
-          </span>
-        </div>
-
-        {/* Typewriter body */}
-        <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.75, whiteSpace: 'pre-wrap', minHeight: 180 }}>
-          {displayed}
-          <motion.span animate={{ opacity: cursor ? 1 : 0 }} transition={{ duration: 0 }}
-            style={{ fontWeight: 700, color: 'var(--pl-accent)' }}>|</motion.span>
-        </div>
-
-        {/* Card footer */}
-        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-          {[
-            { label: 'Like', svg: <svg style={{ width: 14, height: 14 }} viewBox="0 0 16 16" fill="currentColor"><path d="M8 14s-5-3.4-5-7a3 3 0 0 1 5-2.2A3 3 0 0 1 13 7c0 3.6-5 7-5 7z"/></svg> },
-            { label: 'Comment', svg: <svg style={{ width: 14, height: 14 }} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M14 9.5a2 2 0 0 1-2 2H6l-3 2.5v-9a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v4.5z"/></svg> },
-            { label: 'Repost', svg: <svg style={{ width: 14, height: 14 }} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M3 6.5l3-3M3 6.5l3 3M3 6.5h7a3 3 0 0 1 3 3v0"/></svg> },
-          ].map(a => (
-            <span key={a.label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink-4)', fontWeight: 500, cursor: 'pointer' }}>
-              {a.svg} {a.label}
-            </span>
-          ))}
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink-4)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            <svg style={{ width: 13, height: 13, flexShrink: 0 }} viewBox="0 0 16 16" fill="currentColor"><path d="M2 13h12v1H2zM3 12V8h2v4zM6 12V5h2v7zM9 12V9h2v3zM12 12V6h2v6z"/></svg>
-            4,218 impressions
-          </span>
-        </div>
-      </motion.div>
-    </div>
-  )
-}
-
-/* ─── Voice Bars (animated on scroll) ─── */
-const VOICE_DIMS = [
-  { label: 'Sentence rhythm', w: 88 },
-  { label: 'Vocabulary fit', w: 94 },
-  { label: 'Opening patterns', w: 82 },
-  { label: 'Pet phrases', w: 76 },
-  { label: 'Emotional register', w: 90 },
-  { label: 'Punctuation tics', w: 71 },
-]
-
-function VoiceBars() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-60px' })
-  return (
-    <ul ref={ref} style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {VOICE_DIMS.map((d, i) => (
-        <li key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="pl-voice-label" style={{ fontSize: 13, color: 'var(--ink-3)', minWidth: 160, fontFamily: 'var(--f-sans)' }}>{d.label}</span>
-          <span style={{ flex: 1, height: 6, background: 'var(--surface-3)', borderRadius: 'var(--r-pill)', overflow: 'hidden' }}>
-            <span style={{
-              display: 'block', height: '100%', borderRadius: 'var(--r-pill)',
-              background: 'var(--pl-accent)',
-              width: isInView ? `${d.w}%` : '0%',
-              transition: `width 0.8s cubic-bezier(.22,1,.36,1) ${i * 0.08}s`,
-            }} />
-          </span>
-          <span style={{ fontSize: 12, fontFamily: 'var(--f-mono)', color: 'var(--pl-accent)', minWidth: 34, textAlign: 'right' }}>{d.w}%</span>
-        </li>
-      ))}
-    </ul>
   )
 }
 
@@ -287,7 +112,7 @@ function HomeContent() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex" style={{ gap: 4, alignItems: 'center' }}>
-            {[['#features', 'Features'], ['#voice', 'Voice'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} style={{
                 padding: '8px 14px', fontSize: 14, fontWeight: 500, borderRadius: 'var(--r-sm)',
                 color: 'var(--ink-2)', textDecoration: 'none', transition: 'color .15s',
@@ -329,7 +154,7 @@ function HomeContent() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[['#features', 'Features'], ['#voice', 'Voice'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)}
                 style={{ padding: '12px 0', color: 'var(--ink-2)', fontSize: 16, fontWeight: 500, borderBottom: '1px solid var(--line)', textDecoration: 'none' }}>
                 {label}
@@ -354,345 +179,14 @@ function HomeContent() {
         </div>
       )}
 
-      {/* ── Hero ── */}
-      <section style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg)', minHeight: '94vh', paddingTop: 64 }}>
-        {/* Mesh blobs */}
-        <div style={{ position: 'absolute', inset: '-10%', zIndex: 0, pointerEvents: 'none', filter: 'blur(60px)', opacity: 0.55 }}>
-          <div style={{
-            position: 'absolute', width: '38vw', height: '38vw', maxWidth: 580, maxHeight: 580,
-            borderRadius: '50%', top: '-10%', left: '8%',
-            background: 'radial-gradient(circle, rgba(43,77,255,.28), transparent 65%)',
-            animation: 'drift1 22s ease-in-out infinite alternate',
-          }} />
-          <div style={{
-            position: 'absolute', width: '38vw', height: '38vw', maxWidth: 580, maxHeight: 580,
-            borderRadius: '50%', top: '18%', right: '-6%',
-            background: 'radial-gradient(circle, rgba(107,134,255,.2), transparent 65%)',
-            animation: 'drift2 28s ease-in-out infinite alternate',
-          }} />
-          <div style={{
-            position: 'absolute', width: '38vw', height: '38vw', maxWidth: 580, maxHeight: 580,
-            borderRadius: '50%', bottom: '-20%', left: '35%',
-            background: 'radial-gradient(circle, rgba(30,58,138,.18), transparent 65%)',
-            animation: 'drift3 24s ease-in-out infinite alternate',
-          }} />
-        </div>
+      {/* ── Hero (new) ── */}
+      <Hero />
 
-        {/* Animated SVG flow waves */}
-        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}
-          viewBox="0 0 1440 360" preserveAspectRatio="none" aria-hidden="true">
-          <path fill="none" stroke="var(--pl-accent)" strokeWidth="1.4" strokeOpacity="0.12">
-            <animate attributeName="d" dur="14s" repeatCount="indefinite"
-              values="M0,180 Q360,40 720,180 T1440,180;M0,180 Q360,320 720,180 T1440,180;M0,180 Q360,40 720,180 T1440,180" />
-          </path>
-          <path fill="none" stroke="var(--pl-accent)" strokeWidth="1.2" strokeOpacity="0.08">
-            <animate attributeName="d" dur="18s" repeatCount="indefinite"
-              values="M0,200 Q480,80 960,200 T1920,200;M0,200 Q480,300 960,200 T1920,200;M0,200 Q480,80 960,200 T1920,200" />
-          </path>
-          <path fill="none" stroke="var(--pl-accent)" strokeWidth="1" strokeOpacity="0.06">
-            <animate attributeName="d" dur="22s" repeatCount="indefinite"
-              values="M0,220 Q240,160 480,220 T960,220 T1440,220;M0,220 Q240,280 480,220 T960,220 T1440,220;M0,220 Q240,160 480,220 T960,220 T1440,220" />
-          </path>
-        </svg>
+      {/* ── Authenticity Stack ── */}
+      <AuthenticityStack />
 
-        {/* Grid dot overlay */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
-          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(var(--pl-accent-glow),.07) 1px, transparent 0)',
-          backgroundSize: '28px 28px',
-        }} />
-
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto', padding: '0 var(--pad)', paddingTop: 'clamp(60px,10vw,100px)', paddingBottom: 'clamp(60px,10vw,120px)', position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 'clamp(40px,6vw,72px)', alignItems: 'center' }}>
-
-          {/* Left copy */}
-          <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease }}>
-            {/* Eyebrow — Voice Analyzer arrival gets its own variant */}
-            {fromVoiceAnalyzer ? (
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginBottom: 18,
-                  fontFamily: 'var(--f-mono)',
-                  fontSize: 11.5,
-                  fontWeight: 500,
-                  letterSpacing: '0.04em',
-                  color: '#fff',
-                  padding: '6px 12px',
-                  border: '1px solid color-mix(in srgb, var(--pl-accent) 60%, transparent)',
-                  borderRadius: 'var(--r-xs)',
-                  background: 'var(--pl-accent)',
-                  boxShadow: 'var(--sh-blue)',
-                }}
-              >
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%', background: '#fff',
-                  animation: 'pulseDot 2.4s ease-in-out infinite', flexShrink: 0,
-                  boxShadow: '0 0 0 3px rgba(255,255,255,.25)',
-                }} />
-                // welcome from the voice analyzer
-              </div>
-            ) : (
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 28,
-                fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em',
-                color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)',
-                borderRadius: 'var(--r-xs)', background: 'var(--surface)',
-              }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%', background: 'var(--pl-accent)',
-                  animation: 'pulseDot 2.4s ease-in-out infinite', flexShrink: 0,
-                  boxShadow: '0 0 0 3px rgba(var(--pl-accent-glow),.15)',
-                }} />
-                // 01 — Personal brand, on autopilot
-              </div>
-            )}
-
-            {/* Voice Analyzer welcome strip */}
-            {fromVoiceAnalyzer && (
-              <div
-                style={{
-                  marginBottom: 28,
-                  padding: '14px 16px',
-                  border: '1px solid color-mix(in srgb, var(--pl-accent) 30%, var(--line))',
-                  borderRadius: 'var(--r-md)',
-                  background: 'color-mix(in srgb, var(--pl-accent) 6%, var(--surface))',
-                  color: 'var(--ink-2)',
-                  fontSize: 14,
-                  lineHeight: 1.55,
-                  maxWidth: 520,
-                }}
-              >
-                <strong style={{ color: 'var(--ink)' }}>Your fingerprint is saved.</strong> Sign in with LinkedIn below
-                and we&apos;ll load it into your account so every post sounds like you from day one.
-              </div>
-            )}
-
-            {/* H1 */}
-            <h1 className="pl-hero-h1" style={{
-              fontFamily: 'var(--f-sans)', fontWeight: 700, lineHeight: 1.06,
-              fontSize: 'clamp(32px,4.2vw,52px)', letterSpacing: '-0.035em',
-              color: 'var(--ink)', marginBottom: 24,
-            }}>
-              Write LinkedIn posts <br className="pl-hero-br" />
-              {serif('that sound')}{' '}
-              exactly like <br className="pl-hero-br" />
-              {serif('you wrote them.')}
-            </h1>
-
-            {/* Lede */}
-            <p style={{ fontSize: 'clamp(15px,1.4vw,17px)', color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 20, maxWidth: 480 }}>
-              PersonaLink studies how you actually write — your rhythm, your vocabulary, the way you start sentences — then generates posts in your exact voice, schedules them, and shows you what resonates. One tool, full loop.
-            </p>
-
-            {/* Workflow pill strip */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 32, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Generate', color: 'var(--pl-accent)' },
-                { label: 'Post', color: 'var(--pl-accent)' },
-                { label: 'Analyse', color: 'var(--pl-accent)' },
-              ].map((item, i) => (
-                <span key={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{
-                    fontFamily: 'var(--f-mono)', fontSize: 12, fontWeight: 600,
-                    color: item.color, background: 'var(--pl-accent-soft)',
-                    border: '1px solid var(--pl-accent)', borderRadius: 'var(--r-pill)',
-                    padding: '4px 12px', letterSpacing: '0.03em',
-                  }}>{item.label}</span>
-                  {i < 2 && <span style={{ color: 'var(--ink-4)', fontSize: 12, fontFamily: 'var(--f-mono)' }}>→</span>}
-                </span>
-              ))}
-              <span style={{ fontSize: 12.5, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', marginLeft: 4 }}>all in one place</span>
-            </div>
-
-            {/* Account type toggle */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: 3, gap: 2, marginBottom: 16 }}>
-              {(['personal', 'business'] as const).map(type => (
-                <button
-                  key={type}
-                  onClick={() => setAccountType(type)}
-                  style={{
-                    padding: '6px 16px', borderRadius: 'calc(var(--r-sm) - 2px)',
-                    fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
-                    transition: 'all .15s',
-                    background: accountType === type ? 'var(--ink)' : 'transparent',
-                    color: accountType === type ? 'var(--bg)' : 'var(--ink-3)',
-                  }}
-                >
-                  {type === 'personal' ? 'Personal' : 'Business'}
-                </button>
-              ))}
-            </div>
-
-            {/* CTAs */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-              <button onClick={handleLinkedInAuth} className="pl-hero-cta-btn" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 9,
-                height: 52, padding: '0 26px', borderRadius: 'var(--r-md)',
-                fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                background: 'var(--ink)', color: 'var(--bg)',
-                border: 'none', boxShadow: 'var(--sh-2)', transition: 'opacity .15s',
-              }}>
-                <LinkedinIcon style={{ width: 17, height: 17 }} />
-                {accountType === 'business' ? 'Connect LinkedIn — business' : 'Connect LinkedIn — free'}
-              </button>
-            </div>
-
-            <a href="#voice" style={{
-              fontFamily: 'var(--f-mono)', fontSize: 12.5, color: 'var(--pl-accent)',
-              textDecoration: 'none', letterSpacing: '0.02em',
-            }}>
-              See how voice matching works →
-            </a>
-
-            {/* Social proof */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 24 }}>
-              <div style={{ display: 'flex' }}>
-                {['var(--pl-accent)', '#7c3aed', '#059669', '#ea580c'].map((c, i) => (
-                  <span key={i} style={{
-                    width: 26, height: 26, borderRadius: '50%',
-                    background: c, border: '2px solid var(--bg)',
-                    marginLeft: i === 0 ? 0 : -8, display: 'inline-block', flexShrink: 0,
-                  }} />
-                ))}
-              </div>
-              <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-                <strong style={{ color: 'var(--ink-2)' }}>500+ founders</strong> shipping in their voice every week
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Right: animated post */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 24 }}>
-            <AnimatedPost />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Marquee ── */}
-      <section aria-label="Used by professionals at" style={{
-        background: 'var(--surface)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)',
-        overflow: 'hidden', padding: '14px 0',
-      }}>
-        <div style={{ display: 'flex', overflow: 'hidden' }}>
-          <div style={{
-            display: 'flex', whiteSpace: 'nowrap',
-            animation: 'marqueeRoll 38s linear infinite',
-          }}>
-            {[...Array(2)].map((_, dupIdx) => (
-              <span key={dupIdx} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                {['Founders', 'VPs of Sales', 'Indie Consultants', 'Product Leaders', 'Career Coaches', 'Marketing Directors', 'Brand Builders', 'Solo Operators'].map((item, i) => (
-                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <span style={{
-                      fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 500,
-                      fontSize: 18, color: 'var(--ink-2)', padding: '0 20px',
-                    }}>{item}</span>
-                    <span style={{ color: 'var(--pl-accent)', opacity: 0.5, fontSize: 10 }}>◆</span>
-                  </span>
-                ))}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stats ── */}
-      <FadeUp>
-        <section style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', padding: 'clamp(40px,6vw,72px) var(--pad)' }}>
-          <div className="pl-stats-grid" style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 0 }}>
-            {[
-              { num: '3200', suffix: '+', label: 'posts shipped\nin customer voices' },
-              { num: '98',   suffix: '%', label: 'avg. tone-match\nagainst original writing' },
-              { num: '6',    suffix: '×', label: 'median profile-view lift\nin first 60 days' },
-              { num: '10',   suffix: 'min', label: 'setup, from sign-in\nto first scheduled post' },
-            ].map((s, i) => (
-              <div key={i} className="pl-stat-item" style={{
-                textAlign: 'center', padding: 'clamp(24px,4vw,40px) 20px',
-                borderRight: i < 3 ? '1px solid var(--line)' : 'none',
-              }}>
-                <div style={{ fontFamily: 'var(--f-sans)', fontWeight: 400, fontSize: 'clamp(36px,5vw,56px)', color: 'var(--ink)', lineHeight: 1, marginBottom: 8, letterSpacing: '-0.04em' }}>
-                  {s.num}<em style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', color: 'var(--pl-accent)', fontWeight: 400, fontSize: '0.65em' }}>{s.suffix}</em>
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </FadeUp>
-
-      {/* ── Workflow Strip: Generate → Post → Analyse ── */}
-      <section style={{ background: 'var(--bg)', borderTop: '1px solid var(--line)', padding: 'clamp(56px,8vw,88px) var(--pad)' }}>
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
-          <FadeUp>
-            <p style={{ textAlign: 'center', fontFamily: 'var(--f-mono)', fontSize: 11.5, letterSpacing: '0.08em', color: 'var(--ink-4)', marginBottom: 52, textTransform: 'uppercase' }}>
-              The full loop — in one place
-            </p>
-          </FadeUp>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'clamp(2px,3vw,2px)', position: 'relative' }}>
-            {[
-              {
-                step: '01',
-                action: 'Generate',
-                desc: 'Drop a thought, a voice note, or a topic. AI drafts a post in your exact rhythm and vocabulary — not "professional AI" voice.',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28, color: 'var(--pl-accent)' }}>
-                    <path d="M12 19l7-7-7-7" /><path d="M5 12h14" />
-                    <circle cx="5" cy="12" r="2" fill="var(--pl-accent)" stroke="none" />
-                  </svg>
-                ),
-              },
-              {
-                step: '02',
-                action: 'Post',
-                desc: 'Auto-publishes at peak times, or lands in your inbox for a one-tap approve. Your cadence, on autopilot.',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28, color: 'var(--pl-accent)' }}>
-                    <rect x="3" y="4" width="18" height="16" rx="2" />
-                    <path d="M8 2v4M16 2v4M3 10h18" />
-                    <path d="M8 14h2M14 14h2M8 18h2" />
-                  </svg>
-                ),
-              },
-              {
-                step: '03',
-                action: 'Analyse',
-                desc: 'See impressions, engagement velocity, and which topics land. Know what to double down on — and what to skip.',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28, color: 'var(--pl-accent)' }}>
-                    <path d="M3 17l4-4 4 4 4-6 4 3" />
-                    <path d="M3 21h18" />
-                  </svg>
-                ),
-              },
-            ].map((item, i) => (
-              <FadeUp key={item.step} delay={i * 0.1}>
-                <div className="pl-workflow-item" style={{
-                  padding: 'clamp(24px,4vw,36px)',
-                  borderLeft: i > 0 ? '1px solid var(--line)' : 'none',
-                  position: 'relative',
-                }}>
-                  {i > 0 && (
-                    <span style={{
-                      position: 'absolute', top: '50%', left: -14, transform: 'translateY(-50%)',
-                      fontFamily: 'var(--f-mono)', fontSize: 18, color: 'var(--pl-accent)', opacity: 0.5,
-                      display: 'none',
-                    }} aria-hidden="true">→</span>
-                  )}
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', marginBottom: 16, letterSpacing: '0.04em' }}>{item.step}</div>
-                  <div style={{ marginBottom: 14 }}>{item.icon}</div>
-                  <h3 style={{
-                    fontFamily: 'var(--f-sans)', fontWeight: 700,
-                    fontSize: 'clamp(22px,2.8vw,30px)', color: 'var(--ink)',
-                    letterSpacing: '-0.035em', lineHeight: 1.1, marginBottom: 12,
-                  }}>{item.action}</h3>
-                  <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 280 }}>{item.desc}</p>
-                </div>
-              </FadeUp>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── Built for India ── */}
+      <BuiltForIndia />
 
       {/* ── Kinetic Words ── */}
       <section style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg)', padding: 'clamp(60px,10vw,120px) var(--pad)', textAlign: 'center' }}>
@@ -743,108 +237,6 @@ function HomeContent() {
               {serif('We hand you your own voice.')}
             </h2>
           </FadeUp>
-        </div>
-      </section>
-
-      {/* ── How it Works ── */}
-      <section id="how" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
-          <FadeUp>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface-2)' }}>
-              // 02 — How it works
-            </div>
-            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 14 }}>
-              Three quiet steps.{' '}{serif('Then it just runs.')}
-            </h2>
-            <p style={{ fontSize: 16, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 560, marginBottom: 56 }}>
-              Most &ldquo;AI writers&rdquo; hand you a blank box and a prompt. PersonaLink starts the other way around — by learning you first.
-            </p>
-          </FadeUp>
-
-          <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {[
-              {
-                n: '01', title: 'Connect & sample',
-                desc: "One-click LinkedIn OAuth. Paste 3 posts you're proud of. We extract sentence rhythm, vocabulary, openings, and pet phrases — your voice fingerprint.",
-                art: (
-                  <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-md)', padding: '16px 20px', fontFamily: 'var(--f-mono)', fontSize: 12.5 }}>
-                    {[
-                      { dot: 'blue', text: 'linkedin · connected' },
-                      { dot: 'blue', text: 'posting permission · granted' },
-                      { dot: 'ok',   text: 'sample posts · 3 ingested' },
-                      { dot: 'mute', text: 'extracting voice fingerprint…' },
-                    ].map((row, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', color: row.dot === 'mute' ? 'var(--ink-4)' : 'var(--ink-2)', borderBottom: i < 3 ? '1px solid var(--line)' : 'none' }}>
-                        {row.dot !== 'mute' && <span style={{ width: 7, height: 7, borderRadius: '50%', background: row.dot === 'ok' ? '#10b981' : 'var(--pl-accent)', flexShrink: 0 }} />}
-                        {row.dot === 'mute' && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ink-4)', flexShrink: 0, opacity: 0.4 }} />}
-                        {row.text}
-                      </div>
-                    ))}
-                  </div>
-                ),
-              },
-              {
-                n: '02', title: 'Tell us the shape of you',
-                desc: "Five minutes. Pillars you care about, audiences you write for, how much control you want — from full autopilot to \"ask me before posting.\"",
-                art: (
-                  <div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
-                      {[['Founder lessons', true], ['Fundraising', true], ['Hiring', false], ['Product craft', true], ['Industry takes', false], ['Behind the scenes', true]].map(([label, on]) => (
-                        <span key={String(label)} style={{
-                          padding: '5px 12px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 500,
-                          background: on ? 'var(--pl-accent-soft)' : 'var(--surface-2)',
-                          color: on ? 'var(--pl-accent)' : 'var(--ink-4)',
-                          border: `1px solid ${on ? 'var(--pl-accent)' : 'var(--line)'}`,
-                        }}>{String(label)}</span>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--f-mono)', fontSize: 11.5, color: 'var(--ink-4)' }}>
-                      <span>Autopilot</span>
-                      <span style={{ flex: 1, height: 4, background: 'var(--surface-3)', borderRadius: 'var(--r-pill)', position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: '65%', top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, borderRadius: '50%', background: 'var(--pl-accent)', boxShadow: '0 0 0 3px rgba(var(--pl-accent-glow),.2)' }} />
-                      </span>
-                      <span>Approve</span>
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                n: '03', title: 'Posts ship. You stay you.',
-                desc: 'Drafts arrive in your inbox or post automatically at peak times. Approve in one tap, edit in two, or let it run. Analytics tells you what\'s actually working.',
-                art: (
-                  <div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
-                      {['M','T','W','T','F','S','S'].map((d, i) => (
-                        <div key={i} style={{ textAlign: 'center', fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--ink-4)', paddingBottom: 4 }}>{d}</div>
-                      ))}
-                      {[false, true, false, true, false, true, false].map((on, i) => (
-                        <div key={i} style={{
-                          height: 32, borderRadius: 'var(--r-sm)',
-                          background: on ? 'var(--pl-accent)' : 'var(--surface-2)',
-                          border: on ? 'none' : '1px solid var(--line)',
-                          boxShadow: on ? 'var(--sh-blue)' : 'none',
-                        }} />
-                      ))}
-                    </div>
-                  </div>
-                ),
-              },
-            ].map((step, i) => (
-              <li key={step.n}>
-                {i > 0 && <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '0 0 40px' }} />}
-                <FadeUp>
-                  <div className="pl-step-row" style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 'clamp(20px,4vw,48px)', alignItems: 'center', paddingBottom: 40 }}>
-                    <div style={{ fontFamily: 'var(--f-mono)', fontSize: 28, fontWeight: 500, color: 'var(--pl-accent)', lineHeight: 1 }}>{step.n}</div>
-                    <div>
-                      <h3 style={{ fontWeight: 600, fontSize: 'clamp(16px,2vw,20px)', color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 10 }}>{step.title}</h3>
-                      <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 440 }}>{step.desc}</p>
-                    </div>
-                    <div className="pl-step-art" style={{ width: 'clamp(180px,22vw,260px)', flexShrink: 0 }}>{step.art}</div>
-                  </div>
-                </FadeUp>
-              </li>
-            ))}
-          </ol>
         </div>
       </section>
 
@@ -1018,69 +410,6 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* ── Voice Section ── */}
-      <section id="voice" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 'clamp(40px,6vw,72px)', alignItems: 'start' }}>
-          {/* Left */}
-          <FadeUp>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface-2)' }}>
-              // 04 — The voice engine
-            </div>
-            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(24px,3.5vw,44px)', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 16 }}>
-              It doesn&apos;t sound like AI.{' '}{serif("It sounds like you on a good day.")}
-            </h2>
-            <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.75, marginBottom: 32, maxWidth: 480 }}>
-              Most generators ship one tone — corporate-helpful. We model six dimensions of how you actually write, then constrain the model inside that space.
-            </p>
-            <VoiceBars />
-          </FadeUp>
-
-          {/* Right: comparison card */}
-          <FadeUp delay={0.15}>
-            <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--sh-2)' }}>
-              {/* Header */}
-              <div className="pl-comparison-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ padding: '14px 20px', borderRight: '1px solid var(--line)' }}>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginBottom: 4 }}>// Generic AI</div>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#ef4444' }}>tone match · 41%</div>
-                </div>
-                <div style={{ padding: '14px 20px' }}>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', marginBottom: 4 }}>// PersonaLink</div>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#10b981' }}>tone match · 98%</div>
-                </div>
-              </div>
-              {/* Body */}
-              <div className="pl-comparison-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div className="pl-comparison-col-left" style={{ padding: '20px', borderRight: '1px solid var(--line)', background: '#fef2f2' }}>
-                  <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.7, marginBottom: 16, fontStyle: 'italic' }}>
-                    &ldquo;In today&apos;s rapidly evolving landscape, leveraging strategic insights is paramount. Here are 5 key takeaways from my recent meeting…&rdquo;
-                  </p>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    {['generic openers', 'buzzword density', 'nothing-rhythm'].map(t => (
-                      <li key={t} style={{ fontSize: 11.5, fontFamily: 'var(--f-mono)', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span>✗</span> {t}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div style={{ padding: '20px', background: '#f0fdf4' }}>
-                  <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.7, marginBottom: 16 }}>
-                    &ldquo;3 things I wish someone told me before my first VC meeting:<br /><br />1. They fund trajectories, not snapshots.<br />2. The best decks have one slide you remember.<br />3. &apos;We&apos;ll follow&apos; usually means &apos;we won&apos;t lead.&apos;&rdquo;
-                  </p>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    {['your opener pattern', 'your numbered take', 'your dry close'].map(t => (
-                      <li key={t} style={{ fontSize: 11.5, fontFamily: 'var(--f-mono)', color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span>✓</span> {t}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </FadeUp>
-        </div>
-      </section>
-
       {/* ── Sample Transformation ── */}
       <section id="sample" style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
@@ -1163,7 +492,7 @@ function HomeContent() {
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
           <FadeUp>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface)' }}>
-              // 05 — In their voice
+              // 04 — In their voice
             </div>
             <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 40 }}>
               What it sounds like {serif('after a quiet quarter.')}
@@ -1258,7 +587,7 @@ function HomeContent() {
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
           <FadeUp>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface)' }}>
-              // 06 — Pricing
+              // 05 — Pricing
             </div>
             <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 12 }}>
               Three plans. {serif('One free week each.')}
@@ -1338,6 +667,59 @@ function HomeContent() {
               )
             })}
           </div>
+
+          {/* Free-tier strip */}
+          <FadeUp>
+            <div className="pl-free-strip" style={{
+              marginTop: 'clamp(24px, 4vw, 36px)',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 'var(--r-lg)',
+              padding: 'clamp(20px, 3vw, 28px) clamp(20px, 3vw, 32px)',
+              boxShadow: 'var(--sh-1)',
+              display: 'grid',
+              gridTemplateColumns: '1fr auto',
+              gap: 'clamp(16px, 3vw, 32px)',
+              alignItems: 'center',
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: 'var(--f-mono)', fontSize: 11.5,
+                  color: 'var(--ink-4)', marginBottom: 6, letterSpacing: '0.04em',
+                }}>
+                  // or — try it free
+                </div>
+                <h3 style={{
+                  fontWeight: 700, fontSize: 'clamp(18px, 2vw, 22px)',
+                  color: 'var(--ink)', letterSpacing: '-0.02em',
+                  lineHeight: 1.25, margin: '0 0 6px',
+                }}>
+                  Free, for as long as you want.
+                </h3>
+                <p style={{
+                  fontSize: 14, color: 'var(--ink-4)',
+                  lineHeight: 1.65, margin: 0, maxWidth: 560,
+                }}>
+                  {TIER_LIMITS.free.postsPerMonth} posts a month. 1 voice fingerprint. Posts ship with a small watermark. No card.
+                </p>
+              </div>
+              <button
+                onClick={handleLinkedInAuth}
+                className="pl-free-strip-cta"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 9,
+                  height: 48, padding: '0 22px', borderRadius: 'var(--r-md)',
+                  fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  background: 'var(--ink)', color: 'var(--bg)',
+                  border: 'none', boxShadow: 'var(--sh-2)',
+                  whiteSpace: 'nowrap', transition: 'opacity .15s',
+                }}
+              >
+                <LinkedinIcon style={{ width: 16, height: 16 }} />
+                Connect LinkedIn — free
+              </button>
+            </div>
+          </FadeUp>
         </div>
       </section>
 
@@ -1346,7 +728,7 @@ function HomeContent() {
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(40px,6vw,72px)', alignItems: 'start' }}>
           <FadeUp>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface)' }}>
-              // 07 — FAQ
+              // 06 — FAQ
             </div>
             <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(24px,3.5vw,44px)', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 16 }}>
               Quiet answers {serif('to loud questions.')}
@@ -1502,7 +884,7 @@ function HomeContent() {
           {/* Link columns */}
           <div className="pl-footer-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
             {[
-              { heading: 'Product', links: [['#features', 'Features'], ['#voice', 'Voice engine'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']] },
+              { heading: 'Product', links: [['#features', 'Features'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']] },
               { heading: 'Company', links: [['#', 'About'], ['#', 'Blog'], ['#', 'Changelog'], ['#', 'Careers']] },
               { heading: 'Legal',   links: [['/privacy', 'Privacy'], ['/terms', 'Terms'], ['#', 'Security'], ['mailto:support@personalink.in', 'Contact']] },
             ].map(col => (

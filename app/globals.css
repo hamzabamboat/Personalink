@@ -495,6 +495,10 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   /* Animated post card — clip rotated ghost cards so they don't overflow viewport */
   .pl-animated-post { overflow: hidden; border-radius: 20px; }
 
+  /* Pricing free-tier strip — stack text above CTA on mobile */
+  .pl-free-strip { grid-template-columns: 1fr !important; }
+  .pl-free-strip-cta { width: 100% !important; justify-content: center !important; }
+
   /* Hero H1 — let text flow naturally on mobile (no forced linebreaks),
      so we don't get single-word orphans on short screens. */
   .pl-hero-br { display: none; }
