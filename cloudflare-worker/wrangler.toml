@@ -1,0 +1,7 @@
+name = "personalink-email-inbound"
+main = "email-handler.ts"
+compatibility_date = "2024-09-23"
+
+# Set secrets via CLI before deploying (never commit these values):
+# wrangler secret put WEBHOOK_URL
+# wrangler secret put INBOUND_SECRET
