@@ -112,7 +112,7 @@ function HomeContent() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex" style={{ gap: 4, alignItems: 'center' }}>
-            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} style={{
                 padding: '8px 14px', fontSize: 14, fontWeight: 500, borderRadius: 'var(--r-sm)',
                 color: 'var(--ink-2)', textDecoration: 'none', transition: 'color .15s',
@@ -154,7 +154,7 @@ function HomeContent() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)}
                 style={{ padding: '12px 0', color: 'var(--ink-2)', fontSize: 16, fontWeight: 500, borderBottom: '1px solid var(--line)', textDecoration: 'none' }}>
                 {label}
@@ -723,6 +723,50 @@ function HomeContent() {
         </div>
       </section>
 
+      {/* ── Agency callout ── */}
+      <FadeUp>
+        <section style={{ background: 'var(--bg)', borderTop: '1px solid var(--line)', padding: 'clamp(48px,6vw,72px) var(--pad)' }}>
+          <div style={{
+            maxWidth: 'var(--max)', margin: '0 auto',
+            display: 'flex', gap: 24, flexWrap: 'wrap',
+            alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ maxWidth: 560 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 12,
+                fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500,
+                letterSpacing: '0.04em', color: 'var(--ink-3)',
+                padding: '6px 12px', border: '1px solid var(--line)',
+                borderRadius: 'var(--r-xs)', background: 'var(--surface)',
+              }}>
+                // for agencies
+              </div>
+              <h3 style={{
+                fontFamily: 'var(--f-sans)', fontWeight: 700,
+                fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)',
+                letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 8px',
+              }}>
+                Running this for 5+ clients?
+              </h3>
+              <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.65, margin: 0 }}>
+                Per-client voice fingerprints, white-label dashboard, INR or international billing. Custom pricing sized to your client count.
+              </p>
+            </div>
+            <a href="/for-agencies" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '14px 26px', background: 'var(--ink)', color: 'var(--bg)',
+              borderRadius: 'var(--r-md)', fontWeight: 600, fontSize: 15,
+              textDecoration: 'none', whiteSpace: 'nowrap',
+            }}>
+              See agency pricing
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 14, height: 14 }}>
+                <path d="M3 8h10M9 4l4 4-4 4" />
+              </svg>
+            </a>
+          </div>
+        </section>
+      </FadeUp>
+
       {/* ── FAQ ── */}
       <section id="faq" style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 'clamp(40px,6vw,72px)', alignItems: 'start' }}>
@@ -746,6 +790,7 @@ function HomeContent() {
                 { q: 'How does the LinkedIn connection work?', a: 'Official LinkedIn OAuth. We only request posting permission. We never read your DMs, never touch your network, never store your password.' },
                 { q: "What if I hit my post limit?", a: "You get a heads-up at 80%. Upgrade your plan or wait for the monthly reset — no surprise charges, ever." },
                 { q: 'Is payment secure?', a: 'All payments run through Razorpay — one of India\'s most trusted gateways. We never see or store your card details.' },
+                { q: 'Can I use this for client accounts at my agency?', a: 'Yes. We have a dedicated agency plan with per-client voice isolation, white-label dashboard, and INR billing with GST. See personalink.in/for-agencies for details and to request a quote.' },
                 { q: 'Can I cancel anytime?', a: 'One click in Settings. You keep full access until the end of your billing period.' },
               ].map((faq, i) => (
                 <details key={i} style={{ borderBottom: '1px solid var(--line)' }}>
@@ -884,7 +929,7 @@ function HomeContent() {
           {/* Link columns */}
           <div className="pl-footer-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
             {[
-              { heading: 'Product', links: [['#features', 'Features'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']] },
+              { heading: 'Product', links: [['#features', 'Features'], ['#pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']] },
               { heading: 'Company', links: [['#', 'About'], ['#', 'Blog'], ['#', 'Changelog'], ['#', 'Careers']] },
               { heading: 'Legal',   links: [['/privacy', 'Privacy'], ['/terms', 'Terms'], ['#', 'Security'], ['mailto:support@personalink.in', 'Contact']] },
             ].map(col => (
