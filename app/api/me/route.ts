@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
           ? { agencyId: agencyContext.id, agencyName: agencyContext.name, clientName: agencyClientName }
           : null,
       },
-      { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' } }
+      { headers: { 'Cache-Control': 'private, no-store' } }
     )
   } catch (err) {
     console.error('[me]', err)

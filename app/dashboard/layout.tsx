@@ -682,7 +682,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     }
     load()
-  }, [router])
+  }, [router, pathname])
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
