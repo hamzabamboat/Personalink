@@ -472,6 +472,73 @@ export async function sendPipelineReminderEmail({
   })
 }
 
+export async function sendSupportReply({
+  to,
+  subject,
+  body,
+}: {
+  to: string
+  subject: string
+  body: string
+}) {
+  const reSubject = subject.startsWith('Re:') ? subject : `Re: ${subject}`
+  return resend().emails.send({
+    from: 'PersonaLink Support <support@personalink.in>',
+    to,
+    subject: reSubject,
+    text: body,
+    html: `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;line-height:1.7;font-size:15px;">${body.split('\n').map(l => `<p style="margin:0 0 12px;">${l}</p>`).join('')}</div>`,
+  })
+}
+
+export async function sendEscalationEmail({
+  originalFrom,
+  subject,
+  originalBody,
+  aiDraft,
+  userContext,
+  escalationReason,
+  confidence,
+}: {
+  originalFrom: string
+  subject: string
+  originalBody: string
+  aiDraft: string
+  userContext: string
+  escalationReason: string | null
+  confidence: number
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL || 'hamzabamboat@gmail.com'
+  const confidencePct = Math.round(confidence * 100)
+
+  return resend().emails.send({
+    from: 'PersonaLink Support <support@personalink.in>',
+    to: adminEmail,
+    replyTo: originalFrom,
+    subject: `[SUPPORT] ${subject}`,
+    html: `
+<div style="font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#0f172a;font-size:14px;line-height:1.6;">
+
+  <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:20px;color:#92400e;">
+    <strong>AI confidence: ${confidencePct}%</strong>${escalationReason ? ` — ${escalationReason}` : ''}
+    <br><span style="font-size:12px;">Hit Reply to respond directly to ${originalFrom}</span>
+  </div>
+
+  <div style="background:#f1f5f9;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-family:monospace;font-size:13px;white-space:pre-wrap;">${userContext}</div>
+
+  <p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Original email</p>
+  <div style="border-left:3px solid #e2e8f0;padding:12px 16px;margin-bottom:20px;color:#374151;white-space:pre-wrap;">${originalBody}</div>
+
+  ${aiDraft ? `
+  <p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">AI draft (edit before sending)</p>
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;white-space:pre-wrap;color:#166534;">${aiDraft}</div>
+  ` : ''}
+
+</div>`,
+    text: `AI confidence: ${confidencePct}%${escalationReason ? ` — ${escalationReason}` : ''}\nReply to this email to respond directly to ${originalFrom}.\n\n--- USER CONTEXT ---\n${userContext}\n\n--- ORIGINAL EMAIL ---\n${originalBody}${aiDraft ? `\n\n--- AI DRAFT (edit before sending) ---\n${aiDraft}` : ''}`,
+  })
+}
+
 export async function sendAdminAlert({ subject, body }: { subject: string; body: string }) {
   const adminEmail = process.env.ADMIN_EMAIL || 'hamzabamboat@gmail.com'
   return resend().emails.send({
