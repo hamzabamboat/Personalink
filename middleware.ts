@@ -108,7 +108,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const country = request.headers.get('x-vercel-ip-country') ?? 'IN'
+  // India-first: PersonaLink is built for the Indian market, so we treat
+  // strong Indian signals (Accept-Language with en-IN / hi / bn / ta / te,
+  // or no country header at all) as 'IN'. We only flip away from INR when
+  // Vercel positively identifies a known non-Indian country.
+  const acceptLang = (request.headers.get('accept-language') || '').toLowerCase()
+  const looksIndianByLang =
+    acceptLang.includes('en-in') ||
+    /\bhi\b|\bbn\b|\bta\b|\bte\b|\bml\b|\bkn\b|\bmr\b|\bgu\b|\bpa\b/.test(acceptLang)
+  const rawCountry = request.headers.get('x-vercel-ip-country')
+  const country = looksIndianByLang ? 'IN' : (rawCountry ?? 'IN')
 
   // ── Redirect logged-in users away from public entry points (/ and /upgrade) ─
   const isPublicPage = pathname === '/' || pathname === '/upgrade'

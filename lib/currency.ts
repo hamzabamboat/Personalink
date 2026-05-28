@@ -75,7 +75,7 @@ export const CURRENCIES = {
   CY: viewFor('EUR'),
   MT: viewFor('EUR'),
   HR: viewFor('EUR'),
-  DEFAULT: viewFor('USD'),
+  DEFAULT: viewFor('INR'),
 }
 
 export const CURRENCY_TO_INR = PC_CURRENCY_TO_INR as unknown as Record<string, number>

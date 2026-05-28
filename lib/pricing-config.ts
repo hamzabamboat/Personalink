@@ -408,13 +408,20 @@ const EUR_COUNTRIES = new Set([
   'SK', 'SI', 'EE', 'LV', 'LT', 'CY', 'MT', 'HR',
 ])
 
+/**
+ * India-first default. When we can't detect a country (no header, no cookie,
+ * unrecognised code) we show INR — PersonaLink is built primarily for the
+ * Indian market and showing $ or € to an Indian customer is worse than
+ * occasionally showing ₹ to a non-Indian (who can switch the picker).
+ */
 export function detectCurrencyByCountry(country?: string | null): Currency {
-  if (!country) return 'USD'
+  if (!country) return 'INR'
   const c = country.toUpperCase()
   if (c === 'IN') return 'INR'
+  if (c === 'US' || c === 'CA' || c === 'AU' || c === 'NZ' || c === 'SG' || c === 'HK' || c === 'JP') return 'USD'
   if (c === 'GB' || c === 'UK') return 'GBP'
   if (EUR_COUNTRIES.has(c)) return 'EUR'
-  return 'USD'
+  return 'INR'
 }
 
 export function getPaymentProcessor(currency: Currency): 'razorpay' | 'dodo' {
