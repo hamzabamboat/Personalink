@@ -65,8 +65,25 @@ function HomeContent() {
   const [scrolled, setScrolled] = useState(false)
   const [activeSample, setActiveSample] = useState(0)
   const [accountType, setAccountType] = useState<'personal' | 'business'>('personal')
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly')
+  const [billingMounted, setBillingMounted] = useState(false)
   const currency = useCurrency()
   const vaArrivalFiredRef = useRef(false)
+
+  // Hydrate billing toggle from the same localStorage key used by /pricing.
+  // The `billingMounted` flag prevents the write-back effect from clobbering
+  // the saved value during the first paint (initial state is always 'monthly').
+  useEffect(() => {
+    const saved = typeof window !== 'undefined'
+      ? localStorage.getItem('personalink_billing_period')
+      : null
+    if (saved === 'annual') setBillingPeriod('annual')
+    setBillingMounted(true)
+  }, [])
+  useEffect(() => {
+    if (!billingMounted || typeof window === 'undefined') return
+    localStorage.setItem('personalink_billing_period', billingPeriod)
+  }, [billingPeriod, billingMounted])
 
   function handleLinkedInAuth() {
     document.cookie = `account_type=${accountType}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`
@@ -112,7 +129,7 @@ function HomeContent() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex" style={{ gap: 4, alignItems: 'center' }}>
-            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#features', 'Features'], ['/pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} style={{
                 padding: '8px 14px', fontSize: 14, fontWeight: 500, borderRadius: 'var(--r-sm)',
                 color: 'var(--ink-2)', textDecoration: 'none', transition: 'color .15s',
@@ -154,7 +171,7 @@ function HomeContent() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[['#features', 'Features'], ['#pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#features', 'Features'], ['/pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)}
                 style={{ padding: '12px 0', color: 'var(--ink-2)', fontSize: 16, fontWeight: 500, borderBottom: '1px solid var(--line)', textDecoration: 'none' }}>
                 {label}
@@ -592,9 +609,46 @@ function HomeContent() {
             <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 12 }}>
               Three plans. {serif('One free week each.')}
             </h2>
-            <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 480, marginBottom: 44 }}>
+            <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 480, marginBottom: 28 }}>
               Pick the cadence that matches the year you&apos;re trying to have. Upgrade anytime. Cancel in one click.
             </p>
+
+            {/* Monthly / Annual toggle */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: 4, borderRadius: 'var(--r-pill)',
+              background: 'var(--surface)', border: '1px solid var(--line)',
+              marginBottom: 36,
+            }}>
+              {(['monthly', 'annual'] as const).map(period => {
+                const active = billingPeriod === period
+                return (
+                  <button
+                    key={period}
+                    onClick={() => setBillingPeriod(period)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '8px 16px', borderRadius: 'var(--r-pill)',
+                      fontFamily: 'var(--f-sans)', fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', border: 'none',
+                      background: active ? 'var(--ink)' : 'transparent',
+                      color: active ? 'var(--bg)' : 'var(--ink-3)',
+                      transition: 'background .15s, color .15s',
+                    }}
+                  >
+                    {period === 'monthly' ? 'Monthly' : 'Annual'}
+                    {period === 'annual' && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        padding: '2px 7px', borderRadius: 'var(--r-pill)',
+                        background: active ? 'rgba(255,255,255,.18)' : '#16a34a',
+                        color: '#fff',
+                      }}>Save 25%</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </FadeUp>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, alignItems: 'stretch' }}>
@@ -612,7 +666,9 @@ function HomeContent() {
                 features: TIER_FEATURE_BULLETS.pro.slice(4, 10),
               },
             ].map(plan => {
-              const price = plan.id === 'starter' ? currency.starter : plan.id === 'standard' ? currency.standard : currency.pro
+              const monthlyPrice = plan.id === 'starter' ? currency.starter : plan.id === 'standard' ? currency.standard : currency.pro
+              const annualTotal = plan.id === 'starter' ? currency.annualStarter : plan.id === 'standard' ? currency.annualStandard : currency.annualPro
+              const displayPrice = billingPeriod === 'annual' ? Math.round(annualTotal / 12) : monthlyPrice
               return (
                 <FadeUp key={plan.id}>
                   <div style={{
@@ -641,9 +697,16 @@ function HomeContent() {
                       }}>7-day free trial</span>
                     </div>
                     <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.04em', color: plan.popular ? '#fff' : 'var(--ink)', lineHeight: 1, marginBottom: 4 }}>
-                      <span style={{ fontSize: 22, fontWeight: 400 }}>{currency.symbol}</span>{price.toLocaleString()}
+                      <span style={{ fontSize: 22, fontWeight: 400 }}>{currency.symbol}</span>{displayPrice.toLocaleString()}
                     </div>
-                    <div style={{ fontSize: 13, color: plan.popular ? 'rgba(255,255,255,.5)' : 'var(--ink-4)', marginBottom: 24 }}>/ mo · {plan.posts}</div>
+                    <div style={{ fontSize: 13, color: plan.popular ? 'rgba(255,255,255,.5)' : 'var(--ink-4)', marginBottom: billingPeriod === 'annual' ? 4 : 24 }}>
+                      / mo · {plan.posts}
+                    </div>
+                    {billingPeriod === 'annual' && (
+                      <div style={{ fontSize: 12, color: plan.popular ? 'rgba(255,255,255,.45)' : 'var(--ink-4)', marginBottom: 24 }}>
+                        Billed {currency.symbol}{annualTotal.toLocaleString()}/yr
+                      </div>
+                    )}
                     <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {plan.features.map(f => (
                         <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, color: plan.popular ? 'rgba(255,255,255,.8)' : 'var(--ink-2)' }}>
@@ -929,7 +992,7 @@ function HomeContent() {
           {/* Link columns */}
           <div className="pl-footer-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
             {[
-              { heading: 'Product', links: [['#features', 'Features'], ['#pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']] },
+              { heading: 'Product', links: [['#features', 'Features'], ['/pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']] },
               { heading: 'Company', links: [['#', 'About'], ['#', 'Blog'], ['#', 'Changelog'], ['#', 'Careers']] },
               { heading: 'Legal',   links: [['/privacy', 'Privacy'], ['/terms', 'Terms'], ['#', 'Security'], ['mailto:support@personalink.in', 'Contact']] },
             ].map(col => (
