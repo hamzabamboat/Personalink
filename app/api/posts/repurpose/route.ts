@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { repurposePost } from '@/lib/anthropic'
+import { cleanThroughAIGate } from '@/lib/ai-detector'
+import { getVoiceExemplars } from '@/lib/voice'
+import type { UserProfile } from '@/lib/supabase'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
@@ -70,7 +73,29 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    const angles = await repurposePost(post.content, fullProfile || profile)
+    const gateProfile = (fullProfile || profile) as UserProfile
+    const rawAngles = await repurposePost(post.content, gateProfile)
+
+    // Few-shot voice exemplars (fall back to onboarding writing sample)
+    let voiceExemplars: string[] = []
+    try { voiceExemplars = await getVoiceExemplars(user.id) } catch { /* non-fatal */ }
+    if (voiceExemplars.length === 0 && fullProfile?.writing_sample) {
+      voiceExemplars = [fullProfile.writing_sample as string]
+    }
+
+    // Run every repurposed angle through the anti-AI-detection gate
+    const angles = await Promise.all(
+      rawAngles.map(async (angle) => {
+        try {
+          const gate = await cleanThroughAIGate(angle, { profile: gateProfile, voiceExemplars })
+          return gate.content
+        } catch (e) {
+          console.warn('[posts/repurpose] cleanThroughAIGate failed for angle (non-fatal):', e)
+          return angle
+        }
+      })
+    )
+
     await Promise.all([
       incrementUsage(user.id, 'repurpose_runs'),
       incrementRateLimit(user.id, 'claude_calls'),

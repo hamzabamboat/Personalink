@@ -32,6 +32,9 @@ type Metrics = {
   total_users: number
   active_subscribers: number
   posts_today: number
+  avg_ai_detection_score: number
+  pct_drafts_rewritten: number
+  ai_posts_30d: number
 }
 
 type Revenue = {
@@ -196,6 +199,7 @@ export default function AdminDashboard() {
             <MetricCard label="Total Posts Generated" value={metrics.total_posts_all_time.toLocaleString('en-IN')} sub="all time" />
             <MetricCard label="Users At Post Limit" value={metrics.users_at_post_limit} sub="this month" />
             <MetricCard label="Onboarding Completion" value={`${metrics.onboarding_completion_rate}%`} sub={`${metrics.total_users} users total`} />
+            <MetricCard label="Avg AI Detection Score" value={metrics.avg_ai_detection_score} sub={`${metrics.pct_drafts_rewritten}% rewritten · ${metrics.ai_posts_30d} posts in 30d`} />
           </div>
         ) : null}
       </div>

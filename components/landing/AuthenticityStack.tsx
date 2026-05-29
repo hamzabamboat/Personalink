@@ -365,8 +365,14 @@ export function AuthenticityStack() {
             }}>
               Built to pass for human.
             </h3>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.65, marginBottom: 20 }}>
+            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.65, marginBottom: 16 }}>
               Toggle a generic GPT post next to one PersonaLink wrote. The detector tells the story.
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.7, marginBottom: 20 }}>
+              <span style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-2)' }}>
+                Triadic openings · Aphoristic closers · Symmetric callbacks · Hedging pivots.
+              </span>{' '}
+              Nine patterns the detectors flag. Every draft scanned, every flag rewritten in your voice. Then scanned again.
             </p>
             <HumanizerDemo />
           </motion.div>

@@ -3,7 +3,7 @@ import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { anthropic, generateLinkedInPosts } from '@/lib/anthropic'
 import { getVoiceExemplars } from '@/lib/voice'
-import { humanizeText } from '@/lib/humanize'
+import { cleanThroughAIGate } from '@/lib/ai-detector'
 import { UserProfile } from '@/lib/supabase'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
@@ -345,10 +345,23 @@ export async function POST(request: NextRequest) {
     : controlPreference === 'suggest' ? 'draft'
     : 'pending_approval'
 
-  const insertPayloads = allPosts.map((post, i) => {
-    // humanizeText can theoretically throw — fall back to raw AI content
+  // Every draft runs through the anti-AI-detection gate before insert
+  // (humanizeText -> detect -> up to 2 Haiku rewrites). Fall back to the raw
+  // AI content only if the gate itself throws.
+  const insertPayloads = await Promise.all(allPosts.map(async (post, i) => {
     let content = post.content
-    try { content = humanizeText(post.content) } catch { /* non-fatal: use raw content */ }
+    let aiScore = 0
+    let aiPatterns: string[] = []
+    let aiAttempts = 0
+    try {
+      const gate = await cleanThroughAIGate(post.content, { profile: profile as unknown as UserProfile, voiceExemplars })
+      content = gate.content
+      aiScore = gate.finalScore
+      aiPatterns = gate.patternsAtSave
+      aiAttempts = gate.rewriteAttempts
+    } catch (e) {
+      console.warn('[generate-batch] cleanThroughAIGate failed (non-fatal):', e)
+    }
     return {
       user_id: user.id,
       content,
@@ -356,9 +369,12 @@ export async function POST(request: NextRequest) {
       source: 'ai_generated',
       status: postStatus,
       scheduled_at: slots[i]?.toISOString() ?? null,
+      ai_detection_score: aiScore,
+      ai_detection_patterns: aiPatterns,
+      ai_rewrite_attempts: aiAttempts,
       ...(post.story_bank_id ? { story_bank_id: post.story_bank_id } : {}),
     }
-  })
+  }))
 
   const { data: insertedPosts, error: insertError } = await supabaseAdmin
     .from('posts')

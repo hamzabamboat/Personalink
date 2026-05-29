@@ -275,15 +275,33 @@ LinkedIn post rules:
 5. 150-300 words for most posts (up to 500 for deep insights)
 6. Sound like a real person writing for themselves — not a press release, not an AI assistant
 7. Match the author's exact sentence length, vocabulary, and rhythm from the REAL WRITING samples above — copy their voice, not their topics
-8. WRITE LIKE A HUMAN, NOT AN AI (this is critical):
-   - High burstiness: deliberately mix very short sentences (2-5 words) with longer, winding ones. Real people are uneven. Never let sentences settle into a uniform length or rhythm.
-   - Vary paragraph length unpredictably — a one-line paragraph, then a three-line one.
-   - Allow natural human texture: the occasional sentence fragment, a mid-thought dash, an aside, a slightly imperfect transition. Do not over-polish.
-   - Use concrete, specific details and the person's own plain words from the samples — avoid smooth, generic, "balanced" phrasing.
-   - Do not write in the tidy, evenly-weighted, summary-like cadence that AI defaults to. No "Firstly/Secondly", no neat tricolons in every paragraph, no symmetrical structure.
-9. BANNED phrases — never use: "game changer", "paradigm shift", "move the needle", "hustle harder", "built different", "showing up", "consistency is key", "trust the process", "level up", "crushing it", "this changed everything", "nobody talks about this", "unpopular opinion", "hard truth", "real talk", "at the end of the day", "deep dive", "synergy", "low-hanging fruit", "in today's world", "in a world where", "let's dive in", "the truth is", "here's the thing", "needle-moving", "it's not just X, it's Y"
-10. BANNED formats — do not use numbered lists (1. 2. 3.) or heavy bullet point lists. Use narrative paragraphs instead. No em-dash-heavy "AI rhythm".
-11. BANNED storytelling arcs — avoid "I failed, then I learned", fake vulnerability designed to perform rather than share, and fabricated journey narratives${avoidTopics}
+8. STRUCTURE — patterns AI detectors look for. Every single one of these is forbidden:
+   ❌ Triadic anaphora — 3+ sentences or clauses starting with the same word
+      Bad: "When you can't hide… When your old friends… When nobody knows…"
+      Good: vary the openings, break the rhythm
+   ❌ Aphoristic closer — wisdom-statement ending
+      Bad: "Sometimes the worst thing is the best thing wearing a disguise."
+      Good: end on a concrete detail, a flat observation, or stop mid-thought
+   ❌ Symmetric callback — back-to-back sentences with identical scaffolding
+      Bad: "None of that happens if X. None of that happens if Y."
+      Bad: "I wasn't the kid who X. I definitely wasn't the kid who Y."
+      Good: use the structure once, or not at all
+   ❌ Hedging / pivot opener — "Funny how X works though" / "Here's the thing" / "The thing is" / "It's worth noting" / "Plot twist"
+      Good: just say the next thing
+   ❌ "Not X, it's Y" / "Not just X, it's Y" pivot
+      Good: pick one side and say it
+   ❌ Tricolons in every paragraph — "pitch, speak, cold call" rhythm repeated
+      Good: one list per post, max. Real people don't think in threes.
+   ❌ Generic abstraction without grounding — "people", "things", "moments", "lessons"
+      Good: name the specific person, day, place, dollar amount, number
+
+9. RHYTHM — high burstiness is mandatory. Mix very short sentences (2-5 words) with longer ones. Allow fragments. Allow slightly imperfect transitions. Do not over-polish. Real people are uneven; AI averages out.
+
+10. BANNED phrases — never use: "game changer", "paradigm shift", "move the needle", "hustle harder", "built different", "showing up", "consistency is key", "trust the process", "level up", "crushing it", "this changed everything", "nobody talks about this", "unpopular opinion", "hard truth", "real talk", "at the end of the day", "deep dive", "synergy", "low-hanging fruit", "in today's world", "in a world where", "let's dive in", "the truth is", "here's the thing", "needle-moving"
+
+11. BANNED formats — no numbered lists (1. 2. 3.), no heavy bullet point lists, no em-dash rhythm. Narrative paragraphs only.
+
+12. BANNED arcs — no "I failed, then I learned", no fake vulnerability designed to perform rather than share, no fabricated journey narratives${avoidTopics}
 ${imageContext ? `\n${imageContext}\nWrite the post so it naturally connects to what is shown in these photos. Reference the images implicitly — the post should feel written specifically to accompany them.` : ''}`
 
   const userPrompt = `${sourceContext}
@@ -304,6 +322,7 @@ Write 3 different LinkedIn post options with different angles/hooks. Format:
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: 2500,
+    temperature: 0.85,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   })

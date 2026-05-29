@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateLinkedInPosts, extractMemoriesFromContent, extractTopicsFromPost } from '@/lib/anthropic'
 import { getVoiceExemplars, addVoiceSample } from '@/lib/voice'
-import { humanizeText } from '@/lib/humanize'
+import { cleanThroughAIGate } from '@/lib/ai-detector'
 import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { getNextTier, getTierLimits, tierLabel, type TierID } from '@/lib/pricing-config'
@@ -190,8 +190,12 @@ export async function POST(request: NextRequest) {
     voiceExemplars,
   })
 
-  // Strip mechanical AI typographic tells from every draft (free, no API)
-  const validPosts = posts.map(p => humanizeText(p)).filter(p => p && p.trim().length >= 50)
+  // Run every draft through the anti-AI-detection gate
+  // (humanizeText -> detectAIStructures -> up to 2 Haiku rewrites)
+  const gateResults = await Promise.all(
+    posts.map(p => cleanThroughAIGate(p, { profile, voiceExemplars }))
+  )
+  const validPosts = gateResults.filter(g => g.content && g.content.trim().length >= 50)
   if (validPosts.length === 0) {
     return NextResponse.json({ error: 'Generation failed — response too short. Please try again.' }, { status: 500 })
   }
@@ -222,7 +226,8 @@ export async function POST(request: NextRequest) {
 
   // Save posts — each gets its own pre-assigned scheduled slot
   const insertedPosts = await Promise.all(
-    validPosts.map(async (content, idx) => {
+    validPosts.map(async (gate, idx) => {
+      const content = gate.content
       const scores = analyzeContent(content)
       const similarityScore = calculateSimilarityScore(content, recentContents)
       const scheduledAt = slots[idx]?.toISOString() ?? null
@@ -242,6 +247,9 @@ export async function POST(request: NextRequest) {
         originality_score: scores.originality_score,
         similarity_score: similarityScore,
         requires_manual_review: scores.requires_manual_review,
+        ai_detection_score: gate.finalScore,
+        ai_detection_patterns: gate.patternsAtSave,
+        ai_rewrite_attempts: gate.rewriteAttempts,
       }
       if (selectedImageUrls.length) fullRow.image_urls = selectedImageUrls
 

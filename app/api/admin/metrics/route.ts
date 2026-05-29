@@ -16,12 +16,19 @@ export async function GET(request: NextRequest) {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-  const [usersRes, profilesRes, postsRes, scoresRes, subscriptionsRes] = await Promise.all([
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [usersRes, profilesRes, postsRes, scoresRes, subscriptionsRes, aiPostsRes] = await Promise.all([
     supabaseAdmin.from('users').select('id, subscription_status, created_at'),
     supabaseAdmin.from('user_profiles').select('user_id, plan, posts_used_this_month, posts_limit, onboarding_completed_at'),
     supabaseAdmin.from('posts').select('id, created_at'),
     supabaseAdmin.from('linkedin_scores').select('score'),
     supabaseAdmin.from('subscriptions').select('user_id, status, plan_id, start_date'),
+    supabaseAdmin
+      .from('posts')
+      .select('ai_detection_score, ai_rewrite_attempts')
+      .gte('created_at', thirtyDaysAgo)
+      .not('ai_detection_score', 'is', null),
   ])
 
   const users = usersRes.data || []
@@ -29,6 +36,7 @@ export async function GET(request: NextRequest) {
   const posts = postsRes.data || []
   const scores = scoresRes.data || []
   const subscriptions = subscriptionsRes.data || []
+  const aiPosts = aiPostsRes.data || []
 
   const profileMap = Object.fromEntries(profiles.map(p => [p.user_id, p]))
   const activeUsers = users.filter(u => u.subscription_status === 'active')
@@ -57,6 +65,12 @@ export async function GET(request: NextRequest) {
   const completedOnboarding = profiles.filter(p => p.onboarding_completed_at).length
   const onboardingRate = profiles.length > 0 ? Math.round((completedOnboarding / profiles.length) * 100) : 0
 
+  // Anti-AI-detection metrics — last 30 days of posts that ran through the gate
+  const aiScoreSum = aiPosts.reduce((s, p) => s + (p.ai_detection_score ?? 0), 0)
+  const avgAiDetectionScore = aiPosts.length > 0 ? Math.round(aiScoreSum / aiPosts.length) : 0
+  const rewrittenCount = aiPosts.filter(p => (p.ai_rewrite_attempts ?? 0) >= 1).length
+  const pctDraftsRewritten = aiPosts.length > 0 ? Math.round((rewrittenCount / aiPosts.length) * 100) : 0
+
   return NextResponse.json({
     new_signups_today: newSignupsToday,
     mrr,
@@ -69,5 +83,8 @@ export async function GET(request: NextRequest) {
     total_users: users.length,
     active_subscribers: activeUsers.length,
     posts_today: postsToday,
+    avg_ai_detection_score: avgAiDetectionScore,
+    pct_drafts_rewritten: pctDraftsRewritten,
+    ai_posts_30d: aiPosts.length,
   })
 }

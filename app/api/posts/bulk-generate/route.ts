@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateLinkedInPosts } from '@/lib/anthropic'
+import { cleanThroughAIGate } from '@/lib/ai-detector'
+import { getVoiceExemplars } from '@/lib/voice'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
@@ -39,23 +41,36 @@ export async function POST(request: NextRequest) {
   const postsPerPillar = Math.ceil(Math.min(30, postsCheck.remaining) / pillars.length)
   const inserted: unknown[] = []
 
+  // Few-shot voice exemplars (fall back to onboarding writing sample)
+  let voiceExemplars: string[] = []
+  try { voiceExemplars = await getVoiceExemplars(user.id) } catch { /* non-fatal */ }
+  if (voiceExemplars.length === 0 && profile.writing_sample) {
+    voiceExemplars = [profile.writing_sample as string]
+  }
+
   let dayOffset = 0
   for (const pillar of pillars) {
     try {
-      const posts = await generateLinkedInPosts({ profile, topic: `Write about ${pillar}` })
-      for (const content of posts.slice(0, postsPerPillar)) {
+      const posts = await generateLinkedInPosts({ profile, topic: `Write about ${pillar}`, voiceExemplars })
+      for (const rawContent of posts.slice(0, postsPerPillar)) {
+        const gate = await cleanThroughAIGate(rawContent, { profile, voiceExemplars })
+        if (!gate.content || gate.content.trim().length < 50) continue
+
         const scheduledAt = new Date()
         scheduledAt.setDate(scheduledAt.getDate() + dayOffset)
         scheduledAt.setHours(profile.preferred_post_hour || 9, 0, 0, 0)
 
         const { data } = await supabaseAdmin.from('posts').insert({
           user_id: user.id,
-          content,
+          content: gate.content,
           status: 'scheduled',
           source: 'ai_generated',
           content_pillar: pillar,
           scheduled_at: scheduledAt.toISOString(),
           generation_prompt: `Bulk: ${pillar}`,
+          ai_detection_score: gate.finalScore,
+          ai_detection_patterns: gate.patternsAtSave,
+          ai_rewrite_attempts: gate.rewriteAttempts,
         }).select().single()
 
         if (data) inserted.push(data)
