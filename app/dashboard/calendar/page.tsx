@@ -671,12 +671,14 @@ export default function CalendarPage() {
                             </button>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <button onClick={approveScheduleFromEdit} disabled={saving}
-                              className="w-full flex items-center justify-center gap-1.5 transition-opacity"
-                              style={{ background: '#10b981', color: '#fff', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}>
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              {saving ? 'Working…' : 'Approve & Schedule'}
-                            </button>
+                            {['draft', 'pending_approval', 'approved'].includes(post.status) && (
+                              <button onClick={approveScheduleFromEdit} disabled={saving}
+                                className="w-full flex items-center justify-center gap-1.5 transition-opacity"
+                                style={{ background: '#10b981', color: '#fff', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}>
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {saving ? 'Working…' : 'Approve & Schedule'}
+                              </button>
+                            )}
                             <div className="flex gap-2">
                               <button onClick={savePostEdit} disabled={saving}
                                 className="flex-1 transition-opacity"

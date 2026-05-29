@@ -316,20 +316,22 @@ function PostsContent() {
           </div>
 
           <div className="flex flex-col gap-2 pt-1">
-            <button
-              onClick={saveAndSchedule}
-              disabled={saving}
-              className="w-full flex items-center justify-center gap-2 transition-opacity"
-              style={{
-                background: '#10b981', color: '#fff',
-                borderRadius: 'var(--r-sm)', padding: '10px 16px',
-                fontSize: 14, fontWeight: 600,
-                opacity: saving ? 0.6 : 1,
-              }}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              {saving ? 'Working…' : 'Approve & Schedule'}
-            </button>
+            {editingPost && ['draft', 'pending_approval', 'approved'].includes(editingPost.status) && (
+              <button
+                onClick={saveAndSchedule}
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-2 transition-opacity"
+                style={{
+                  background: '#10b981', color: '#fff',
+                  borderRadius: 'var(--r-sm)', padding: '10px 16px',
+                  fontSize: 14, fontWeight: 600,
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {saving ? 'Working…' : 'Approve & Schedule'}
+              </button>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={saveEdit}
