@@ -24,16 +24,17 @@ export async function findOrCreateEmailUser(emailRaw: string): Promise<EmailUser
   if (existing) return { userId: existing.id as string, isNew: false }
 
   const userId = crypto.randomUUID()
-  await supabaseAdmin.from('users').insert({
+  const { error: userError } = await supabaseAdmin.from('users').insert({
     id: userId,
     email,
     signup_source: 'email_magic_link',
     subscription_status: 'inactive',
     updated_at: new Date().toISOString(),
   })
+  if (userError) throw new Error(`email-auth: user insert failed: ${userError.message}`)
 
   // Minimal free profile so post generation (which requires a profile) works.
-  await supabaseAdmin.from('user_profiles').upsert(
+  const { error: profileError } = await supabaseAdmin.from('user_profiles').upsert(
     {
       user_id: userId,
       plan: 'free',
@@ -49,6 +50,7 @@ export async function findOrCreateEmailUser(emailRaw: string): Promise<EmailUser
     },
     { onConflict: 'user_id' },
   )
+  if (profileError) console.error('[email-auth] profile upsert failed', profileError)
 
   return { userId, isNew: true }
 }
