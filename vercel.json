@@ -11,6 +11,14 @@
     {
       "path": "/api/cron/expire-plans",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/day2-nudge",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/day7-stats",
+      "schedule": "0 9 * * *"
     }
   ]
 }
