@@ -1121,3 +1121,83 @@ export async function sendAgencyInquiryAutoReply(params: {
     ].join('\n'),
   })
 }
+
+/* ─────────────────────────────────────────────
+ * Value-first onboarding emails
+ * ─────────────────────────────────────────────
+ * Magic-link, welcome, day-2 nudge, day-7 stats.
+ */
+
+export async function sendMagicLinkEmail({ to, verifyUrl }: { to: string; verifyUrl: string }) {
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: 'Your PersonaLink sign-in link',
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+        <h1 style="font-size:20px;margin:0 0 12px">Your voice is ready.</h1>
+        <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 20px">
+          Click below to open your PersonaLink account — your voice fingerprint is already loaded.
+        </p>
+        <a href="${verifyUrl}" style="display:inline-block;background:#0A66C2;color:#fff;font-weight:600;
+          font-size:15px;padding:12px 20px;border-radius:10px;text-decoration:none">Open my account →</a>
+        <p style="font-size:12px;color:#94a3b8;margin:24px 0 0">This link expires in 15 minutes and can be used once.</p>
+      </div>`,
+  })
+}
+
+export async function sendEmailSignupWelcomeEmail({ to }: { to: string }) {
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: 'Welcome to PersonaLink — generate your first post',
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+        <h1 style="font-size:20px;margin:0 0 12px">You're in.</h1>
+        <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 20px">
+          Your voice fingerprint is saved. Generate your first post in your own voice — it takes about a minute.
+        </p>
+        <a href="${APP_URL}/welcome" style="display:inline-block;background:#0A66C2;color:#fff;font-weight:600;
+          font-size:15px;padding:12px 20px;border-radius:10px;text-decoration:none">Generate my first post →</a>
+      </div>`,
+  })
+}
+
+export async function sendDay2NudgeEmail({ to, userName }: { to: string; userName: string }) {
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: 'Your voice is waiting — post #2 in a minute',
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+        <h1 style="font-size:20px;margin:0 0 12px">Hey ${userName},</h1>
+        <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 20px">
+          You generated a post in your voice. Keep the streak going — your next one is one click away.
+        </p>
+        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#0A66C2;color:#fff;font-weight:600;
+          font-size:15px;padding:12px 20px;border-radius:10px;text-decoration:none">Write another →</a>
+      </div>`,
+  })
+}
+
+export async function sendDay7StatsEmail({
+  to, userName, postsGenerated,
+}: { to: string; userName: string; postsGenerated: number }) {
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: 'Your first week on PersonaLink',
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+        <h1 style="font-size:20px;margin:0 0 12px">One week in, ${userName}.</h1>
+        <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 8px">
+          You've generated <strong>${postsGenerated}</strong> post${postsGenerated === 1 ? '' : 's'} in your voice so far.
+        </p>
+        <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 20px">
+          Upgrade to Starter for 12 posts/month, scheduling, and no watermark.
+        </p>
+        <a href="${APP_URL}/upgrade" style="display:inline-block;background:#0A66C2;color:#fff;font-weight:600;
+          font-size:15px;padding:12px 20px;border-radius:10px;text-decoration:none">See plans →</a>
+      </div>`,
+  })
+}
