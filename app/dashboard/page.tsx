@@ -21,6 +21,7 @@ import { showUpgradeModal } from '@/components/upgrade-limit-modal'
 import { DisplayHeading } from '@/components/display-heading'
 import { Eyebrow } from '@/components/eyebrow'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { RefinementCard } from '@/components/refinement-card'
 
 type ProfileAnalysis = {
   score: number
@@ -351,6 +352,9 @@ function DashboardContent() {
           </div>
         </div>
       )}
+
+      {/* ── Inline refinement questions (post-value, skippable) ── */}
+      {monthStats.generated > 0 && <RefinementCard />}
 
       {/* ── Next Post Hero ── */}
       <div
