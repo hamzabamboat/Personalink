@@ -13,12 +13,13 @@ import { distillVoiceFingerprint } from './anthropic'
  * and we periodically re-distil the voice fingerprint from the growing corpus.
  */
 
-export type VoiceSampleSource = 'onboarding' | 'manual' | 'edit' | 'voice_note'
+export type VoiceSampleSource = 'onboarding' | 'manual' | 'edit' | 'voice_note' | 'analyzer'
 
 const SOURCE_WEIGHT: Record<VoiceSampleSource, number> = {
   edit: 3,        // human corrected an AI draft toward their voice — highest signal
   onboarding: 2,
   manual: 2,
+  analyzer: 2,    // the 3 posts pasted into the public voice analyzer — real writing
   voice_note: 1,  // their actual words, but spoken register
 }
 

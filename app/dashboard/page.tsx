@@ -21,6 +21,8 @@ import { showUpgradeModal } from '@/components/upgrade-limit-modal'
 import { DisplayHeading } from '@/components/display-heading'
 import { Eyebrow } from '@/components/eyebrow'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { RefinementCard } from '@/components/refinement-card'
+import { UpgradeBanner } from '@/components/upgrade-banner'
 
 type ProfileAnalysis = {
   score: number
@@ -351,6 +353,12 @@ function DashboardContent() {
           </div>
         </div>
       )}
+
+      {/* ── Soft-upgrade nudge (free tier only, self-hides otherwise) ── */}
+      <UpgradeBanner />
+
+      {/* ── Inline refinement questions (post-value, skippable) ── */}
+      {monthStats.generated > 0 && <RefinementCard />}
 
       {/* ── Next Post Hero ── */}
       <div

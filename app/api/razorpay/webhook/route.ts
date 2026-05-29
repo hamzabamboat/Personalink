@@ -132,6 +132,11 @@ export async function POST(request: NextRequest) {
       event: newStatus === 'active' ? 'subscription_activated' : 'subscription_cancelled',
       properties: { processor: 'razorpay', subscription_id: razorpaySubId, plan: planFromNotes, razorpay_event: event.event },
     })
+    if (newStatus === 'active') {
+      try {
+        getPostHogClient().capture({ distinctId: resolvedUserId, event: 'upgraded', properties: { plan: planFromNotes } })
+      } catch { /* posthog optional */ }
+    }
   }
 
   // ── Affiliate commission credit (best-effort, idempotent). ────────────────

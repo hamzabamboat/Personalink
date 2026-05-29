@@ -174,7 +174,12 @@ export async function POST(request: NextRequest) {
     case 'payment.succeeded':
     case 'subscription.active':
       await activateAccount()
-      if (userId) getPostHogClient().capture({ distinctId: userId, event: 'dodo_subscription_activated', properties: { processor: 'dodo', plan, subscription_id: subscriptionId, amount, currency } })
+      if (userId) {
+        getPostHogClient().capture({ distinctId: userId, event: 'dodo_subscription_activated', properties: { processor: 'dodo', plan, subscription_id: subscriptionId, amount, currency } })
+        try {
+          getPostHogClient().capture({ distinctId: userId, event: 'upgraded', properties: { plan } })
+        } catch { /* posthog optional */ }
+      }
 
       // ── Affiliate commission credit (best-effort, idempotent). ───────────
       // Only credit on actual payment events — subscription.active without a
