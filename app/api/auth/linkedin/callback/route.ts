@@ -191,6 +191,43 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // ── Affiliate referral attribution (new users only) ───────────────────
+    // If a pl_ref cookie is present and points to an approved affiliate, write
+    // an affiliate_referrals row. Self-referrals (same user_id) are ignored.
+    // Failures here must never block the signup.
+    const plRefCookie = request.cookies.get('pl_ref')?.value
+    if (isNew && plRefCookie) {
+      try {
+        const { data: affiliate } = await supabaseAdmin
+          .from('affiliates')
+          .select('id, user_id, status')
+          .eq('ref_code', plRefCookie)
+          .maybeSingle()
+
+        if (affiliate && affiliate.status === 'approved' && affiliate.user_id !== user.id) {
+          await supabaseAdmin
+            .from('affiliate_referrals')
+            .insert({
+              affiliate_id: affiliate.id,
+              user_id: user.id,
+              attribution_source: 'cookie',
+              status: 'signed_up',
+            })
+
+          try {
+            getPostHogClient().capture({
+              distinctId: user.id as string,
+              event: 'affiliate_referral_attributed',
+              properties: { affiliate_id: affiliate.id, ref_code: plRefCookie },
+            })
+          } catch { /* posthog optional */ }
+        }
+      } catch (err) {
+        console.error('[linkedin/callback] affiliate attribution failed', err)
+        // Swallow — never block signup.
+      }
+    }
+
     // Run profile analysis in background (don't await — shouldn't block redirect)
     runProfileAnalysis(user.id).catch(console.error)
 
@@ -226,9 +263,16 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    const redirectTo = isNew || !existingProfile?.onboarding_completed_at
-      ? `${APP_URL}/onboarding`
-      : `${APP_URL}/dashboard`
+    // Post-auth intent (e.g. affiliate apply flow) — only overrides for users
+    // who have completed onboarding. New / partially-onboarded users still
+    // route through /onboarding first.
+    const postAuthIntent = request.cookies.get('pl_post_auth_intent')?.value
+    const hasOnboarded = !isNew && existingProfile?.onboarding_completed_at
+    const redirectTo = hasOnboarded && postAuthIntent === 'affiliate_apply'
+      ? `${APP_URL}/affiliate/apply`
+      : isNew || !existingProfile?.onboarding_completed_at
+        ? `${APP_URL}/onboarding`
+        : `${APP_URL}/dashboard`
 
     const country = request.headers.get('x-vercel-ip-country') ?? null
     const posthog = getPostHogClient()
@@ -296,6 +340,10 @@ export async function GET(request: NextRequest) {
     }
     response.cookies.delete('linkedin_oauth_state')
     response.cookies.delete('pl_va_email')
+    response.cookies.delete('pl_post_auth_intent')
+    // Clear the ref cookie only if we attributed (or if no attribution was
+    // possible). Either way, the first signup consumed it.
+    if (isNew) response.cookies.delete('pl_ref')
     return response
   } catch (err) {
     console.error('[linkedin/callback] unhandled error:', err)

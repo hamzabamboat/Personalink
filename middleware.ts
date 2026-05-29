@@ -26,6 +26,29 @@ export async function middleware(request: NextRequest) {
   const userId   = request.cookies.get('session_user_id')?.value
   const agencyId = request.cookies.get('session_agency_id')?.value
 
+  // ── Affiliate ref attribution (first-touch). ──────────────────────────────
+  // Capture ?ref=CODE into an httpOnly pl_ref cookie on first sighting so the
+  // LinkedIn callback can attribute the resulting signup to an affiliate.
+  // 30-day window. Once set, the cookie is sticky — later ?ref= values are
+  // ignored so we don't overwrite the original attribution.
+  const refQuery = request.nextUrl.searchParams.get('ref')
+  const refToCapture =
+    refQuery && /^[a-z0-9_-]{2,32}$/i.test(refQuery) && !request.cookies.get('pl_ref')?.value
+      ? refQuery
+      : null
+  function applyPlRef(res: NextResponse): NextResponse {
+    if (refToCapture) {
+      res.cookies.set('pl_ref', refToCapture, {
+        httpOnly: true,
+        secure:   process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path:     '/',
+        maxAge:   60 * 60 * 24 * 30, // 30 days
+      })
+    }
+    return res
+  }
+
   // ── Redirect loop guard ────────────────────────────────────────────────────
   // _redir_n is a short-lived cookie (REDIRECT_WINDOW_SECS) that counts
   // consecutive redirects. If we hit MAX_REDIRECT_COUNT, wipe auth state and
@@ -226,7 +249,7 @@ export async function middleware(request: NextRequest) {
   if (!isDashboard && !isOnboarding) {
     const res = NextResponse.next()
     res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
-    return res
+    return applyPlRef(res)
   }
 
   // ── Agency managing a client ───────────────────────────────────────────────
@@ -393,5 +416,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/onboarding', '/upgrade', '/admin/:path*', '/agency/:path*'],
+  matcher: [
+    '/',
+    '/dashboard/:path*',
+    '/onboarding',
+    '/upgrade',
+    '/admin/:path*',
+    '/agency/:path*',
+    // Affiliate landing surfaces — captures ?ref=CODE for first-touch attribution.
+    '/pricing',
+    '/affiliate/:path*',
+  ],
 }

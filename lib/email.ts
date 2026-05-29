@@ -810,6 +810,270 @@ export async function sendAgencyInquiryAdminAlert(record: AgencyInquiryRecord) {
   })
 }
 
+/* ─────────────────────────────────────────────
+ * Affiliate program — /affiliate/apply + /admin/affiliates
+ * ─────────────────────────────────────────────
+ * Four envelopes:
+ *   1. sendAffiliateApplicationAdminAlert   — ping admin on new application
+ *   2. sendAffiliateApplicationAutoReply    — confirm submit to applicant
+ *   3. sendAffiliateApprovedEmail           — applicant gets ref code + dashboard link
+ *   4. sendAffiliateRejectedEmail           — applicant gets reason + path forward
+ * All are best-effort; callers wrap them in Promise.allSettled / .catch.
+ */
+
+export type AffiliateApplicationRecord = {
+  id: string
+  user_id: string
+  full_name: string
+  email: string
+  ref_code: string
+  audience_size: string | null
+  audience_description: string | null
+  promotion_channels: string[] | null
+  website_url: string | null
+  linkedin_url: string | null
+  payout_method: string | null
+  payout_details: Record<string, unknown> | null
+  applied_at: string
+}
+
+export async function sendAffiliateApplicationAdminAlert(record: AffiliateApplicationRecord) {
+  const adminEmail =
+    process.env.AFFILIATE_ADMIN_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    'hello@personalink.in'
+
+  const row = (label: string, value: string | null | undefined) =>
+    value
+      ? `<tr><td style="padding:6px 14px 6px 0;color:#64748b;font-size:13px;white-space:nowrap;vertical-align:top;">${label}</td><td style="padding:6px 0;color:#0f172a;font-size:14px;">${escapeAgencyHtml(value)}</td></tr>`
+      : ''
+
+  const channels = record.promotion_channels?.length ? record.promotion_channels.join(', ') : null
+  const payoutRaw = (record.payout_details as { raw?: string } | null)?.raw ?? null
+  const reviewUrl = `${APP_URL}/admin/affiliates`
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to: adminEmail,
+    replyTo: record.email,
+    subject: `Affiliate application — ${record.full_name} (${record.audience_size ?? 'audience ?'})`,
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;border:1px solid #e2e8f0;">
+    <h1 style="margin:0 0 4px;font-size:18px;color:#0f172a;font-weight:600;">Affiliate application</h1>
+    <p style="margin:0 0 20px;color:#64748b;font-size:13px;">Review in the admin panel within 1 working day.</p>
+    <table style="width:100%;border-collapse:collapse;">
+      ${row('Name', record.full_name)}
+      ${row('Email', record.email)}
+      ${row('Ref code', record.ref_code)}
+      ${row('Audience', record.audience_size)}
+      ${row('Channels', channels)}
+      ${row('Website', record.website_url)}
+      ${row('LinkedIn', record.linkedin_url)}
+      ${row('Payout', record.payout_method)}
+      ${row('Payout details', payoutRaw)}
+    </table>
+    ${record.audience_description ? `
+    <div style="margin-top:18px;padding:14px 16px;background:#f1f5f9;border-radius:8px;color:#0f172a;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeAgencyHtml(record.audience_description)}</div>
+    ` : ''}
+    <a href="${reviewUrl}" style="display:inline-block;margin-top:20px;background:#0A66C2;color:white;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;font-size:14px;">Open admin → review</a>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />
+    <p style="margin:0;color:#94a3b8;font-size:11px;font-family:monospace;">
+      id ${record.id} · user ${record.user_id}<br/>
+      applied ${new Date(record.applied_at).toISOString()}
+    </p>
+  </div>
+</body>
+</html>`,
+    text: [
+      `Affiliate application — ${record.full_name}`,
+      '',
+      `Name: ${record.full_name}`,
+      `Email: ${record.email}`,
+      `Ref code: ${record.ref_code}`,
+      `Audience: ${record.audience_size ?? '-'}`,
+      `Channels: ${channels ?? '-'}`,
+      `Website: ${record.website_url ?? '-'}`,
+      `LinkedIn: ${record.linkedin_url ?? '-'}`,
+      `Payout: ${record.payout_method ?? '-'} ${payoutRaw ? `(${payoutRaw})` : ''}`,
+      '',
+      record.audience_description ? `Audience description:\n${record.audience_description}` : '',
+      '',
+      `Review: ${reviewUrl}`,
+      `id: ${record.id}`,
+    ].filter(Boolean).join('\n'),
+  })
+}
+
+export async function sendAffiliateApplicationAutoReply(params: {
+  to: string
+  firstName: string
+}) {
+  const { to, firstName } = params
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    replyTo: 'partners@personalink.in',
+    subject: `Got your affiliate application`,
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:32px 16px;background:#fafaf7;font-family:system-ui,-apple-system,sans-serif;color:#1a1a1a;line-height:1.6;">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e7e5df;">
+    <p style="margin:0 0 16px;font-size:15px;">Hi ${escapeAgencyHtml(firstName)},</p>
+    <p style="margin:0 0 16px;font-size:15px;">
+      Thanks for applying to the Personalink affiliate program. I review every application personally — you'll hear back within one working day with either an approval (and your unique referral link) or some follow-up questions.
+    </p>
+    <p style="margin:0 0 16px;font-size:15px;">
+      In the meantime, if there's anything specific about your audience you'd like me to know — or if you'd prefer a custom co-branded discount instead of a higher commission split — just reply to this email.
+    </p>
+    <p style="margin:24px 0 0;font-size:15px;color:#475569;">— Hamza, PersonaLink</p>
+  </div>
+  <p style="max-width:520px;margin:16px auto 0;font-size:11px;color:#94a3b8;text-align:center;">
+    You received this because you applied at personalink.in/affiliate/apply.
+  </p>
+</body>
+</html>`,
+    text: [
+      `Hi ${firstName},`,
+      '',
+      `Thanks for applying to the Personalink affiliate program. I review every application personally — you'll hear back within one working day with either an approval (and your unique referral link) or some follow-up questions.`,
+      '',
+      `In the meantime, if there's anything specific about your audience you'd like me to know — or if you'd prefer a custom co-branded discount instead of a higher commission split — just reply to this email.`,
+      '',
+      '— Hamza, PersonaLink',
+    ].join('\n'),
+  })
+}
+
+export async function sendAffiliateApprovedEmail(params: {
+  to: string
+  firstName: string
+  refCode: string
+}) {
+  const { to, firstName, refCode } = params
+  const shareLink = `${APP_URL}/?ref=${encodeURIComponent(refCode)}`
+  const dashboardUrl = `${APP_URL}/affiliate/dashboard`
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    replyTo: 'partners@personalink.in',
+    subject: `You're in — Personalink affiliate program 🎉`,
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+
+    <div style="background:#0A66C2;padding:28px 32px;">
+      <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
+        <span style="display:inline-block;line-height:1;white-space:nowrap;vertical-align:middle;">
+          <img src="${APP_URL}/logo-mark.png" alt="" width="24" height="24" style="vertical-align:middle;display:inline-block;border:0;margin-right:8px;width:24px;height:24px;" />
+          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" height="22" style="vertical-align:middle;display:inline-block;border:0;height:22px;width:auto;" />
+        </span>
+      </div>
+    </div>
+
+    <div style="padding:32px;">
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">You're approved, ${escapeAgencyHtml(firstName)}!</h1>
+      <p style="margin:0 0 22px;color:#64748b;font-size:15px;">
+        27.5% commission on every paid month for 12 months, on every customer you send. Here's everything you need to start.
+      </p>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:20px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Your referral code</p>
+        <p style="margin:0 0 14px;font-size:18px;font-weight:700;color:#0f172a;font-family:monospace;">${escapeAgencyHtml(refCode)}</p>
+        <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Your share link</p>
+        <p style="margin:0;font-size:13px;color:#0f172a;font-family:monospace;word-break:break-all;">${escapeAgencyHtml(shareLink)}</p>
+      </div>
+
+      <a href="${dashboardUrl}" style="display:block;text-align:center;background:#0A66C2;color:white;text-decoration:none;padding:14px 20px;border-radius:8px;font-weight:600;font-size:15px;margin-bottom:24px;">
+        Open partner dashboard →
+      </a>
+
+      <h2 style="margin:0 0 8px;font-size:14px;font-weight:600;color:#0f172a;">How it works from here</h2>
+      <ol style="margin:0 0 8px;padding-left:20px;color:#475569;font-size:14px;line-height:1.7;">
+        <li>Share your link wherever you write — newsletter, LinkedIn, blog, podcast notes.</li>
+        <li>Anyone who signs up via that link within 30 days is attributed to you.</li>
+        <li>When they start paying, commissions accrue in your dashboard. Request a payout once you cross ₹4,000.</li>
+      </ol>
+
+      <p style="margin:24px 0 0;font-size:13px;color:#94a3b8;">
+        Reply to this email if you have questions — or want help with positioning, custom landing pages, or co-marketing.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: [
+      `You're approved, ${firstName}!`,
+      '',
+      `27.5% commission on every paid month for 12 months, on every customer you send.`,
+      '',
+      `Your referral code: ${refCode}`,
+      `Your share link:   ${shareLink}`,
+      '',
+      `Partner dashboard: ${dashboardUrl}`,
+      '',
+      `How it works from here:`,
+      `1. Share your link wherever you write — newsletter, LinkedIn, blog, podcast notes.`,
+      `2. Anyone who signs up via that link within 30 days is attributed to you.`,
+      `3. When they start paying, commissions accrue in your dashboard. Request a payout once you cross ₹4,000.`,
+      '',
+      `Reply to this email if you have questions or want help with positioning, custom landing pages, or co-marketing.`,
+      '— Hamza, PersonaLink',
+    ].join('\n'),
+  })
+}
+
+export async function sendAffiliateRejectedEmail(params: {
+  to: string
+  firstName: string
+  reason: string | null
+}) {
+  const { to, firstName, reason } = params
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    replyTo: 'partners@personalink.in',
+    subject: `An update on your Personalink affiliate application`,
+    html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:32px 16px;background:#fafaf7;font-family:system-ui,-apple-system,sans-serif;color:#1a1a1a;line-height:1.6;">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e7e5df;">
+    <p style="margin:0 0 16px;font-size:15px;">Hi ${escapeAgencyHtml(firstName)},</p>
+    <p style="margin:0 0 16px;font-size:15px;">
+      Thanks for applying to the Personalink affiliate program. After reviewing your application I'm not able to approve you for the program right now.
+    </p>
+    ${reason ? `
+    <div style="margin:0 0 16px;padding:14px 16px;background:#fef3c7;border-left:3px solid #d97706;border-radius:6px;color:#78350f;font-size:14px;">
+      ${escapeAgencyHtml(reason)}
+    </div>
+    ` : ''}
+    <p style="margin:0 0 16px;font-size:15px;">
+      This isn't necessarily permanent — audiences grow, channels mature, and we re-review every quarter. If anything material changes (new newsletter, bigger LinkedIn following, a new niche fit), just reply to this email and I'll take another look.
+    </p>
+    <p style="margin:24px 0 0;font-size:15px;color:#475569;">— Hamza, PersonaLink</p>
+  </div>
+</body>
+</html>`,
+    text: [
+      `Hi ${firstName},`,
+      '',
+      `Thanks for applying to the Personalink affiliate program. After reviewing your application I'm not able to approve you for the program right now.`,
+      '',
+      reason ? `Reason: ${reason}\n` : '',
+      `This isn't necessarily permanent — audiences grow, channels mature, and we re-review every quarter. If anything material changes (new newsletter, bigger LinkedIn following, a new niche fit), just reply to this email and I'll take another look.`,
+      '',
+      '— Hamza, PersonaLink',
+    ].filter(Boolean).join('\n'),
+  })
+}
+
 export async function sendAgencyInquiryAutoReply(params: {
   to: string
   firstName: string

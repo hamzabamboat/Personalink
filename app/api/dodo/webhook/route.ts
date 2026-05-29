@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getPostHogClient } from '@/lib/posthog-server'
-import { getTierLimits, type TierID } from '@/lib/pricing-config'
+import { getTierLimits, type TierID, type Currency } from '@/lib/pricing-config'
+import { creditAffiliateCommission } from '@/lib/affiliate-credit'
 import crypto from 'crypto'
+
+const KNOWN_CURRENCIES: Currency[] = ['INR', 'USD', 'EUR', 'GBP']
+function asCurrency(s: string): Currency {
+  return (KNOWN_CURRENCIES as readonly string[]).includes(s) ? (s as Currency) : 'USD'
+}
 
 const FALLBACK_LIMIT = getTierLimits('standard').postsPerMonth ?? 22
 function postsLimitFor(plan: string): number {
@@ -169,6 +175,30 @@ export async function POST(request: NextRequest) {
     case 'subscription.active':
       await activateAccount()
       if (userId) getPostHogClient().capture({ distinctId: userId, event: 'dodo_subscription_activated', properties: { processor: 'dodo', plan, subscription_id: subscriptionId, amount, currency } })
+
+      // ── Affiliate commission credit (best-effort, idempotent). ───────────
+      // Only credit on actual payment events — subscription.active without a
+      // payment_id is the trial-start ping and shouldn't pay an affiliate yet.
+      if (event.type === 'payment.succeeded' && userId && amount > 0) {
+        const paymentRef = (data.payment_id as string | undefined)
+          ?? (subscriptionId ? `${subscriptionId}#${data.next_billing_date ?? Date.now()}` : null)
+        if (paymentRef) {
+          const result = await creditAffiliateCommission({
+            paymentProvider: 'dodo',
+            paymentRef,
+            paymentAmount: amount,
+            paymentCurrency: asCurrency(currency),
+            userId,
+          })
+          if (result.credited) {
+            getPostHogClient().capture({
+              distinctId: userId,
+              event: 'affiliate_commission_credited',
+              properties: { processor: 'dodo', commission_inr: result.commissionAmountInr, payment_ref: paymentRef },
+            })
+          }
+        }
+      }
       break
 
     case 'subscription.cancelled':

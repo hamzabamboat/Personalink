@@ -3,6 +3,7 @@ import { verifyWebhookSignature } from '@/lib/razorpay'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getPostHogClient } from '@/lib/posthog-server'
 import { getTierLimits, type TierID } from '@/lib/pricing-config'
+import { creditAffiliateCommission } from '@/lib/affiliate-credit'
 
 // Razorpay sends webhooks as JSON with x-razorpay-signature header
 export async function POST(request: NextRequest) {
@@ -131,6 +132,37 @@ export async function POST(request: NextRequest) {
       event: newStatus === 'active' ? 'subscription_activated' : 'subscription_cancelled',
       properties: { processor: 'razorpay', subscription_id: razorpaySubId, plan: planFromNotes, razorpay_event: event.event },
     })
+  }
+
+  // ── Affiliate commission credit (best-effort, idempotent). ────────────────
+  // `subscription.charged` fires for every successful recurring charge and
+  // carries the payment entity. We credit per-payment so re-deliveries are
+  // safely deduplicated by the (payment_provider, payment_ref) constraint.
+  if (resolvedUserId && event.event === 'subscription.charged') {
+    const payment = (event.payload?.payment?.entity ?? {}) as {
+      id?: string
+      amount?: number      // paise
+      currency?: string
+    }
+    if (payment.id && typeof payment.amount === 'number' && payment.amount > 0) {
+      // Razorpay reports paise — convert to INR (and we only deal in INR with
+      // Razorpay anyway, so currency is always 'INR').
+      const amountInr = payment.amount / 100
+      const result = await creditAffiliateCommission({
+        paymentProvider: 'razorpay',
+        paymentRef: payment.id,
+        paymentAmount: amountInr,
+        paymentCurrency: 'INR',
+        userId: resolvedUserId,
+      })
+      if (result.credited) {
+        getPostHogClient().capture({
+          distinctId: resolvedUserId,
+          event: 'affiliate_commission_credited',
+          properties: { processor: 'razorpay', commission_inr: result.commissionAmountInr, payment_ref: payment.id },
+        })
+      }
+    }
   }
 
   console.log(`Razorpay webhook: ${event.event} → sub ${razorpaySubId} → ${newStatus}`)
