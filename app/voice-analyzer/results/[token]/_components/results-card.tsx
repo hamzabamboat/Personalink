@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { motion } from 'framer-motion'
 import {
@@ -24,7 +23,6 @@ const DIM_LABELS: Array<{ key: keyof ScoredVoiceFingerprint['scores']; label: st
 ]
 
 export function ResultsCard({ token, fingerprint }: { token: string; fingerprint: ScoredVoiceFingerprint }) {
-  const router = useRouter()
   const firedRef = useRef(false)
   const [shared, setShared] = useState(false)
   const [email, setEmail] = useState('')
@@ -89,10 +87,10 @@ export function ResultsCard({ token, fingerprint }: { token: string; fingerprint
     setEmailState('saving')
     setEmailMsg(null)
     try {
-      const res = await fetch('/api/voice-analyzer/claim', {
+      const res = await fetch('/api/auth/magic-link/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, email: trimmed }),
+        body: JSON.stringify({ email: trimmed, voiceReportToken: token }),
       })
       const data = await res.json()
       if (!data?.ok) {
@@ -100,17 +98,9 @@ export function ResultsCard({ token, fingerprint }: { token: string; fingerprint
         setEmailMsg(data?.error || 'Something went wrong. Try again.')
         return
       }
-      try {
-        posthog.capture('voice_analyzer_converted_to_signup', { token })
-      } catch { /* posthog optional */ }
+      try { posthog.capture('email_captured', { token, provider: 'email_magic_link' }) } catch {}
       setEmailState('done')
-      // Bounce them into the main signup/onboarding flow. The API already
-      // stashed the email in an httpOnly cookie for the LinkedIn callback,
-      // so the redirect URL stays clean (no email in the query string).
-      const redirectTo = typeof data.redirect_to === 'string' && data.redirect_to.startsWith('/')
-        ? data.redirect_to
-        : '/?from=voice-analyzer'
-      router.push(redirectTo)
+      setEmailMsg('Check your inbox — we sent you a sign-in link.')
     } catch {
       setEmailState('error')
       setEmailMsg('Network hiccup. Try again.')
@@ -292,11 +282,11 @@ export function ResultsCard({ token, fingerprint }: { token: string; fingerprint
         }}
       >
         <h2 style={{ margin: 0, fontSize: 'clamp(20px,3.4vw,26px)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-          Lock in this fingerprint. Start generating posts in your voice.
+          Save this fingerprint. Start posting in your voice — free.
         </h2>
         <p style={{ margin: '8px 0 18px', color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.55 }}>
-          We&apos;ll save this fingerprint to your PersonaLink account so every post you generate sounds like you.
-          Free to start. ₹999/mo when you&apos;re ready.
+          Enter your email and we&apos;ll send a one-click sign-in link. Your fingerprint is pre-loaded — no setup,
+          no password. 3 free posts a month.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <input
@@ -335,7 +325,7 @@ export function ResultsCard({ token, fingerprint }: { token: string; fingerprint
               minWidth: 160,
             }}
           >
-            {emailState === 'saving' ? 'Saving…' : emailState === 'done' ? 'Redirecting…' : 'Save my fingerprint'}
+            {emailState === 'saving' ? 'Sending…' : emailState === 'done' ? 'Link sent ✓' : 'Continue with email'}
           </button>
         </div>
         {emailMsg && (
@@ -343,6 +333,23 @@ export function ResultsCard({ token, fingerprint }: { token: string; fingerprint
             {emailMsg}
           </div>
         )}
+        <div style={{ marginTop: 14, fontSize: 13, color: 'var(--ink-4)' }}>
+          Prefer to connect now?{' '}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/api/auth/linkedin"
+            onClick={() => {
+              fetch('/api/voice-analyzer/claim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, email: email.trim().toLowerCase() }),
+              }).catch(() => {})
+            }}
+            style={{ color: 'var(--pl-accent)', fontWeight: 600, textDecoration: 'none' }}
+          >
+            Sign up with LinkedIn
+          </a>
+        </div>
       </motion.form>
     </div>
   )
