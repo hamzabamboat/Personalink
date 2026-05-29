@@ -17,11 +17,12 @@ export function hashToken(token: string): string {
 /** True when the email has requested too many links recently. */
 export async function isEmailRateLimited(email: string): Promise<boolean> {
   const since = new Date(Date.now() - EMAIL_RATE_WINDOW_MS).toISOString()
-  const { count } = await supabaseAdmin
+  const { count, error } = await supabaseAdmin
     .from('magic_link_tokens')
     .select('id', { count: 'exact', head: true })
     .eq('email', email)
     .gte('created_at', since)
+  if (error) throw new Error(`magic_link rate-limit check failed: ${error.message}`)
   return (count ?? 0) >= EMAIL_RATE_MAX
 }
 
@@ -31,12 +32,13 @@ export async function createMagicLinkToken(opts: {
   voiceReportToken?: string | null
 }): Promise<string> {
   const token = generateToken()
-  await supabaseAdmin.from('magic_link_tokens').insert({
+  const { error } = await supabaseAdmin.from('magic_link_tokens').insert({
     token_hash: hashToken(token),
     email: opts.email,
     voice_report_token: opts.voiceReportToken ?? null,
     expires_at: new Date(Date.now() + TOKEN_TTL_MS).toISOString(),
   })
+  if (error) throw new Error(`magic_link insert failed: ${error.message}`)
   return token
 }
 

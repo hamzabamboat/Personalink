@@ -1,4 +1,8 @@
 import { defineConfig } from 'vitest/config'
+import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+const root = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
   test: {
@@ -13,9 +17,9 @@ export default defineConfig({
       },
     },
     alias: {
-      'server-only': '/Users/hamza/Personalink/node_modules/server-only/empty.js',
+      'server-only': resolve(root, 'node_modules/server-only/empty.js'),
       // stub supabase-admin so pure-function tests don't require real env vars
-      './supabase-admin': '/Users/hamza/Personalink/lib/__tests__/__mocks__/supabase-admin.ts',
+      './supabase-admin': resolve(root, 'lib/__tests__/__mocks__/supabase-admin.ts'),
     },
   },
 })
