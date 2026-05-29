@@ -24,12 +24,14 @@ export async function findOrCreateEmailUser(emailRaw: string): Promise<EmailUser
   if (existing) return { userId: existing.id as string, isNew: false }
 
   const userId = crypto.randomUUID()
+  const now = new Date().toISOString()
   const { error: userError } = await supabaseAdmin.from('users').insert({
     id: userId,
     email,
     signup_source: 'email_magic_link',
     subscription_status: 'inactive',
-    updated_at: new Date().toISOString(),
+    created_at: now,
+    updated_at: now,
   })
   if (userError) throw new Error(`email-auth: user insert failed: ${userError.message}`)
 

@@ -98,7 +98,6 @@ export function ResultsCard({ token, fingerprint }: { token: string; fingerprint
         setEmailMsg(data?.error || 'Something went wrong. Try again.')
         return
       }
-      try { posthog.capture('email_captured', { token, provider: 'email_magic_link' }) } catch {}
       setEmailState('done')
       setEmailMsg('Check your inbox — we sent you a sign-in link.')
     } catch {

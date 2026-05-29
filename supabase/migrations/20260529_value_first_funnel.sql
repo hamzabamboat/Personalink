@@ -18,6 +18,10 @@ create index if not exists magic_link_tokens_email_recent_idx
 -- 2. How the account was created. Existing rows default to 'linkedin'.
 alter table users add column if not exists signup_source text not null default 'linkedin';
 
+-- Email-magic-link users have no LinkedIn yet; allow a null linkedin_id.
+-- (Postgres UNIQUE permits multiple NULLs, so the existing unique index is unaffected.)
+alter table users alter column linkedin_id drop not null;
+
 -- 3. Inline refinement progress (0..5) and the day-2 PostHog dedupe flag.
 alter table user_profiles add column if not exists refinement_step int not null default 0;
 alter table user_profiles add column if not exists day2_event_fired boolean not null default false;
