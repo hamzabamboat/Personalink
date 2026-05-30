@@ -6,6 +6,7 @@ import { addVoiceSample } from '@/lib/voice'
 import { PLAN_LIMITS } from '@/lib/supabase'
 import { getTierLimits, TIER_LIMITS, type TierID } from '@/lib/pricing-config'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { isLocaleId } from '@/lib/prompts/locales/types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   const {
     name, role, industry, company, age, linkedin_url,
-    mcq_answers, writing_sample, content_pillars, control_preference, plan,
+    mcq_answers, writing_sample, content_pillars, control_preference, plan, voice_locale,
   } = body
 
   // Generate voice fingerprint from writing sample
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       tone: 'friendly',
       voice_fingerprint,
       mcq_answers,
+      voice_locale: isLocaleId(voice_locale) ? voice_locale : 'english',
       writing_sample,
       content_pillars,
       control_preference,
