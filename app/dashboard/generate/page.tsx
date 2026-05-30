@@ -9,6 +9,7 @@ import { PostCard, PostCardSkeleton } from '@/components/post-card'
 import { ImageSelector } from '@/components/image-selector'
 import { AiImageButton } from '@/components/ai-image-button'
 import { PostImage } from '@/lib/supabase'
+import { LOCALE_OPTIONS, type LocaleId } from '@/lib/prompts/locales'
 import {
   Loader2, Mic, MicOff, FolderOpen, Sparkles, CalendarClock, Mail,
   BookOpen, Lock, Zap, Check, Save, ArrowLeft, ImageIcon, Upload, X,
@@ -481,6 +482,8 @@ function GenerateContent() {
   const [selectedStory, setSelectedStory] = useState<StoryBank | null>(null)
   const [contentPillars, setContentPillars] = useState<string[]>([])
   const [selectedTone, setSelectedTone] = useState('')
+  const [locale, setLocale] = useState<LocaleId>('english')
+  const [languageModesOn, setLanguageModesOn] = useState(false)
 
   const monthName = new Date().toLocaleDateString('en-IN', { month: 'long' })
 
@@ -495,7 +498,9 @@ function GenerateContent() {
         setPlan(meData.profile.plan || 'starter')
         setPostsLimit(meData.profile.posts_limit ?? 12)
         if (meData.profile.content_pillars?.length) setContentPillars(meData.profile.content_pillars)
+        if (meData.profile.voice_locale) setLocale(meData.profile.voice_locale)
       }
+      if (meData.languageModesEnabled) setLanguageModesOn(true)
       if (usageData.usage?.posts_generated) setPostsRemaining(usageData.usage.posts_generated.remaining)
     }).catch(() => {})
     loadStories()
@@ -593,7 +598,7 @@ function GenerateContent() {
     }, 2000)
     try {
       const tonePrefix = selectedTone ? `Write in a ${selectedTone.toLowerCase()} tone. ` : ''
-      const body: Record<string, unknown> = { additionalContext: tonePrefix + additionalContext }
+      const body: Record<string, unknown> = { additionalContext: tonePrefix + additionalContext, locale }
       // overrideStoryId is always a story-bank generation regardless of current tab state
       if (overrideStoryId) {
         body.storyBankId = overrideStoryId
@@ -617,6 +622,7 @@ function GenerateContent() {
       const posts = data.posts as Array<{ id: string; content: string }> | undefined
       if (!posts?.length) { setError('No posts generated. Please try again.'); return }
       setGeneratedPosts(posts)
+      posthog.capture('language_mode_selected', { locale, surface: 'generator' })
       if (overrideStoryId || initStoryId) selectPost(posts[0])
     } catch { setError('Generation failed — check your connection.') }
     finally { clearInterval(interval); setLoading(false) }
@@ -776,6 +782,21 @@ function GenerateContent() {
                   ))}
                 </div>
               </div>
+
+              {languageModesOn && (
+                <div>
+                  <label className="db-label" style={{ marginBottom: 8 }}>// language</label>
+                  <div className="seg">
+                    {LOCALE_OPTIONS.map(opt => (
+                      <button key={opt.id} type="button" onClick={() => setLocale(opt.id)}
+                        title={opt.blurb}
+                        className={locale === opt.id ? 'is-on' : ''}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Photos */}
               <div>
