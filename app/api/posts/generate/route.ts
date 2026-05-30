@@ -224,6 +224,16 @@ export async function POST(request: NextRequest) {
 
   const slots = buildScheduleSlots(now, validPosts.length, preferredHour, preferredDays, takenDateStrings, timezone)
 
+  // Mirror generate-batch's behavior: respect the user's control_preference.
+  // autopilot → posts go straight to 'scheduled' and the publish cron handles them.
+  // suggest  → posts stay as 'draft' (user has to act).
+  // approve  → posts wait for the approval email link (or dashboard click).
+  const controlPreference: string = (profile.control_preference as string) || 'approve'
+  const postStatus: 'scheduled' | 'draft' | 'pending_approval' =
+    controlPreference === 'autopilot' ? 'scheduled'
+    : controlPreference === 'suggest' ? 'draft'
+    : 'pending_approval'
+
   // Save posts — each gets its own pre-assigned scheduled slot
   const insertedPosts = await Promise.all(
     validPosts.map(async (gate, idx) => {
@@ -235,7 +245,7 @@ export async function POST(request: NextRequest) {
       const fullRow: Record<string, unknown> = {
         user_id: user.id,
         content,
-        status: 'pending_approval',
+        status: postStatus,
         scheduled_at: scheduledAt,
         source: voiceNoteId ? 'voice_note' : storyBankId ? 'story_bank' : 'ai_generated',
         voice_note_id: voiceNoteId || null,
@@ -254,7 +264,7 @@ export async function POST(request: NextRequest) {
       if (selectedImageUrls.length) fullRow.image_urls = selectedImageUrls
 
       // Minimal row using only original schema columns — used as last-resort fallback
-      const minimalRow: Record<string, unknown> = { user_id: user.id, content, status: 'pending_approval', scheduled_at: scheduledAt }
+      const minimalRow: Record<string, unknown> = { user_id: user.id, content, status: postStatus, scheduled_at: scheduledAt }
 
       let result = await supabaseAdmin.from('posts').insert(fullRow).select().single()
       if (result.error) {

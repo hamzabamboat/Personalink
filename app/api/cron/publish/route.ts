@@ -192,17 +192,13 @@ async function handler(_request: NextRequest) {
         }
 
         // — Autopilot eligibility check —
-        if (profile?.control_preference === 'autopilot' && profile?.autopilot_eligible === false) {
-          await supabaseAdmin
-            .from('posts')
-            .update({ status: 'pending_approval', failure_reason: 'Account not yet eligible for autopilot — manual approval needed' })
-            .eq('id', post.id)
-          await logComplianceEvent(post.user_id, 'autopilot_blocked', 'medium', {
-            trust_score: profile.trust_score,
-            risk_score: profile.risk_score,
-          }, post.id)
-          return { id: post.id, status: 'blocked', reason: 'autopilot_not_eligible' }
-        }
+        // Historically this required updateTrustScore() to have flipped
+        // autopilot_eligible to true, but that function was never wired to run
+        // anywhere — so it stayed false forever and trapped every autopilot
+        // user. We rely instead on the concrete bad-signal gates below
+        // (spam_score, requires_manual_review, high risk_score, daily cadence)
+        // which catch real abuse. A user who explicitly picked autopilot has
+        // already opted in — no warmup gate.
 
         // — Trust / risk gate (high risk users blocked from autopilot) —
         if ((profile?.risk_score ?? 0) >= 70) {
