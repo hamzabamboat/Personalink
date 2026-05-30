@@ -51,6 +51,7 @@ create table if not exists user_profiles (
   content_pillars text[],
   control_preference text default 'approve',
   writing_sample text,
+  voice_locale text default 'english',
   plan text default 'starter',
   onboarding_completed_at timestamptz,
   posts_used_this_month integer default 0,
