@@ -384,16 +384,44 @@ export default function StoryBankPage() {
           {[...Array(3)].map((_, i) => <div key={i} className="skeleton h-36 rounded-2xl" />)}
         </div>
       ) : stories.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="flex flex-col items-center justify-center py-16 text-center">
           <div
             className="flex items-center justify-center mb-4"
             style={{ width: 56, height: 56, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}
           >
             <BookOpen className="w-7 h-7" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
           </div>
-          <h3 style={{ fontWeight: 600, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>No stories yet</h3>
-          <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20, maxWidth: 280, lineHeight: 1.5 }}>
-            Add raw experiences — text or voice — and let AI turn them into authentic posts in your next batch.
+          <h3 style={{ fontWeight: 600, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>No stories yet — and that&apos;s okay</h3>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 14, maxWidth: 440, lineHeight: 1.55 }}>
+            Stories are <span style={{ fontWeight: 600 }}>optional</span>. You can bulk generate posts without any. But every story you save here makes the AI sound less like AI and more like you.
+          </p>
+          <div
+            style={{
+              maxWidth: 440,
+              textAlign: 'left',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--line)',
+              borderRadius: 'var(--r-sm)',
+              padding: '12px 14px',
+              marginBottom: 18,
+              fontSize: 12.5,
+              lineHeight: 1.6,
+              color: 'var(--ink-3)',
+            }}
+          >
+            <div style={{ marginBottom: 6 }}>
+              <span style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', fontSize: 11 }}>// good</span>
+              <br />
+              &ldquo;Spoke at a fintech event.&rdquo;
+            </div>
+            <div>
+              <span style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', fontSize: 11 }}>// better</span>
+              <br />
+              &ldquo;Gave my first keynote to 200 fintech founders. Forgot my opening line. Recovered with a joke about my chai going cold. Closed strong.&rdquo;
+            </div>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 16, maxWidth: 360, lineHeight: 1.5 }}>
+            Save 3–5 stories worth posting about and your next bulk run will weave them in.
           </p>
           <button
             onClick={() => setShowForm(true)}

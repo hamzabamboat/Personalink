@@ -12,7 +12,7 @@ import { PostImage } from '@/lib/supabase'
 import {
   Loader2, Mic, MicOff, FolderOpen, Sparkles, CalendarClock, Mail,
   BookOpen, Lock, Zap, Check, Save, ArrowLeft, ImageIcon, Upload, X,
-  CheckCircle2, ArrowRight, Brain,
+  CheckCircle2, ArrowRight, Brain, Lightbulb,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -151,11 +151,21 @@ function ImageUploadSection({ onUpload }: { onUpload: (url: string) => void }) {
 const LAST_BATCH_KEY = 'pl_last_batch_ts'
 const BATCH_GUARD_MINS = 8
 
+const BULK_INTRO_DISMISSED_KEY = 'personalink_bulk_intro_dismissed'
+
 function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { plan: string; postsLimit: number | null; postsRemaining: number | null; monthName: string; storyCount: number }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [recentGenMins, setRecentGenMins] = useState<number | null>(null) // minutes since last batch
   const [loading, setLoading] = useState(false)
   const [instructions, setInstructions] = useState('')
+  const [introDismissed, setIntroDismissed] = useState(true) // start dismissed so SSR matches first render
+  useEffect(() => {
+    setIntroDismissed(localStorage.getItem(BULK_INTRO_DISMISSED_KEY) === '1')
+  }, [])
+  function dismissIntro() {
+    localStorage.setItem(BULK_INTRO_DISMISSED_KEY, '1')
+    setIntroDismissed(true)
+  }
   const [selectedCount, setSelectedCount] = useState<number | null>(null)
   const [currentStep, setCurrentStep] = useState(0)
   const [simulatedPostCount, setSimulatedPostCount] = useState(0)
@@ -397,6 +407,54 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
         </p>
       </div>
 
+      {!introDismissed && (
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex',
+            gap: 10,
+            alignItems: 'flex-start',
+            padding: '12px 36px 12px 14px',
+            borderRadius: 'var(--r-sm)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--line)',
+          }}
+        >
+          <Lightbulb size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
+          <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-2)' }}>
+            <div style={{ fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>
+              You decide how much these posts sound like you.
+            </div>
+            <div>
+              Leave the prompt blank and the <Link href="/dashboard/story-bank" style={{ color: 'var(--accent)', fontWeight: 600 }}>story bank</Link> empty — you&apos;ll still get a full month of posts on your content pillars. Add a story or type a line below and the posts start sounding more like you wrote them. Detailed stories + a specific prompt = posts indistinguishable from your own.
+            </div>
+          </div>
+          <button
+            onClick={dismissIntro}
+            aria-label="Dismiss"
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--ink-4)',
+              fontSize: 16,
+              lineHeight: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 'var(--r-sm)', background: 'var(--accent-soft)', border: '1px solid color-mix(in oklab, var(--accent) 20%, transparent)' }}>
         <BookOpen size={14} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
         <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink-2)' }}>
@@ -412,17 +470,17 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
         <label className="db-label" htmlFor="bulk-instructions">
           What should this month&apos;s posts cover? <span style={{ fontWeight: 400, opacity: .7 }}>(optional)</span>
         </label>
+        <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55 }}>
+          Dump what&apos;s actually happening this month — launches, lessons, hot takes, things you&apos;re tired of seeing on LinkedIn. The more specific, the more the posts sound like you wrote them. Leave it blank and we&apos;ll riff on your content pillars instead.
+        </p>
         <textarea
           id="bulk-instructions"
           value={instructions}
           onChange={e => setInstructions(e.target.value)}
-          placeholder="Dump everything you're working on this month — launches, milestones, events, lessons, hot takes. e.g. Launching v2 of our app on the 12th, spoke at a fintech conference, hired our first designer, learned a hard lesson about pricing..."
+          placeholder="e.g. Launching v2 of our app on the 12th, spoke at a fintech conference, hired our first designer, learned a hard lesson about pricing…"
           className="g-textarea"
           style={{ minHeight: 120 }}
         />
-        <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5 }}>
-          The more context you give, the more specific and personal your batch will be. Leave blank to let AI plan around your content pillars.
-        </p>
       </div>
 
       {error && <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca' }}>{error}</div>}
