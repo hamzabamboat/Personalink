@@ -15,6 +15,8 @@ import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 import { buildScheduleSlots } from '@/lib/scheduling'
 import { syncPostToCalendar } from '@/lib/google-calendar'
+import { isLanguageModesEnabled } from '@/lib/flags'
+import { resolveLocale } from '@/lib/resolve-locale'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
   const plan = (profile.plan || 'free') as TierID
   const postsUsed = profile.posts_used_this_month || 0
 
-  const { topic, voiceNoteId, storyBankId, additionalContext, imageIds } = await request.json()
+  const { topic, voiceNoteId, storyBankId, additionalContext, imageIds, locale: localeOverride } = await request.json()
 
   // Check posts_generated limit (free tier replaces the old hardcoded 3-post trial guard).
   const postsCheck = await checkLimit(user.id, plan, 'posts_generated')
@@ -182,18 +184,23 @@ export async function POST(request: NextRequest) {
     voiceExemplars = [profile.writing_sample as string]
   }
 
+  // Language mode: flag-gated, with an optional per-request override on top of the stored preference.
+  const languageModesOn = await isLanguageModesEnabled(user.id)
+  const locale = resolveLocale({ flagEnabled: languageModesOn, override: localeOverride, stored: profile.voice_locale })
+
   const posts = await generateLinkedInPosts({
     profile, topic, transcript, storyText, additionalContext, trendingContext,
     recentTopics, recentTopicsByPillar,
     userMemories: userMemories || undefined,
     imageContext,
     voiceExemplars,
+    locale,
   })
 
   // Run every draft through the anti-AI-detection gate
   // (humanizeText -> detectAIStructures -> up to 2 Haiku rewrites)
   const gateResults = await Promise.all(
-    posts.map(p => cleanThroughAIGate(p, { profile, voiceExemplars }))
+    posts.map(p => cleanThroughAIGate(p, { profile, voiceExemplars, locale }))
   )
   const validPosts = gateResults.filter(g => g.content && g.content.trim().length >= 50)
   if (validPosts.length === 0) {
