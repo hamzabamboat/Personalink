@@ -13,6 +13,7 @@
 import type { UserProfile } from './supabase'
 import { humanizeText } from './humanize'
 import { anthropic } from './anthropic'
+import type { LocaleId } from './prompts/locales/types'
 
 export type AIDetectionResult = {
   score: number
@@ -269,9 +270,9 @@ const PATTERN_DESCRIPTIONS: Record<string, string> = {
 export async function rewriteToHumanize(
   text: string,
   patterns: string[],
-  options: { profile: UserProfile; voiceExemplars?: string[]; attempt: 1 | 2 }
+  options: { profile: UserProfile; voiceExemplars?: string[]; attempt: 1 | 2; locale?: LocaleId }
 ): Promise<string> {
-  const { voiceExemplars, attempt } = options
+  const { voiceExemplars, attempt, locale = 'english' } = options
 
   const patternList = patterns
     .map(p => `- ${PATTERN_DESCRIPTIONS[p] || p}`)
@@ -291,6 +292,12 @@ export async function rewriteToHumanize(
     ? `\n\nIMPORTANT: a previous rewrite still triggered: ${patterns.join(', ')}. Be more aggressive. Break the rhythm completely. Use uneven sentence lengths. Add a concrete, slightly weird detail. Avoid any tidy parallel structures or symmetrical sentences.`
     : ''
 
+  const dialectClause = locale === 'indian_english'
+    ? `\n\nThis post is written in Indian English register. PRESERVE that register and any India-specific references (GST, RBI, lakh/crore, city tiers). Do NOT Americanise it and do NOT add "kindly" or "do the needful".`
+    : locale === 'hinglish'
+    ? `\n\nThis post is written in Hinglish (English base with natural Hindi code-switching, occasional Devanagari). PRESERVE every Hindi word, the code-switching, and any Devanagari exactly as written. Do NOT translate it to standard English or strip the Hindi. Only remove the flagged structural patterns.`
+    : ''
+
   const prompt = `You are rewriting a LinkedIn post that AI detectors flagged.
 
 The post:
@@ -303,7 +310,7 @@ ${patternList}${exemplarBlock}
 
 Rewrite the post to remove those specific patterns while keeping the story, the facts, and the meaning. Don't reach for new clever metaphors. Don't add a tidy closing line. Don't make the rewrite shorter or longer than the original by more than 20%.
 
-If the original ended with hashtags, keep them. If not, do not add any.${stricter}
+If the original ended with hashtags, keep them. If not, do not add any.${dialectClause}${stricter}
 
 Return ONLY the rewritten post. No preamble. No commentary.`
 
@@ -321,7 +328,7 @@ Return ONLY the rewritten post. No preamble. No commentary.`
 
 export async function cleanThroughAIGate(
   draft: string,
-  options: { profile: UserProfile; voiceExemplars?: string[] }
+  options: { profile: UserProfile; voiceExemplars?: string[]; locale?: LocaleId }
 ): Promise<GateResult> {
   const initialContent = humanizeText(draft)
   const initial = detectAIStructures(initialContent)
