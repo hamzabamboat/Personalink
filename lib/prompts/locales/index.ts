@@ -4,6 +4,7 @@ import { indianEnglish } from './indian-english'
 import { hinglish } from './hinglish'
 
 export * from './types'
+export { selectExamples } from './examples'
 
 export const LOCALES: Record<LocaleId, LocaleModule> = {
   english,
