@@ -6,6 +6,7 @@ import Script from 'next/script'
 import posthog from 'posthog-js'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
 import { MCQ_QUESTIONS, MULTI_SELECT_QUESTIONS } from '@/lib/onboarding-questions'
+import { LOCALE_OPTIONS, type LocaleId } from '@/lib/prompts/locales'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import { TIER_LIMITS } from '@/lib/pricing-config'
 import { toast } from 'sonner'
@@ -47,7 +48,7 @@ const PLAN_META = [
 type FormData = {
   name: string; role: string; industry: string; company: string; age: string; linkedin_url: string
   mcq_answers: Record<string, string | string[]>; writing_sample: string; content_pillars: string[]
-  control_preference: 'autopilot' | 'approve' | 'suggest' | ''; plan: string
+  control_preference: 'autopilot' | 'approve' | 'suggest' | ''; plan: string; voice_locale: LocaleId
 }
 
 const STORAGE_KEY = 'onboarding_progress'
@@ -61,7 +62,7 @@ export default function OnboardingPage() {
   const [userCountry, setUserCountry] = useState('IN')
   const [form, setForm] = useState<FormData>({
     name: '', role: '', industry: '', company: '', age: '', linkedin_url: '',
-    mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'free',
+    mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'free', voice_locale: 'english',
   })
   const [codeInput, setCodeInput] = useState('')
   const [codeChecking, setCodeChecking] = useState(false)
@@ -404,6 +405,28 @@ export default function OnboardingPage() {
                   </div>
                 )
               })}
+              <div>
+                <p className="font-semibold text-slate-900 mb-1 text-[15px]">Which language style should your posts use?</p>
+                <p className="text-[12px] text-slate-400 mb-3">You can change this anytime in Settings.</p>
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-2.5">
+                  {LOCALE_OPTIONS.map(opt => {
+                    const selected = form.voice_locale === opt.id
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, voice_locale: opt.id }))}
+                        title={opt.blurb}
+                        className={`px-4 py-3 sm:py-2.5 rounded-xl sm:rounded-full border-2 text-sm transition-all text-left sm:text-center min-h-[48px] sm:min-h-0 ${
+                          selected ? 'border-brand bg-brand-light text-brand font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
             <NavButtons onNext={() => {
               const allAnswered = MCQ_QUESTIONS.every(q => {
