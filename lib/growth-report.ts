@@ -1,5 +1,3 @@
-import { supabaseAdmin } from '@/lib/supabase-admin'
-
 /** The growth delta window the report narrates, in days (= one baseline window). */
 export const REPORT_WINDOW_DAYS = 28
 
@@ -155,6 +153,3 @@ export function composeGrowthNarrative(input: GrowthNarrativeInput): GrowthNarra
     },
   }
 }
-
-// Suppress unused-import lint warning; DB wrappers below will use supabaseAdmin.
-void (supabaseAdmin as unknown)
