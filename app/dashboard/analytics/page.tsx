@@ -10,6 +10,21 @@ import {
 type ScoreRecord = { score: number; recorded_at: string }
 type ProfileAnalysis = { score: number; improvements: string[]; analysed_at: string }
 
+type GrowthBreakdownUI = {
+  reach: number; audience: number; resonance: number; authority: number
+  weights: { reach: number; audience: number; resonance: number; authority: number }
+  baseline_window: number; n_posts: number; w_self: number; source: string
+}
+type GrowthData = {
+  growthScore: { score: number; breakdown: GrowthBreakdownUI } | null
+  insights: {
+    byPillar: { key: string; posts: number; avgImpressions: number; avgEngagementRate: number }[]
+    byTimeSlot: { day: string; hour: number; posts: number; avgEngagementRate: number }[]
+    velocity: { 'fast-spike': number; 'slow-burn': number; unknown: number }
+    totalPosts: number
+  } | null
+}
+
 const LS_KEY_PREFIX = 'plAnalysis_'
 
 function timeAgo(isoString: string): string {
@@ -81,6 +96,7 @@ export default function AnalyticsPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<ProfileAnalysis | null>(null)
+  const [growth, setGrowth] = useState<GrowthData | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
 
@@ -170,6 +186,10 @@ export default function AnalyticsPage() {
           fetchData(user.id),
           fetchAnalysis(user.id),
         ])
+        try {
+          const gRes = await fetch('/api/growth')
+          if (gRes.ok && !cancelled) setGrowth(await gRes.json())
+        } catch { /* non-fatal */ }
         const lastScore = (await supabase.from('linkedin_scores').select('recorded_at').eq('user_id', user.id).order('recorded_at', { ascending: false }).limit(1)).data?.[0]
         const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
         if (!lastScore || new Date(lastScore.recorded_at).getTime() < oneDayAgo) {
@@ -302,6 +322,116 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
+
+      {/* Growth Score — ring + always-visible breakdown */}
+      {growth?.growthScore && (() => {
+        const gs = growth.growthScore!
+        const b = gs.breakdown
+        const PILLARS = [
+          { key: 'reach', label: 'Reach', sub: 'More people seeing you' },
+          { key: 'audience', label: 'Audience', sub: 'Building a following' },
+          { key: 'resonance', label: 'Resonance', sub: 'Content landing' },
+          { key: 'authority', label: 'Authority', sub: 'Converting to opportunity' },
+        ] as const
+        const R = 34, C = 2 * Math.PI * R
+        const dash = (gs.score / 100) * C
+        const sourceLabel = b.source === 'creator_api' ? 'LinkedIn Creator API'
+          : b.source === 'public_fallback' ? 'public metrics' : 'manual'
+        return (
+          <div className="mb-4 sm:mb-5"
+            style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '16px' }}>
+            <div className="flex items-start gap-4 mb-4">
+              <div style={{ position: 'relative', width: 84, height: 84, flexShrink: 0 }}>
+                <svg width="84" height="84" viewBox="0 0 84 84">
+                  <circle cx="42" cy="42" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="8" />
+                  <circle cx="42" cy="42" r={R} fill="none" stroke="var(--pl-accent)" strokeWidth="8"
+                    strokeLinecap="round" strokeDasharray={`${dash} ${C}`} transform="rotate(-90 42 42)" />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.04em' }}>{gs.score}</span>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 2 }}>Growth Score</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', lineHeight: 1.5 }}>
+                  // vs your last {b.baseline_window} days · {b.n_posts} posts · source: {sourceLabel}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 4 }}>
+                  Blends your own trend with the community baseline ({Math.round(b.w_self * 100)}% you).
+                </div>
+              </div>
+            </div>
+
+            {/* How this is calculated — always visible */}
+            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', fontWeight: 600, marginBottom: 10, fontFamily: 'var(--f-mono)' }}>
+                // How this is calculated
+              </div>
+              <div className="flex flex-col gap-3">
+                {PILLARS.map(p => {
+                  const val = Math.round(b[p.key])
+                  const weight = b.weights[p.key]
+                  return (
+                    <div key={p.key}>
+                      <div className="flex justify-between items-baseline mb-1.5 gap-2">
+                        <span style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>
+                          {p.label} <span style={{ color: 'var(--ink-4)', fontWeight: 400 }}>· {p.sub}</span>
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flexShrink: 0 }}>
+                          {val} <span style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 500 }}>×{Math.round(weight * 100)}%</span>
+                        </span>
+                      </div>
+                      <div style={{ height: 5, background: 'var(--surface-2)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: 'var(--pl-accent)', borderRadius: 3, width: `${val}%` }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Growth insights — per-pillar performance + best time */}
+      {growth?.insights && growth.insights.totalPosts > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 sm:mb-5">
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '16px' }}>
+            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>What&apos;s Working</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 12, fontFamily: 'var(--f-mono)' }}>// best pillars by engagement rate</div>
+            <div className="flex flex-col gap-2.5">
+              {growth.insights.byPillar.slice(0, 5).map(p => (
+                <div key={p.key} className="flex justify-between items-baseline gap-2">
+                  <span className="truncate" style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>{p.key}</span>
+                  <span style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{(p.avgEngagementRate * 100).toFixed(1)}%</span> · {p.posts} posts
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '16px' }}>
+            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>Best Times to Post</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 12, fontFamily: 'var(--f-mono)' }}>// top slots by engagement rate (UTC)</div>
+            <div className="flex flex-col gap-2.5">
+              {growth.insights.byTimeSlot.slice(0, 5).map((s, i) => (
+                <div key={`${s.day}-${s.hour}-${i}`} className="flex justify-between items-baseline gap-2">
+                  <span style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>{s.day} {s.hour}:00</span>
+                  <span style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{(s.avgEngagementRate * 100).toFixed(1)}%</span> · {s.posts} posts
+                  </span>
+                </div>
+              ))}
+            </div>
+            {(growth.insights.velocity['fast-spike'] + growth.insights.velocity['slow-burn']) > 0 && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--line)', fontSize: 12, color: 'var(--ink-4)' }}>
+                {growth.insights.velocity['fast-spike']} fast-spike · {growth.insights.velocity['slow-burn']} slow-burn posts
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Profile Analysis Card */}
       {analysis && (
