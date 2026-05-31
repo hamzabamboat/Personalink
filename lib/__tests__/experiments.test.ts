@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { assignVariant, hashToUnitInterval } from '../experiments'
+import {
+  assignVariant, hashToUnitInterval,
+  computeLift, evaluateGuardrails, EXPERIMENT_THRESHOLDS,
+} from '../experiments'
 
 describe('hashToUnitInterval', () => {
   it('is deterministic and in [0,1)', () => {
@@ -54,5 +57,89 @@ describe('assignVariant', () => {
     const ratio = treatment / N
     expect(ratio).toBeGreaterThan(0.20)
     expect(ratio).toBeLessThan(0.30)
+  })
+})
+
+describe('EXPERIMENT_THRESHOLDS (v1 defaults)', () => {
+  it('exposes the ship-now numbers', () => {
+    expect(EXPERIMENT_THRESHOLDS).toEqual({
+      MIN_SAMPLE: 6,
+      WIN_LIFT: 0.10,
+      ROLLBACK_LIFT: -0.10,
+      MIN_CONFIDENCE: 0.6,
+      MATURE_DAYS: 21,
+    })
+  })
+})
+
+describe('computeLift', () => {
+  it('positive lift when treatment mean exceeds baseline mean', () => {
+    const r = computeLift([10, 10, 10, 10], [12, 12, 12, 12])
+    expect(r.lift).toBeCloseTo(0.2, 6) // (12-10)/10
+    expect(r.n).toBe(4)
+    expect(r.confidence).toBe(1) // zero variance, clean separation
+  })
+
+  it('negative lift when treatment underperforms', () => {
+    const r = computeLift([10, 10, 10], [8, 8, 8])
+    expect(r.lift).toBeCloseTo(-0.2, 6)
+    expect(r.n).toBe(3)
+  })
+
+  it('n is the smaller of the two arms', () => {
+    const r = computeLift([10, 10, 10, 10, 10], [12, 12])
+    expect(r.n).toBe(2)
+  })
+
+  it('lift is 0 when baseline mean is non-positive', () => {
+    expect(computeLift([0, 0], [5, 5]).lift).toBe(0)
+  })
+
+  it('confidence is 0 with fewer than 2 usable points', () => {
+    expect(computeLift([10], [12]).confidence).toBe(0)
+  })
+
+  it('noisy data yields lower confidence than clean data for the same lift', () => {
+    const clean = computeLift([10, 10, 10, 10], [11, 11, 11, 11])
+    const noisy = computeLift([2, 18, 5, 15], [1, 21, 6, 16])
+    expect(clean.lift).toBeCloseTo(noisy.lift, 1)
+    expect(clean.confidence).toBeGreaterThan(noisy.confidence)
+  })
+
+  it('ignores null/NaN entries when computing means', () => {
+    const r = computeLift([10, null as unknown as number, 10], [12, 12, NaN])
+    expect(r.lift).toBeCloseTo(0.2, 6)
+  })
+})
+
+describe('evaluateGuardrails', () => {
+  it('tiny N → keep_running, no rollback (never judge on too little data)', () => {
+    expect(evaluateGuardrails({ n: 3, lift: 0.5, confidence: 0.99, matured: true }))
+      .toEqual({ decision: 'keep_running', rollback: false })
+  })
+
+  it('clear win → won, no rollback', () => {
+    expect(evaluateGuardrails({ n: 10, lift: 0.25, confidence: 0.8, matured: false }))
+      .toEqual({ decision: 'won', rollback: false })
+  })
+
+  it('clear loss → lost, rollback true', () => {
+    expect(evaluateGuardrails({ n: 10, lift: -0.30, confidence: 0.8, matured: false }))
+      .toEqual({ decision: 'lost', rollback: true })
+  })
+
+  it('a bad lift with low confidence does NOT roll back until matured', () => {
+    expect(evaluateGuardrails({ n: 10, lift: -0.30, confidence: 0.3, matured: false }))
+      .toEqual({ decision: 'keep_running', rollback: false })
+  })
+
+  it('matured but neither win nor loss → inconclusive, rollback to control', () => {
+    expect(evaluateGuardrails({ n: 10, lift: 0.02, confidence: 0.9, matured: true }))
+      .toEqual({ decision: 'inconclusive', rollback: true })
+  })
+
+  it('small positive lift, not matured → keep_running', () => {
+    expect(evaluateGuardrails({ n: 10, lift: 0.05, confidence: 0.9, matured: false }))
+      .toEqual({ decision: 'keep_running', rollback: false })
   })
 })

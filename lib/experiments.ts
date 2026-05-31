@@ -51,13 +51,20 @@ function mean(xs: number[]): number {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0
 }
 
-/** Population variance of the pooled arms (used only for the heuristic confidence). */
+/**
+ * Within-group pooled standard deviation (used only for the heuristic confidence).
+ * Uses the average of each arm's population variance, then sqrt. When both arms
+ * are internally uniform (e.g. [10,10,10] vs [12,12,12]), sd=0 so the caller's
+ * sd==0 guard fires and returns confidence=1 (clean separation).
+ */
 function pooledSd(a: number[], b: number[]): number {
-  const all = [...a, ...b]
-  if (all.length < 2) return 0
-  const m = mean(all)
-  const variance = all.reduce((acc, x) => acc + (x - m) ** 2, 0) / all.length
-  return Math.sqrt(variance)
+  if (a.length < 2 && b.length < 2) return 0
+  const variance = (xs: number[]) => {
+    if (xs.length < 2) return 0
+    const m = mean(xs)
+    return xs.reduce((acc, x) => acc + (x - m) ** 2, 0) / xs.length
+  }
+  return Math.sqrt((variance(a) + variance(b)) / 2)
 }
 
 function clamp01(x: number): number {
