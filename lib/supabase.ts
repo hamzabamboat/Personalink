@@ -12,6 +12,7 @@ export type User = {
   linkedin_headline: string | null
   linkedin_access_token: string | null
   linkedin_token_expires_at: string | null
+  linkedin_scopes: string[] | null
   subscription_status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'access_code'
   trial_posts_used: number
   subscription_count: number
@@ -94,6 +95,14 @@ export type Post = {
   impressions: number | null
   reactions: number | null
   comments: number | null
+  reshares: number | null
+  saves: number | null
+  link_clicks: number | null
+  members_reached: number | null
+  followers_gained: number | null
+  profile_views_from_post: number | null
+  metric_source: 'creator_api' | 'public_fallback' | 'manual' | null
+  metrics_synced_at: string | null
   approval_token: string | null
   approval_sent_at: string | null
   human_approved: boolean
@@ -177,13 +186,41 @@ export type PostSuggestion = {
   created_at: string
 }
 
+export type MetricSource = 'creator_api' | 'public_fallback' | 'manual'
+
 export type PostAnalytics = {
   id: string
   post_id: string
   user_id: string
+  age_minutes: number | null
   impressions: number | null
   reactions: number | null
+  comments: number | null
+  reshares: number | null
+  saves: number | null
+  link_clicks: number | null
+  members_reached: number | null
+  source: MetricSource | null
   captured_at: string
+}
+
+export type FollowerSnapshot = {
+  id: string
+  user_id: string
+  snapshot_date: string
+  follower_count: number
+  source: MetricSource | null
+  created_at: string
+}
+
+export type ProfileAnalytics = {
+  id: string
+  user_id: string
+  snapshot_date: string
+  profile_views: number | null
+  search_appearances: number | null
+  source: MetricSource | null
+  created_at: string
 }
 
 export type PostImage = {
