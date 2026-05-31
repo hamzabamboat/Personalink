@@ -240,7 +240,7 @@ export type FollowerSnapshot = {
   id: string
   user_id: string
   snapshot_date: string
-  follower_count: number | null
+  follower_count: number
   source: MetricSource | null
 }
 
