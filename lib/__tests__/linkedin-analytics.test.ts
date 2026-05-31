@@ -9,6 +9,8 @@ import {
   parseCreatorAnalyticsResponse,
   parseSocialActions,
   parseFollowerCounts,
+  parseLifetimeFollowerCount,
+  fetchLifetimeFollowerCount,
   ageMinutes,
   fetchPostMetrics,
   fetchFollowerCounts,
@@ -190,6 +192,88 @@ describe('parseFollowerCounts', () => {
     expect(parseFollowerCounts({ elements: [] })).toEqual([])
     expect(parseFollowerCounts({})).toEqual([])
     expect(parseFollowerCounts(null)).toEqual([])
+  })
+})
+
+describe('parseLifetimeFollowerCount', () => {
+  it('reads organic follower count from q=me response shape', () => {
+    expect(
+      parseLifetimeFollowerCount({ elements: [{ followerCounts: { organicFollowerCount: 540 } }] })
+    ).toBe(540)
+  })
+
+  it('sums organic + paid follower counts', () => {
+    expect(
+      parseLifetimeFollowerCount({
+        elements: [{ followerCounts: { organicFollowerCount: 100, paidFollowerCount: 5 } }],
+      })
+    ).toBe(105)
+  })
+
+  it('returns null when followerCounts is absent from the element', () => {
+    expect(parseLifetimeFollowerCount({ elements: [{}] })).toBeNull()
+  })
+
+  it('returns null when elements array is empty', () => {
+    expect(parseLifetimeFollowerCount({ elements: [] })).toBeNull()
+  })
+
+  it('returns null for null input', () => {
+    expect(parseLifetimeFollowerCount(null)).toBeNull()
+  })
+
+  it('returns null when both organic and paid are absent (empty followerCounts)', () => {
+    expect(parseLifetimeFollowerCount({ elements: [{ followerCounts: {} }] })).toBeNull()
+  })
+
+  it('handles paid-only follower count (organic absent)', () => {
+    expect(
+      parseLifetimeFollowerCount({ elements: [{ followerCounts: { paidFollowerCount: 10 } }] })
+    ).toBe(10)
+  })
+})
+
+describe('fetchLifetimeFollowerCount', () => {
+  it('calls the q=me endpoint and returns the parsed count', async () => {
+    const calls: string[] = []
+    const fetchStub = (async (url: string) => {
+      calls.push(url)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ elements: [{ followerCounts: { organicFollowerCount: 540 } }] }),
+      }
+    }) as unknown as typeof fetch
+
+    const result = await fetchLifetimeFollowerCount('tok', fetchStub)
+
+    expect(result).toBe(540)
+    expect(calls.length).toBe(1)
+    expect(calls[0]).toContain('memberFollowersCount?q=me')
+  })
+
+  it('returns null when res.ok is false', async () => {
+    const fetchStub = (async () => ({ ok: false, status: 403 })) as unknown as typeof fetch
+    const result = await fetchLifetimeFollowerCount('tok', fetchStub)
+    expect(result).toBeNull()
+  })
+
+  it('returns null when fetch throws', async () => {
+    const fetchStub = (async () => {
+      throw new Error('network error')
+    }) as unknown as typeof fetch
+    const result = await fetchLifetimeFollowerCount('tok', fetchStub)
+    expect(result).toBeNull()
+  })
+
+  it('returns null when followerCounts is absent in the response', async () => {
+    const fetchStub = (async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ elements: [{}] }),
+    })) as unknown as typeof fetch
+    const result = await fetchLifetimeFollowerCount('tok', fetchStub)
+    expect(result).toBeNull()
   })
 })
 

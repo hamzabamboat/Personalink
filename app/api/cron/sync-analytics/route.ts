@@ -6,7 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isTokenExpired } from '@/lib/linkedin-api'
 import {
   capturePostSnapshot,
-  fetchFollowerCounts,
+  fetchLifetimeFollowerCount,
   LINKEDIN_API_VERSION,
 } from '@/lib/linkedin-analytics'
 import crypto from 'crypto'
@@ -76,16 +76,10 @@ async function handler(request: NextRequest) {
 
     // 2) Today's follower snapshot (lifetime count → today's date).
     try {
-      const counts = await fetchFollowerCounts(token)
-      const today = counts[counts.length - 1]
-      if (today) {
+      const count = await fetchLifetimeFollowerCount(token)
+      if (count != null) {
         const { error } = await supabaseAdmin.from('follower_snapshots').upsert(
-          {
-            user_id: u.id,
-            snapshot_date: todayStr,
-            follower_count: today.follower_count,
-            source: hasProfileScope ? 'creator_api' : 'public_fallback',
-          },
+          { user_id: u.id, snapshot_date: todayStr, follower_count: count, source: 'creator_api' },
           { onConflict: 'user_id,snapshot_date' }
         )
         if (!error) followerRows++

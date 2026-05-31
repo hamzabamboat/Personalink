@@ -255,6 +255,29 @@ export async function fetchFollowerCounts(
   }
 }
 
+/** Reads the lifetime follower total from a memberFollowersCount?q=me response
+ *  (no dateRange). Sums organic + paid; null when followerCounts is absent. */
+export function parseLifetimeFollowerCount(json: unknown): number | null {
+  const fc = (json as { elements?: Array<{ followerCounts?: { organicFollowerCount?: number; paidFollowerCount?: number } }> } | null)
+    ?.elements?.[0]?.followerCounts
+  if (!fc || (fc.organicFollowerCount == null && fc.paidFollowerCount == null)) return null
+  return (fc.organicFollowerCount ?? 0) + (fc.paidFollowerCount ?? 0)
+}
+
+/** Lifetime follower count via q=me (requires r_member_profileAnalytics). null on error/absence. */
+export async function fetchLifetimeFollowerCount(
+  token: string,
+  fetchImpl: FetchLike = fetch
+): Promise<number | null> {
+  try {
+    const res = await fetchImpl(`${REST_BASE}/memberFollowersCount?q=me`, { headers: restHeaders(token) })
+    if (!res.ok) return null
+    return parseLifetimeFollowerCount(await res.json())
+  } catch {
+    return null
+  }
+}
+
 /** Backfill window helper: the last `days` days, as an epoch-ms dateRange ending now. */
 export function findFollowerDateRange(days = 90, now: number = Date.now()): {
   startMs: number
