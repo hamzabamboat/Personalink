@@ -242,6 +242,7 @@ export type FollowerSnapshot = {
   snapshot_date: string
   follower_count: number
   source: MetricSource | null
+  created_at: string
 }
 
 export type ProfileAnalytics = {
@@ -251,6 +252,7 @@ export type ProfileAnalytics = {
   profile_views: number | null
   search_appearances: number | null
   source: MetricSource | null
+  created_at: string
 }
 
 export type PostImage = {
