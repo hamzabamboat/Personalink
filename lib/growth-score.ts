@@ -59,3 +59,96 @@ export function poolSubScore(args: {
   const wSelf = n / (n + k)
   return wSelf * self + (1 - wSelf) * cohortMedian
 }
+
+type MetricBundle = {
+  impressions: number | null
+  members_reached: number | null
+  followerDelta: number | null
+  followersGained: number | null
+  reactions: number | null
+  comments: number | null
+  reshares: number | null
+  saves: number | null
+  profileViews: number | null
+  searchAppearances: number | null
+}
+
+export type GrowthScoreInput = {
+  nPosts: number
+  source: MetricSource
+  current: MetricBundle
+  baseline: MetricBundle
+  cohortMedians: {
+    reach: number | null
+    audience: number | null
+    resonance: number | null
+    authority: number | null
+  }
+}
+
+type SubScores = { reach: number; audience: number; resonance: number; authority: number }
+
+/** Engagement rate = (reactions+comments+reshares+saves) / impressions, or null. */
+function engagementRate(m: MetricBundle): number | null {
+  if (!m.impressions || m.impressions <= 0) return null
+  const eng = (m.reactions ?? 0) + (m.comments ?? 0) + (m.reshares ?? 0) + (m.saves ?? 0)
+  return eng / m.impressions
+}
+
+/** Each sub-score 0–100 vs the user's own baseline; null if no baseline signal. */
+export function selfSubScores(current: MetricBundle, baseline: MetricBundle): {
+  reach: number | null; audience: number | null; resonance: number | null; authority: number | null
+} {
+  const reach = meanOrNull([
+    ratioScore(current.impressions, baseline.impressions),
+    ratioScore(current.members_reached, baseline.members_reached),
+  ])
+  const audience = meanOrNull([
+    ratioScore(current.followerDelta, baseline.followerDelta),
+    ratioScore(current.followersGained, baseline.followersGained),
+  ])
+  const resonance = ratioScore(engagementRate(current), engagementRate(baseline))
+  const authority = meanOrNull([
+    ratioScore(current.profileViews, baseline.profileViews),
+    ratioScore(current.searchAppearances, baseline.searchAppearances),
+  ])
+  return { reach, audience, resonance, authority }
+}
+
+export function computeGrowthScore(input: GrowthScoreInput): {
+  score: number
+  breakdown: import('./supabase').GrowthBreakdown
+} {
+  const self = selfSubScores(input.current, input.baseline)
+  const k = GROWTH_K
+  const n = input.nPosts
+
+  const pooled: SubScores = {
+    reach: poolSubScore({ self: self.reach, cohortMedian: input.cohortMedians.reach, n, k }),
+    audience: poolSubScore({ self: self.audience, cohortMedian: input.cohortMedians.audience, n, k }),
+    resonance: poolSubScore({ self: self.resonance, cohortMedian: input.cohortMedians.resonance, n, k }),
+    authority: poolSubScore({ self: self.authority, cohortMedian: input.cohortMedians.authority, n, k }),
+  }
+
+  const w = GROWTH_WEIGHTS
+  const composite =
+    w.reach * pooled.reach +
+    w.audience * pooled.audience +
+    w.resonance * pooled.resonance +
+    w.authority * pooled.authority
+
+  return {
+    score: Math.round(clamp0_100(composite)),
+    breakdown: {
+      reach: pooled.reach,
+      audience: pooled.audience,
+      resonance: pooled.resonance,
+      authority: pooled.authority,
+      weights: { ...w },
+      baseline_window: BASELINE_WINDOW_DAYS,
+      n_posts: n,
+      w_self: n / (n + k),
+      source: input.source,
+    },
+  }
+}
