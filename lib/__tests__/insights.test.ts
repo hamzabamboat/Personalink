@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   groupPerformanceBy, perPillarPerformance, perFormatPerformance, perTimeSlotPerformance,
-  type PostPerfRow,
+  classifyVelocity, attributionByPillar,
+  type PostPerfRow, type VelocitySample,
 } from '../insights'
 
 const rows: PostPerfRow[] = [
@@ -53,5 +54,52 @@ describe('perTimeSlotPerformance', () => {
     expect(out.some(s => s.day === 'Wed' && s.hour === 14)).toBe(true)
     // posts with null published_at are dropped
     expect(out.reduce((n, s) => n + s.posts, 0)).toBe(3)
+  })
+})
+
+describe('classifyVelocity (fast-spike vs slow-burn)', () => {
+  // Series of post_analytics snapshots: age_minutes + cumulative impressions.
+  it('fast-spike: most impressions arrive in the first 24h', () => {
+    const series: VelocitySample[] = [
+      { age_minutes: 60, impressions: 800 },
+      { age_minutes: 24 * 60, impressions: 950 },
+      { age_minutes: 7 * 24 * 60, impressions: 1000 },
+    ]
+    const v = classifyVelocity(series)
+    expect(v.class).toBe('fast-spike')
+    expect(v.share24h).toBeCloseTo(0.95, 2)
+  })
+
+  it('slow-burn: impressions keep accruing well past 24h', () => {
+    const series: VelocitySample[] = [
+      { age_minutes: 60, impressions: 100 },
+      { age_minutes: 24 * 60, impressions: 300 },
+      { age_minutes: 7 * 24 * 60, impressions: 1000 },
+    ]
+    const v = classifyVelocity(series)
+    expect(v.class).toBe('slow-burn')
+    expect(v.share24h).toBeCloseTo(0.3, 2)
+  })
+
+  it('returns unknown when fewer than 2 snapshots or no terminal impressions', () => {
+    expect(classifyVelocity([{ age_minutes: 60, impressions: 50 }]).class).toBe('unknown')
+    expect(classifyVelocity([]).class).toBe('unknown')
+  })
+})
+
+describe('attributionByPillar', () => {
+  it('rolls up followers_gained + profile_views_from_post per pillar, sorted by followers desc', () => {
+    const rows = [
+      { content_pillar: 'Leadership', followers_gained: 10, profile_views_from_post: 30 },
+      { content_pillar: 'Leadership', followers_gained: 5, profile_views_from_post: 10 },
+      { content_pillar: 'Innovation', followers_gained: 20, profile_views_from_post: 5 },
+      { content_pillar: null, followers_gained: null, profile_views_from_post: 2 },
+    ]
+    const out = attributionByPillar(rows)
+    expect(out[0]).toEqual({ key: 'Innovation', followersGained: 20, profileViews: 5, posts: 1 })
+    const lead = out.find(g => g.key === 'Leadership')!
+    expect(lead.followersGained).toBe(15)
+    expect(lead.profileViews).toBe(40)
+    expect(out.find(g => g.key === 'Uncategorized')!.followersGained).toBe(0)
   })
 })
