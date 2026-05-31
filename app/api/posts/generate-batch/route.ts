@@ -9,6 +9,10 @@ import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 import { buildOptimalSlots } from '@/lib/linkedin-schedule'
+import {
+  getActiveExperiment, getUserSlotWeights, assignVariant, applyTreatmentToGeneration,
+} from '@/lib/experiments'
+import type { Experiment } from '@/lib/supabase'
 
 export const maxDuration = 300
 
@@ -223,6 +227,20 @@ export async function POST(request: NextRequest) {
   const now = new Date()
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
+  // ── Active experiment (Phase 2) ───────────────────────────────────────────
+  // One change at a time per user, held behind a control arm. Null = no
+  // experiment running → generation is byte-identical to pre-Phase-2 behavior.
+  let activeExperiment: Experiment | null = null
+  try { activeExperiment = await getActiveExperiment(user.id) }
+  catch (e) { console.warn('[generate-batch] getActiveExperiment failed (non-fatal):', e) }
+
+  // Per-user learned day-of-week weights — only non-null when a timing
+  // experiment is active/won for this user; otherwise the scheduler keeps the
+  // global DOW_WEIGHT (no silent change).
+  let learnedDowWeight: Record<number, number> | null = null
+  try { learnedDowWeight = await getUserSlotWeights(user.id) }
+  catch (e) { console.warn('[generate-batch] getUserSlotWeights failed (non-fatal):', e) }
+
   // ── Subscription billing period ──────────────────────────────────────────
   // Fetch the user's next billing date so we can cap scheduling to it.
   // Annual subscribers have next_billing_date ~365 days out; monthly ~30 days.
@@ -339,6 +357,7 @@ export async function POST(request: NextRequest) {
     userPreferredDays: preferredDays,
     userPreferredHour: preferredHour,
     periodEndDate,   // caps window to subscription renewal date (monthly plans only)
+    ...(learnedDowWeight ? { learnedDowWeight } : {}),
   })
 
   const postStatus = controlPreference === 'autopilot' ? 'scheduled'
@@ -362,16 +381,44 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.warn('[generate-batch] cleanThroughAIGate failed (non-fatal):', e)
     }
+
+    // ── Experiment provenance (Phase 2) ──────────────────────────────────────
+    // Assign each post to control/treatment for the active experiment and apply
+    // the treatment's pillar/format override. The control arm is byte-identical
+    // to pre-Phase-2 output; only the treatment arm differs. Posts outside any
+    // experiment carry null experiment_id/variant.
+    const basePillar = post.content_pillar || pillars[i % pillars.length]
+    let finalPillar = basePillar
+    let finalFormat = post.format
+    let variant: 'control' | 'treatment' | null = null
+    let experimentId: string | null = null
+    if (activeExperiment) {
+      // Stable per-post key so the arm doesn't flap (index within this batch + a
+      // content hash proxy via slot time; deterministic within the batch).
+      const postKey = `${slots[i]?.toISOString() ?? 'noslot'}#${i}`
+      variant = assignVariant({ id: activeExperiment.id }, { id: postKey })
+      experimentId = activeExperiment.id
+      const applied = applyTreatmentToGeneration(
+        { pillar: basePillar, format: post.format, promptSuffix: '', targetWords: null },
+        { dimension: activeExperiment.dimension, treatment: activeExperiment.treatment },
+        variant,
+      )
+      finalPillar = applied.pillar
+      finalFormat = applied.format
+    }
+
     return {
       user_id: user.id,
       content,
-      content_pillar: post.content_pillar || pillars[i % pillars.length],
+      content_pillar: finalPillar,
+      format: finalFormat,
       source: 'ai_generated',
       status: postStatus,
       scheduled_at: slots[i]?.toISOString() ?? null,
       ai_detection_score: aiScore,
       ai_detection_patterns: aiPatterns,
       ai_rewrite_attempts: aiAttempts,
+      ...(experimentId ? { experiment_id: experimentId, variant } : {}),
       ...(post.story_bank_id ? { story_bank_id: post.story_bank_id } : {}),
     }
   }))
