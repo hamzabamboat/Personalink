@@ -183,3 +183,54 @@ describe('ageMinutes', () => {
     expect(ageMinutes(null, '2026-05-01T00:00:00.000Z')).toBeNull()
   })
 })
+
+import { fetchPostMetrics } from '../linkedin-analytics'
+
+describe('fetchPostMetrics source selection', () => {
+  const urn = 'urn:li:share:7123456789'
+
+  it('uses creator analytics (one call per metric) when scopes allow', async () => {
+    const calls: string[] = []
+    const fetchStub = (async (url: string) => {
+      calls.push(url)
+      return { ok: true, status: 200, json: async () => ({ elements: [{ value: 1 }] }) }
+    }) as unknown as typeof fetch
+
+    const result = await fetchPostMetrics('tok', urn, ['r_member_postAnalytics'], fetchStub)
+
+    expect(result.source).toBe('creator_api')
+    expect(calls.length).toBe(CREATOR_POST_METRICS.length)
+    expect(calls[0]).toContain('memberCreatorPostAnalytics')
+    expect(calls[0]).toContain('share%3A7123456789')
+    expect(calls[0]).toContain('queryType=IMPRESSION')
+  })
+
+  it('falls back to socialActions when creator scope is absent', async () => {
+    const calls: string[] = []
+    const fetchStub = (async (url: string) => {
+      calls.push(url)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ likesSummary: { totalLikes: 4 }, commentsSummary: { totalFirstLevelComments: 1 } }),
+      }
+    }) as unknown as typeof fetch
+
+    const result = await fetchPostMetrics('tok', urn, ['openid'], fetchStub)
+
+    expect(result.source).toBe('public_fallback')
+    expect(result.reactions).toBe(4)
+    expect(result.comments).toBe(1)
+    expect(calls.length).toBe(1)
+    expect(calls[0]).toContain('socialActions')
+  })
+
+  it('returns all-null public_fallback when the urn is unparseable under creator scope', async () => {
+    const fetchStub = (async () => {
+      throw new Error('should not be called')
+    }) as unknown as typeof fetch
+    const result = await fetchPostMetrics('tok', 'garbage', ['r_member_postAnalytics'], fetchStub)
+    expect(result.source).toBe('public_fallback')
+    expect(result.impressions).toBeNull()
+  })
+})
