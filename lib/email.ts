@@ -1201,3 +1201,62 @@ export async function sendDay7StatsEmail({
       </div>`,
   })
 }
+
+import type { GrowthReportBody } from '@/lib/growth-report'
+
+export async function sendGrowthReportEmail({
+  to, subject, body,
+}: { to: string; subject: string; body: GrowthReportBody }) {
+  const accentByTrend: Record<string, string> = {
+    up: '#059669', flat: '#0A66C2', down: '#d97706', insufficient: '#64748b',
+  }
+  const accent = accentByTrend[body.trend] ?? '#0A66C2'
+  const attributionHtml = body.attribution
+    ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155;">${body.attribution}</p>`
+    : ''
+  const recoveryHtml = body.recovery
+    ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px 16px;margin:0 0 20px;"><p style="margin:0;font-size:14px;color:#92400e;">${body.recovery}</p></div>`
+    : ''
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+    <div style="background:#0A66C2;padding:28px 32px;">
+      <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
+        <span style="display:inline-block;line-height:1;white-space:nowrap;vertical-align:middle;">
+          <img src="${APP_URL}/logo-mark.png" alt="" width="24" height="24" style="vertical-align:middle;display:inline-block;border:0;margin-right:8px;width:24px;height:24px;" />
+          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" height="22" style="vertical-align:middle;display:inline-block;border:0;height:22px;width:auto;" />
+        </span>
+      </div>
+      <p style="margin:16px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Your ${body.windowDays}-day growth report</p>
+    </div>
+    <div style="padding:32px;">
+      <h1 style="margin:0 0 16px;font-size:20px;font-weight:600;color:#0f172a;line-height:1.4;">${body.headline}</h1>
+      ${attributionHtml}
+      ${recoveryHtml}
+      <div style="border-left:3px solid ${accent};padding:10px 16px;margin:0 0 24px;background:#f8fafc;border-radius:0 8px 8px 0;">
+        <p style="margin:0;font-size:14px;color:#0f172a;">${body.scoreLine}</p>
+      </div>
+      <a href="${APP_URL}${body.cta.href}" style="display:block;text-align:center;background:#0A66C2;color:white;text-decoration:none;padding:14px 20px;border-radius:8px;font-weight:600;font-size:15px;margin-bottom:16px;">${body.cta.label} →</a>
+      <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">Sent weekly by PersonaLink. Numbers are best-effort from LinkedIn and reflect trends, not exact UI figures.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: [
+      body.headline,
+      body.attribution ?? '',
+      body.recovery ?? '',
+      body.scoreLine,
+      '',
+      `${body.cta.label}: ${APP_URL}${body.cta.href}`,
+    ].filter(Boolean).join('\n\n'),
+  })
+}
