@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isTokenExpired } from '@/lib/linkedin-api'
+import {
+  capturePostSnapshot,
+  fetchFollowerCounts,
+  findFollowerDateRange,
+} from '@/lib/linkedin-analytics'
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -11,119 +16,88 @@ export async function POST(request: NextRequest) {
 
   const { data: userData } = await supabaseAdmin
     .from('users')
-    .select('linkedin_access_token, linkedin_token_expires_at')
+    .select('linkedin_access_token, linkedin_token_expires_at, linkedin_scopes')
     .eq('id', user.id)
     .single()
 
   if (!userData?.linkedin_access_token || isTokenExpired(userData.linkedin_token_expires_at)) {
-    return NextResponse.json({ error: 'LinkedIn token expired. Please log out and reconnect LinkedIn.' }, { status: 403 })
+    return NextResponse.json(
+      { error: 'LinkedIn token expired. Please log out and reconnect LinkedIn.' },
+      { status: 403 }
+    )
   }
+
+  const token = userData.linkedin_access_token
+  const scopes = userData.linkedin_scopes as string[] | null
 
   const { data: posts } = await supabaseAdmin
     .from('posts')
-    .select('id, linkedin_post_id')
+    .select('id, linkedin_post_id, published_at')
     .eq('user_id', user.id)
     .eq('status', 'published')
     .not('linkedin_post_id', 'is', null)
     .limit(50)
 
-  if (!posts?.length) {
-    return NextResponse.json({ synced: 0, message: 'No published posts with LinkedIn IDs found.' })
-  }
-
   let synced = 0
   let failed = 0
-  let scopeError = false
+  let usedFallback = false
 
-  for (const post of posts) {
+  for (const post of posts ?? []) {
     try {
-      const encodedUrn = encodeURIComponent(post.linkedin_post_id!)
-
-      // Use the Share Statistics API for impressions, likes, comments, clicks
-      const statsRes = await fetch(
-        `https://api.linkedin.com/v2/shareStatistics?q=shares&shares[0]=${encodedUrn}`,
-        {
-          headers: {
-            Authorization: `Bearer ${userData.linkedin_access_token}`,
-            'X-Restli-Protocol-Version': '2.0.0',
-          },
-        }
-      )
-
-      if (statsRes.status === 403) {
-        scopeError = true
-        // Fall back to socialActions endpoint for reactions only
-        const actionsRes = await fetch(
-          `https://api.linkedin.com/v2/socialActions/${encodedUrn}`,
-          {
-            headers: {
-              Authorization: `Bearer ${userData.linkedin_access_token}`,
-              'X-Restli-Protocol-Version': '2.0.0',
-            },
-          }
-        )
-
-        if (!actionsRes.ok) {
-          failed++
-          continue
-        }
-
-        const actionsData = await actionsRes.json()
-        const reactions = actionsData.likesSummary?.totalLikes ?? null
-        const comments = actionsData.commentsSummary?.totalFirstLevelComments ?? null
-
-        if (reactions !== null) {
-          await supabaseAdmin
-            .from('posts')
-            .update({ reactions, ...(comments !== null && { comments }) })
-            .eq('id', post.id)
-          synced++
-        }
-        continue
-      }
-
-      if (!statsRes.ok) {
-        failed++
-        continue
-      }
-
-      const statsData = await statsRes.json()
-      const stat = statsData.elements?.[0]?.shareStatistics
-
-      if (!stat) {
-        failed++
-        continue
-      }
-
-      const reactions = stat.likeCount ?? stat.likesSummary?.totalLikes ?? stat.likesSummary?.aggregatedTotalLikes ?? null
-      const impressions = stat.impressionCount ?? null
-      const comments = stat.commentCount ?? null
-
-      await supabaseAdmin
-        .from('posts')
-        .update({
-          ...(reactions !== null && { reactions }),
-          ...(impressions !== null && { impressions }),
-          ...(comments !== null && { comments }),
-        })
-        .eq('id', post.id)
+      const metrics = await capturePostSnapshot({
+        db: supabaseAdmin,
+        token,
+        scopes,
+        postId: post.id,
+        userId: user.id,
+        urn: post.linkedin_post_id!,
+        publishedAt: post.published_at,
+      })
+      if (metrics.source === 'public_fallback') usedFallback = true
       synced++
     } catch {
       failed++
     }
   }
 
+  // First-sync follower backfill: only when this user has no snapshots yet.
+  let followersBackfilled = 0
+  const { count: existingSnapshots } = await supabaseAdmin
+    .from('follower_snapshots')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  if (!existingSnapshots) {
+    const counts = await fetchFollowerCounts(token, findFollowerDateRange(90))
+    if (counts.length) {
+      const { error } = await supabaseAdmin.from('follower_snapshots').upsert(
+        counts.map((c) => ({
+          user_id: user.id,
+          snapshot_date: c.snapshot_date,
+          follower_count: c.follower_count,
+          source: scopes?.includes('r_member_profileAnalytics') ? 'creator_api' : 'public_fallback',
+        })),
+        { onConflict: 'user_id,snapshot_date' }
+      )
+      if (!error) followersBackfilled = counts.length
+    }
+  }
+
+  const total = posts?.length ?? 0
   const message =
-    failed > 0
-      ? `Synced ${synced} of ${posts.length} posts (${failed} failed — LinkedIn may have rejected those URNs)`
-      : `Synced ${synced} of ${posts.length} posts`
+    total === 0
+      ? 'No published posts with LinkedIn IDs found.'
+      : failed > 0
+        ? `Synced ${synced} of ${total} posts (${failed} failed — LinkedIn may have rejected those URNs)`
+        : `Synced ${synced} of ${total} posts`
 
   return NextResponse.json({
     synced,
     failed,
-    total: posts.length,
+    total,
+    followersBackfilled,
     message,
-    ...(scopeError && {
+    ...(usedFallback && {
       warning: 'Impression data unavailable — reconnect LinkedIn to grant full analytics access.',
     }),
   })
