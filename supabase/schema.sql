@@ -9,6 +9,7 @@ create table if not exists users (
   linkedin_picture text,
   linkedin_access_token text,
   linkedin_token_expires_at timestamptz,
+  linkedin_scopes text[],
   subscription_status text default 'inactive',
   trial_posts_used integer default 0,
   created_at timestamptz default now(),
@@ -79,6 +80,14 @@ create table if not exists posts (
   impressions integer,
   reactions integer,
   comments integer,
+  reshares integer,
+  saves integer,
+  link_clicks integer,
+  members_reached integer,
+  followers_gained integer,
+  profile_views_from_post integer,
+  metric_source text,
+  metrics_synced_at timestamptz,
   approval_token text unique default gen_random_uuid()::text,
   approval_sent_at timestamptz,
   failure_reason text,
@@ -143,10 +152,19 @@ create table if not exists post_analytics (
   id uuid default gen_random_uuid() primary key,
   post_id uuid references posts(id) on delete cascade,
   user_id uuid references users(id) on delete cascade,
+  age_minutes integer,
   impressions integer,
   reactions integer,
+  comments integer,
+  reshares integer,
+  saves integer,
+  link_clicks integer,
+  members_reached integer,
+  source text,
   captured_at timestamptz default now()
 );
+create index if not exists post_analytics_post_id_idx on post_analytics(post_id, captured_at);
+create index if not exists post_analytics_user_id_idx on post_analytics(user_id, captured_at);
 
 -- Add subscription_count to track resubscriptions
 alter table users add column if not exists subscription_count integer not null default 0;
@@ -220,3 +238,28 @@ create index if not exists voice_samples_user_weight_idx on voice_samples(user_i
 alter table users add column if not exists calendar_feed_token text;
 create unique index if not exists users_calendar_feed_token_idx
   on users(calendar_feed_token) where calendar_feed_token is not null;
+
+-- Organic Growth Engine — daily audience growth (backfilled on connect)
+create table if not exists follower_snapshots (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  snapshot_date date not null,
+  follower_count integer not null,
+  source text default 'creator_api',
+  created_at timestamptz default now(),
+  unique(user_id, snapshot_date)
+);
+create index if not exists follower_snapshots_user_id_idx on follower_snapshots(user_id, snapshot_date);
+
+-- Organic Growth Engine — daily authority signals
+create table if not exists profile_analytics (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  snapshot_date date not null,
+  profile_views integer,
+  search_appearances integer,
+  source text default 'creator_api',
+  created_at timestamptz default now(),
+  unique(user_id, snapshot_date)
+);
+create index if not exists profile_analytics_user_id_idx on profile_analytics(user_id, snapshot_date);
