@@ -29,6 +29,8 @@ const DISTILL_EVERY = 3 // re-distil the fingerprint every N new samples
 
 /** v1 blend: combined = recency*(1-PERF_BLEND) + performance*PERF_BLEND. Calibrated in Task 8 doc. */
 export const PERF_BLEND = 0.5
+/** Number of samples passed to distillVoiceFingerprint. */
+export const DISTILL_SAMPLE_LIMIT = 10
 /** A post needs at least this many impressions before its performance is trusted. */
 export const PERF_SAMPLE_MIN_IMPRESSIONS = 50
 /** Engagement-rate ceiling for normalization (rates above this all map to 1.0). */
@@ -142,6 +144,56 @@ export async function getVoiceExemplars(userId: string, limit = 4): Promise<stri
   }
 }
 
+export type DistillCandidate = {
+  text: string
+  weight: number | null
+  created_at: string
+  post_id: string | null
+  perf?: number | null   // pre-resolved performance weight (provided by refreshFingerprint)
+}
+
+/**
+ * Select which voice samples to pass to distillVoiceFingerprint. PURE.
+ *
+ * `rows` must arrive pre-sorted by the DB (weight DESC, created_at DESC).
+ *
+ * - If NO row has performance data (every post_id is null or perf is null):
+ *   return the first `limit` rows in INCOMING order — byte-identical to the
+ *   old `ORDER BY weight DESC, created_at DESC LIMIT 10` behavior.
+ * - If ANY row has a trusted performance weight: apply the
+ *   combinedWeight × sourceMult product ranking and return the top `limit`.
+ *
+ * Always caps at `limit` (default 10) in BOTH paths.
+ */
+export function selectSamplesForDistill(
+  rows: DistillCandidate[],
+  limit = DISTILL_SAMPLE_LIMIT,
+): DistillCandidate[] {
+  const hasPerf = rows.some(r => r.perf != null)
+
+  if (!hasPerf) {
+    // No performance data at all — preserve the old weight DESC, created_at DESC + LIMIT 10 order.
+    return rows.slice(0, limit)
+  }
+
+  // Normalize recency to 0–1 (newest = 1) over the candidate set.
+  const times = rows.map(r => new Date(r.created_at).getTime())
+  const minT = Math.min(...times)
+  const maxT = Math.max(...times)
+  const span = maxT - minT || 1
+
+  return rows
+    .map(r => {
+      const recencyNorm = (new Date(r.created_at).getTime() - minT) / span
+      const sourceMult = (r.weight ?? 1) / 3 // SOURCE_WEIGHT max is 3 (edit)
+      const score = combinedWeight({ recencyNorm, perf: r.perf ?? null }) * (0.5 + 0.5 * sourceMult)
+      return { row: r, score }
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(x => x.row)
+}
+
 /**
  * Re-distil the voice fingerprint from the current corpus and save it.
  *
@@ -149,6 +201,10 @@ export async function getVoiceExemplars(userId: string, limit = 4): Promise<stri
  * engagement performance of the post each sample came from), so the voice
  * evolves toward what actually drives reach. Samples whose source post lacks
  * trustworthy metrics fall back to recency-only and are never dropped.
+ *
+ * When NO row has performance data (new users, or users whose posts have no
+ * metrics yet) the selection is identical to the pre-perf-aware behavior:
+ * weight DESC, created_at DESC, LIMIT 10 — no fingerprint divergence.
  *
  * Stays behind the existing DISTILL_EVERY trigger in addVoiceSample — this
  * function does not change WHEN we re-distil, only WHICH samples we feed.
@@ -187,23 +243,16 @@ export async function refreshFingerprint(userId: string): Promise<string | null>
       }
     }
 
-    // Normalize recency to 0–1 (newest = 1) over the candidate set.
-    const times = rows.map(r => new Date(r.created_at).getTime())
-    const minT = Math.min(...times)
-    const maxT = Math.max(...times)
-    const span = maxT - minT || 1
+    // Resolve performance weight for each candidate and attach it.
+    const candidates: DistillCandidate[] = rows.map(r => ({
+      ...r,
+      perf: r.post_id ? performanceWeight(metricsByPost.get(r.post_id) ?? null) : null,
+    }))
 
-    const ranked = rows
-      .map(r => {
-        const recencyNorm = (new Date(r.created_at).getTime() - minT) / span
-        const perf = r.post_id ? performanceWeight(metricsByPost.get(r.post_id) ?? null) : null
-        // Keep the source-based `weight` as a gentle multiplier (edits still matter most).
-        const sourceMult = (r.weight ?? 1) / 3 // SOURCE_WEIGHT max is 3 (edit)
-        return { text: r.text, score: combinedWeight({ recencyNorm, perf }) * (0.5 + 0.5 * sourceMult) }
-      })
-      .sort((a, b) => b.score - a.score)
+    // Select ≤10 samples — preserves old behavior when no perf data exists.
+    const selected = selectSamplesForDistill(candidates, DISTILL_SAMPLE_LIMIT)
 
-    const samples = ranked.map(r => r.text.trim()).filter(Boolean)
+    const samples = selected.map(r => r.text.trim()).filter(Boolean)
     if (!samples.length) return null
 
     const fingerprint = await distillVoiceFingerprint(samples)
