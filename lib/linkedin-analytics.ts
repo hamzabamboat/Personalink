@@ -253,3 +253,92 @@ export function findFollowerDateRange(days = 90, now: number = Date.now()): {
 } {
   return { startMs: now - days * 24 * 60 * 60 * 1000, endMs: now }
 }
+
+// ── Write-plan builders (pure) + DB writer ──────────────────────────────
+
+/** Partial update for the posts "latest" cache; null metrics are OMITTED so a
+ *  fallback sync never clobbers a previously-captured creator_api value. */
+export function buildPostsLatestUpdate(
+  m: PostMetrics,
+  syncedAt: string
+): Record<string, number | string> {
+  const update: Record<string, number | string> = {
+    metric_source: m.source,
+    metrics_synced_at: syncedAt,
+  }
+  if (m.impressions !== null) update.impressions = m.impressions
+  if (m.reactions !== null) update.reactions = m.reactions
+  if (m.comments !== null) update.comments = m.comments
+  if (m.reshares !== null) update.reshares = m.reshares
+  if (m.saves !== null) update.saves = m.saves
+  if (m.link_clicks !== null) update.link_clicks = m.link_clicks
+  if (m.members_reached !== null) update.members_reached = m.members_reached
+  if (m.followers_gained !== null) update.followers_gained = m.followers_gained
+  if (m.profile_views_from_post !== null)
+    update.profile_views_from_post = m.profile_views_from_post
+  return update
+}
+
+/** A full post_analytics time-series row (nulls preserved — a snapshot is a
+ *  point-in-time fact). */
+export function buildPostAnalyticsRow(args: {
+  postId: string
+  userId: string
+  metrics: PostMetrics
+  publishedAt: string | null
+  capturedAt: string
+}): Record<string, unknown> {
+  const { postId, userId, metrics: m, publishedAt, capturedAt } = args
+  return {
+    post_id: postId,
+    user_id: userId,
+    age_minutes: ageMinutes(publishedAt, capturedAt),
+    impressions: m.impressions,
+    reactions: m.reactions,
+    comments: m.comments,
+    reshares: m.reshares,
+    saves: m.saves,
+    link_clicks: m.link_clicks,
+    members_reached: m.members_reached,
+    source: m.source,
+    captured_at: capturedAt,
+  }
+}
+
+/**
+ * Fetch one post's metrics and persist them: update the posts "latest" cache
+ * AND append a post_analytics velocity row. Returns the metrics + the source
+ * used. `db` is the supabaseAdmin client (kept as a param so this stays
+ * testable / not coupled to the import in pure tests).
+ */
+export async function capturePostSnapshot(args: {
+  db: { from: (t: string) => any }
+  token: string
+  scopes: string[] | null | undefined
+  postId: string
+  userId: string
+  urn: string
+  publishedAt: string | null
+  now?: string
+  fetchImpl?: FetchLike
+}): Promise<PostMetrics> {
+  const capturedAt = args.now ?? new Date().toISOString()
+  const metrics = await fetchPostMetrics(args.token, args.urn, args.scopes, args.fetchImpl ?? fetch)
+
+  await args.db
+    .from('posts')
+    .update(buildPostsLatestUpdate(metrics, capturedAt))
+    .eq('id', args.postId)
+
+  await args.db.from('post_analytics').insert(
+    buildPostAnalyticsRow({
+      postId: args.postId,
+      userId: args.userId,
+      metrics,
+      publishedAt: args.publishedAt,
+      capturedAt,
+    })
+  )
+
+  return metrics
+}

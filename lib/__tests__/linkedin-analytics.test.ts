@@ -234,3 +234,86 @@ describe('fetchPostMetrics source selection', () => {
     expect(result.impressions).toBeNull()
   })
 })
+
+import { buildPostsLatestUpdate, buildPostAnalyticsRow } from '../linkedin-analytics'
+
+const sampleMetrics = {
+  impressions: 5000,
+  members_reached: 4200,
+  reactions: 80,
+  comments: 12,
+  reshares: 5,
+  saves: 9,
+  link_clicks: 33,
+  followers_gained: 7,
+  profile_views_from_post: 21,
+  source: 'creator_api' as const,
+}
+
+describe('buildPostsLatestUpdate', () => {
+  it('maps metrics to the posts "latest" columns + provenance', () => {
+    const at = '2026-05-31T12:00:00.000Z'
+    expect(buildPostsLatestUpdate(sampleMetrics, at)).toEqual({
+      impressions: 5000,
+      reactions: 80,
+      comments: 12,
+      reshares: 5,
+      saves: 9,
+      link_clicks: 33,
+      members_reached: 4200,
+      followers_gained: 7,
+      profile_views_from_post: 21,
+      metric_source: 'creator_api',
+      metrics_synced_at: at,
+    })
+  })
+
+  it('omits null metric fields so we never overwrite a good value with null', () => {
+    const at = '2026-05-31T12:00:00.000Z'
+    const partial = { ...sampleMetrics, impressions: null, link_clicks: null }
+    const update = buildPostsLatestUpdate(partial, at)
+    expect('impressions' in update).toBe(false)
+    expect('link_clicks' in update).toBe(false)
+    expect(update.reactions).toBe(80)
+    expect(update.metric_source).toBe('creator_api')
+    expect(update.metrics_synced_at).toBe(at)
+  })
+})
+
+describe('buildPostAnalyticsRow', () => {
+  it('builds a full time-series row including age_minutes + source', () => {
+    const row = buildPostAnalyticsRow({
+      postId: 'post-1',
+      userId: 'user-1',
+      metrics: sampleMetrics,
+      publishedAt: '2026-05-31T10:00:00.000Z',
+      capturedAt: '2026-05-31T12:00:00.000Z',
+    })
+    expect(row).toEqual({
+      post_id: 'post-1',
+      user_id: 'user-1',
+      age_minutes: 120,
+      impressions: 5000,
+      reactions: 80,
+      comments: 12,
+      reshares: 5,
+      saves: 9,
+      link_clicks: 33,
+      members_reached: 4200,
+      source: 'creator_api',
+      captured_at: '2026-05-31T12:00:00.000Z',
+    })
+  })
+
+  it('keeps nulls in the time-series row (a snapshot may legitimately be null)', () => {
+    const row = buildPostAnalyticsRow({
+      postId: 'p',
+      userId: 'u',
+      metrics: { ...sampleMetrics, impressions: null },
+      publishedAt: null,
+      capturedAt: '2026-05-31T12:00:00.000Z',
+    })
+    expect(row.impressions).toBeNull()
+    expect(row.age_minutes).toBeNull()
+  })
+})
