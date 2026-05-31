@@ -142,18 +142,68 @@ export async function getVoiceExemplars(userId: string, limit = 4): Promise<stri
   }
 }
 
-/** Re-distil the voice fingerprint from the current corpus and save it. */
+/**
+ * Re-distil the voice fingerprint from the current corpus and save it.
+ *
+ * Performance-aware: samples are ranked by combinedWeight (recency × the
+ * engagement performance of the post each sample came from), so the voice
+ * evolves toward what actually drives reach. Samples whose source post lacks
+ * trustworthy metrics fall back to recency-only and are never dropped.
+ *
+ * Stays behind the existing DISTILL_EVERY trigger in addVoiceSample — this
+ * function does not change WHEN we re-distil, only WHICH samples we feed.
+ */
 export async function refreshFingerprint(userId: string): Promise<string | null> {
   try {
+    // Pull a generous candidate set with the columns we need to weight by.
+    // post_id links a sample back to the post it came from (null for onboarding/
+    // analyzer/voice_note samples that have no originating post).
     const { data } = await supabaseAdmin
       .from('voice_samples')
-      .select('text')
+      .select('text, weight, created_at, post_id')
       .eq('user_id', userId)
       .order('weight', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(40)
 
-    const samples = (data || []).map(d => d.text).filter(Boolean) as string[]
+    const rows = (data || []).filter(r => r.text) as Array<{
+      text: string; weight: number | null; created_at: string; post_id: string | null
+    }>
+    if (!rows.length) return null
+
+    // Fetch performance metrics for the posts these samples came from (one query).
+    const postIds = [...new Set(rows.map(r => r.post_id).filter((id): id is string => !!id))]
+    const metricsByPost = new Map<string, SamplePostMetrics>()
+    if (postIds.length) {
+      const { data: posts } = await supabaseAdmin
+        .from('posts')
+        .select('id, impressions, reactions, comments, reshares, saves')
+        .in('id', postIds)
+      for (const p of posts || []) {
+        metricsByPost.set(p.id as string, {
+          impressions: p.impressions, reactions: p.reactions, comments: p.comments,
+          reshares: p.reshares, saves: p.saves,
+        })
+      }
+    }
+
+    // Normalize recency to 0–1 (newest = 1) over the candidate set.
+    const times = rows.map(r => new Date(r.created_at).getTime())
+    const minT = Math.min(...times)
+    const maxT = Math.max(...times)
+    const span = maxT - minT || 1
+
+    const ranked = rows
+      .map(r => {
+        const recencyNorm = (new Date(r.created_at).getTime() - minT) / span
+        const perf = r.post_id ? performanceWeight(metricsByPost.get(r.post_id) ?? null) : null
+        // Keep the source-based `weight` as a gentle multiplier (edits still matter most).
+        const sourceMult = (r.weight ?? 1) / 3 // SOURCE_WEIGHT max is 3 (edit)
+        return { text: r.text, score: combinedWeight({ recencyNorm, perf }) * (0.5 + 0.5 * sourceMult) }
+      })
+      .sort((a, b) => b.score - a.score)
+
+    const samples = ranked.map(r => r.text.trim()).filter(Boolean)
     if (!samples.length) return null
 
     const fingerprint = await distillVoiceFingerprint(samples)

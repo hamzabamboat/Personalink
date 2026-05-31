@@ -13,8 +13,8 @@ describe('voice weighting — constants', () => {
 describe('performanceWeight', () => {
   it('scores a post by engagement rate, normalized to 0–1', () => {
     // engagement rate = (reactions+comments+reshares+saves)/impressions, capped at a ceiling.
-    const hi = performanceWeight({ impressions: 1000, reactions: 80, comments: 10, reshares: 5, saves: 5 })
-    const lo = performanceWeight({ impressions: 1000, reactions: 5, comments: 0, reshares: 0, saves: 0 })
+    const hi = performanceWeight({ impressions: 1000, reactions: 80, comments: 10, reshares: 5, saves: 5 })!
+    const lo = performanceWeight({ impressions: 1000, reactions: 5, comments: 0, reshares: 0, saves: 0 })!
     expect(hi).toBeGreaterThan(lo)
     expect(hi).toBeLessThanOrEqual(1)
     expect(lo).toBeGreaterThanOrEqual(0)

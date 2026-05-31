@@ -239,6 +239,10 @@ create table if not exists voice_samples (
 create index if not exists voice_samples_user_idx on voice_samples(user_id, created_at desc);
 create index if not exists voice_samples_user_weight_idx on voice_samples(user_id, weight desc, created_at desc);
 
+-- Organic Growth Engine — Phase 3: link a sample to its source post for perf-weighting.
+alter table voice_samples add column if not exists post_id uuid references posts(id) on delete set null;
+create index if not exists voice_samples_post_id_idx on voice_samples(post_id);
+
 -- Private token for the iCal/.ics subscription feed (Apple Calendar, Outlook, etc.)
 alter table users add column if not exists calendar_feed_token text;
 create unique index if not exists users_calendar_feed_token_idx
