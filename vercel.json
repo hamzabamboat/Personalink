@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/evaluate-experiments",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/growth-report",
+      "schedule": "0 8 * * 1"
     }
   ]
 }
