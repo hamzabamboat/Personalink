@@ -263,3 +263,34 @@ create table if not exists profile_analytics (
   unique(user_id, snapshot_date)
 );
 create index if not exists profile_analytics_user_id_idx on profile_analytics(user_id, snapshot_date);
+
+-- Organic Growth Engine — Phase 1 (Understand)
+-- growth_scores: per-user composite Growth Score history.
+create table if not exists growth_scores (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  score integer not null,
+  breakdown jsonb not null default '{}',
+  captured_at timestamptz default now()
+);
+
+create index if not exists growth_scores_user_captured_idx
+  on growth_scores(user_id, captured_at desc);
+
+alter table posts add column if not exists format text;
+
+-- Organic Growth Engine — Phase 1 (Understand)
+-- cohort_baselines: periodic rollup of cohort-median sub-scores.
+create table if not exists cohort_baselines (
+  id uuid default gen_random_uuid() primary key,
+  cohort_key text not null default 'global',
+  reach_median numeric,
+  audience_median numeric,
+  resonance_median numeric,
+  authority_median numeric,
+  n_users integer not null default 0,
+  computed_at timestamptz default now()
+);
+
+create index if not exists cohort_baselines_key_computed_idx
+  on cohort_baselines(cohort_key, computed_at desc);

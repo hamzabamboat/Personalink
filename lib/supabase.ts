@@ -103,6 +103,7 @@ export type Post = {
   profile_views_from_post: number | null
   metric_source: 'creator_api' | 'public_fallback' | 'manual' | null
   metrics_synced_at: string | null
+  format: string | null
   approval_token: string | null
   approval_sent_at: string | null
   human_approved: boolean
@@ -159,6 +160,39 @@ export type LinkedInScore = {
   recorded_at: string
 }
 
+export type MetricSource = 'creator_api' | 'public_fallback' | 'manual'
+
+export type GrowthBreakdown = {
+  reach: number
+  audience: number
+  resonance: number
+  authority: number
+  weights: { reach: number; audience: number; resonance: number; authority: number }
+  baseline_window: number
+  n_posts: number
+  w_self: number
+  source: MetricSource
+}
+
+export type GrowthScore = {
+  id: string
+  user_id: string
+  score: number
+  breakdown: GrowthBreakdown
+  captured_at: string
+}
+
+export type CohortBaseline = {
+  id: string
+  cohort_key: string
+  reach_median: number | null
+  audience_median: number | null
+  resonance_median: number | null
+  authority_median: number | null
+  n_users: number
+  computed_at: string
+}
+
 export type ImageBrief = {
   id: string
   user_id: string
@@ -186,12 +220,11 @@ export type PostSuggestion = {
   created_at: string
 }
 
-export type MetricSource = 'creator_api' | 'public_fallback' | 'manual'
-
 export type PostAnalytics = {
   id: string
   post_id: string
   user_id: string
+  captured_at: string
   age_minutes: number | null
   impressions: number | null
   reactions: number | null
@@ -201,16 +234,14 @@ export type PostAnalytics = {
   link_clicks: number | null
   members_reached: number | null
   source: MetricSource | null
-  captured_at: string
 }
 
 export type FollowerSnapshot = {
   id: string
   user_id: string
   snapshot_date: string
-  follower_count: number
+  follower_count: number | null
   source: MetricSource | null
-  created_at: string
 }
 
 export type ProfileAnalytics = {
@@ -220,7 +251,6 @@ export type ProfileAnalytics = {
   profile_views: number | null
   search_appearances: number | null
   source: MetricSource | null
-  created_at: string
 }
 
 export type PostImage = {
