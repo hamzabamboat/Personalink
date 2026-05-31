@@ -152,3 +152,110 @@ export function computeGrowthScore(input: GrowthScoreInput): {
     },
   }
 }
+
+// ─── Thin DB wrapper ──────────────────────────────────────────────────────────
+
+/** Sum a numeric column across rows, treating null as 0; null if no rows. */
+function sumOrNull(rows: Array<Record<string, number | null>>, key: string): number | null {
+  if (rows.length === 0) return null
+  return rows.reduce((acc, r) => acc + (r[key] ?? 0), 0)
+}
+
+/** Dominant metric_source across rows (most frequent); defaults to 'manual'. */
+function dominantSource(values: Array<string | null | undefined>): MetricSource {
+  const counts: Record<string, number> = {}
+  for (const v of values) {
+    const key = v ?? 'manual'
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+  return ((top?.[0] as MetricSource) ?? 'manual')
+}
+
+/**
+ * Fetch the user's current vs prior 28-day windows + cohort baseline, compute the
+ * Growth Score, and insert it into growth_scores. Mirrors lib/scoring.ts.
+ */
+export async function persistGrowthScore(userId: string) {
+  const now = new Date()
+  const day = 24 * 60 * 60 * 1000
+  const w = BASELINE_WINDOW_DAYS
+  const curStart = new Date(now.getTime() - w * day)
+  const baseStart = new Date(now.getTime() - 2 * w * day)
+  const curStartDate = curStart.toISOString().slice(0, 10)
+  const baseStartDate = baseStart.toISOString().slice(0, 10)
+  const nowDate = now.toISOString().slice(0, 10)
+
+  const [
+    curPostsRes, basePostsRes,
+    curFollowersRes, baseFollowersRes,
+    curProfileRes, baseProfileRes,
+    cohortRes,
+  ] = await Promise.all([
+    supabaseAdmin.from('posts')
+      .select('impressions, reactions, comments, reshares, saves, members_reached, followers_gained, profile_views_from_post, metric_source')
+      .eq('user_id', userId).eq('status', 'published')
+      .gte('published_at', curStart.toISOString()),
+    supabaseAdmin.from('posts')
+      .select('impressions, reactions, comments, reshares, saves, members_reached, followers_gained, profile_views_from_post')
+      .eq('user_id', userId).eq('status', 'published')
+      .gte('published_at', baseStart.toISOString()).lt('published_at', curStart.toISOString()),
+    supabaseAdmin.from('follower_snapshots').select('follower_count, snapshot_date')
+      .eq('user_id', userId).gte('snapshot_date', curStartDate).lte('snapshot_date', nowDate)
+      .order('snapshot_date', { ascending: true }),
+    supabaseAdmin.from('follower_snapshots').select('follower_count, snapshot_date')
+      .eq('user_id', userId).gte('snapshot_date', baseStartDate).lt('snapshot_date', curStartDate)
+      .order('snapshot_date', { ascending: true }),
+    supabaseAdmin.from('profile_analytics').select('profile_views, search_appearances')
+      .eq('user_id', userId).gte('snapshot_date', curStartDate).lte('snapshot_date', nowDate),
+    supabaseAdmin.from('profile_analytics').select('profile_views, search_appearances')
+      .eq('user_id', userId).gte('snapshot_date', baseStartDate).lt('snapshot_date', curStartDate),
+    supabaseAdmin.from('cohort_baselines').select('*').order('computed_at', { ascending: false }).limit(1).maybeSingle(),
+  ])
+
+  const curPosts = curPostsRes.data ?? []
+  const basePosts = basePostsRes.data ?? []
+  const cohort = cohortRes.data
+
+  const followerDelta = (rows: Array<{ follower_count: number | null }>) =>
+    rows.length >= 2 ? (rows[rows.length - 1].follower_count ?? 0) - (rows[0].follower_count ?? 0) : null
+
+  const input: GrowthScoreInput = {
+    nPosts: curPosts.length,
+    source: dominantSource(curPosts.map(p => (p as { metric_source?: string }).metric_source)),
+    current: {
+      impressions: sumOrNull(curPosts, 'impressions'),
+      members_reached: sumOrNull(curPosts, 'members_reached'),
+      followerDelta: followerDelta(curFollowersRes.data ?? []),
+      followersGained: sumOrNull(curPosts, 'followers_gained'),
+      reactions: sumOrNull(curPosts, 'reactions'),
+      comments: sumOrNull(curPosts, 'comments'),
+      reshares: sumOrNull(curPosts, 'reshares'),
+      saves: sumOrNull(curPosts, 'saves'),
+      profileViews: sumOrNull(curProfileRes.data ?? [], 'profile_views'),
+      searchAppearances: sumOrNull(curProfileRes.data ?? [], 'search_appearances'),
+    },
+    baseline: {
+      impressions: sumOrNull(basePosts, 'impressions'),
+      members_reached: sumOrNull(basePosts, 'members_reached'),
+      followerDelta: followerDelta(baseFollowersRes.data ?? []),
+      followersGained: sumOrNull(basePosts, 'followers_gained'),
+      reactions: sumOrNull(basePosts, 'reactions'),
+      comments: sumOrNull(basePosts, 'comments'),
+      reshares: sumOrNull(basePosts, 'reshares'),
+      saves: sumOrNull(basePosts, 'saves'),
+      profileViews: sumOrNull(baseProfileRes.data ?? [], 'profile_views'),
+      searchAppearances: sumOrNull(baseProfileRes.data ?? [], 'search_appearances'),
+    },
+    cohortMedians: {
+      reach: cohort?.reach_median ?? null,
+      audience: cohort?.audience_median ?? null,
+      resonance: cohort?.resonance_median ?? null,
+      authority: cohort?.authority_median ?? null,
+    },
+  }
+
+  const { score, breakdown } = computeGrowthScore(input)
+  await supabaseAdmin.from('growth_scores').insert({ user_id: userId, score, breakdown })
+  return { score, breakdown }
+}
