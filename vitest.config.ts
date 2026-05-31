@@ -19,7 +19,9 @@ export default defineConfig({
     alias: {
       'server-only': resolve(root, 'node_modules/server-only/empty.js'),
       // stub supabase-admin so pure-function tests don't require real env vars
+      // (matches both relative './supabase-admin' and '@/lib/supabase-admin' paths)
       './supabase-admin': resolve(root, 'lib/__tests__/__mocks__/supabase-admin.ts'),
+      '@/lib/supabase-admin': resolve(root, 'lib/__tests__/__mocks__/supabase-admin.ts'),
       // Next.js path alias — resolve @/ to the project root
       '@': root,
     },
