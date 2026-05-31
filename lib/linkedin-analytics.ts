@@ -73,6 +73,16 @@ export function shareIdFromUrn(urn: string): string | null {
   return m ? m[1] : null
 }
 
+/** URL-encoded entity param for memberCreatorPostAnalytics, with the correct
+ *  ugc:/share: prefix per URN type. Returns null if the URN is unparseable. */
+export function entityParamFromUrn(urn: string): string | null {
+  const m = /urn:li:(share|ugcPost):(\d+)/.exec(urn)
+  if (!m) return null
+  const [, type, id] = m
+  const prefix = type === 'ugcPost' ? 'ugc' : 'share'
+  return encodeURIComponent(`(${prefix}:urn:li:${type}:${id})`)
+}
+
 /** Reads the aggregated TOTAL value from one memberCreatorPostAnalytics response. */
 export function parseCreatorMetricValue(json: unknown): number | null {
   const el = (json as { elements?: Array<{ value?: number }> } | null)?.elements?.[0]
@@ -198,9 +208,8 @@ export async function fetchPostMetrics(
   fetchImpl: FetchLike = fetch
 ): Promise<PostMetrics> {
   if (hasCreatorScopes(scopes)) {
-    const id = shareIdFromUrn(urn)
-    if (!id) return { ...ALL_NULL_FALLBACK }
-    const entity = encodeURIComponent(`(share:urn:li:share:${id})`)
+    const entity = entityParamFromUrn(urn)
+    if (!entity) return { ...ALL_NULL_FALLBACK }
     const byMetric: Partial<Record<CreatorMetric, unknown>> = {}
     for (const metric of CREATOR_POST_METRICS) {
       try {
@@ -325,12 +334,13 @@ export async function capturePostSnapshot(args: {
   const capturedAt = args.now ?? new Date().toISOString()
   const metrics = await fetchPostMetrics(args.token, args.urn, args.scopes, args.fetchImpl ?? fetch)
 
-  await args.db
+  const { error: updateError } = await args.db
     .from('posts')
     .update(buildPostsLatestUpdate(metrics, capturedAt))
     .eq('id', args.postId)
+  if (updateError) throw updateError
 
-  await args.db.from('post_analytics').insert(
+  const { error: insertError } = await args.db.from('post_analytics').insert(
     buildPostAnalyticsRow({
       postId: args.postId,
       userId: args.userId,
@@ -339,6 +349,7 @@ export async function capturePostSnapshot(args: {
       capturedAt,
     })
   )
+  if (insertError) throw insertError
 
   return metrics
 }

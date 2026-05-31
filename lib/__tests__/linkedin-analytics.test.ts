@@ -4,11 +4,16 @@ import {
   CREATOR_POST_METRICS,
   hasCreatorScopes,
   shareIdFromUrn,
+  entityParamFromUrn,
   parseCreatorMetricValue,
   parseCreatorAnalyticsResponse,
   parseSocialActions,
   parseFollowerCounts,
   ageMinutes,
+  fetchPostMetrics,
+  fetchFollowerCounts,
+  buildPostsLatestUpdate,
+  buildPostAnalyticsRow,
 } from '../linkedin-analytics'
 
 describe('constants', () => {
@@ -50,6 +55,23 @@ describe('shareIdFromUrn', () => {
   it('returns null for an unrecognised urn', () => {
     expect(shareIdFromUrn('not-a-urn')).toBeNull()
     expect(shareIdFromUrn('')).toBeNull()
+  })
+})
+
+describe('entityParamFromUrn', () => {
+  it('encodes a share URN with share: prefix', () => {
+    const result = entityParamFromUrn('urn:li:share:7123456789')
+    expect(result).not.toBeNull()
+    expect(result).toContain('share%3Aurn%3Ali%3Ashare%3A7123456789')
+  })
+  it('encodes a ugcPost URN with ugc: prefix', () => {
+    const result = entityParamFromUrn('urn:li:ugcPost:7000000000')
+    expect(result).not.toBeNull()
+    expect(result).toContain('ugc%3Aurn%3Ali%3AugcPost%3A7000000000')
+  })
+  it('returns null for an unparseable URN', () => {
+    expect(entityParamFromUrn('garbage')).toBeNull()
+    expect(entityParamFromUrn('')).toBeNull()
   })
 })
 
@@ -184,8 +206,6 @@ describe('ageMinutes', () => {
   })
 })
 
-import { fetchPostMetrics } from '../linkedin-analytics'
-
 describe('fetchPostMetrics source selection', () => {
   const urn = 'urn:li:share:7123456789'
 
@@ -233,9 +253,60 @@ describe('fetchPostMetrics source selection', () => {
     expect(result.source).toBe('public_fallback')
     expect(result.impressions).toBeNull()
   })
+
+  it('uses ugc: entity prefix for a ugcPost URN under creator scope', async () => {
+    const ugcUrn = 'urn:li:ugcPost:7000000000'
+    const calls: string[] = []
+    const fetchStub = (async (url: string) => {
+      calls.push(url)
+      return { ok: true, status: 200, json: async () => ({ elements: [{ value: 1 }] }) }
+    }) as unknown as typeof fetch
+
+    await fetchPostMetrics('tok', ugcUrn, ['r_member_postAnalytics'], fetchStub)
+
+    expect(calls.length).toBe(CREATOR_POST_METRICS.length)
+    expect(calls[0]).toContain('ugc%3Aurn%3Ali%3AugcPost%3A')
+  })
 })
 
-import { buildPostsLatestUpdate, buildPostAnalyticsRow } from '../linkedin-analytics'
+describe('fetchFollowerCounts', () => {
+  it('uses q=dateRange URL with start:(day: when dateRange is provided', async () => {
+    const calls: string[] = []
+    const fetchStub = (async (url: string) => {
+      calls.push(url)
+      return { ok: true, status: 200, json: async () => ({ elements: [] }) }
+    }) as unknown as typeof fetch
+
+    const dateRange = { startMs: Date.UTC(2026, 4, 1), endMs: Date.UTC(2026, 4, 31) }
+    await fetchFollowerCounts('tok', dateRange, fetchStub)
+
+    expect(calls.length).toBe(1)
+    expect(calls[0]).toContain('memberFollowersCount?q=dateRange')
+    expect(calls[0]).toContain('start:(day:')
+  })
+
+  it('uses q=me URL when no dateRange is provided', async () => {
+    const calls: string[] = []
+    const fetchStub = (async (url: string) => {
+      calls.push(url)
+      return { ok: true, status: 200, json: async () => ({ elements: [] }) }
+    }) as unknown as typeof fetch
+
+    await fetchFollowerCounts('tok', undefined, fetchStub)
+
+    expect(calls.length).toBe(1)
+    expect(calls[0]).toContain('memberFollowersCount?q=me')
+  })
+
+  it('returns [] when res.ok is false', async () => {
+    const fetchStub = (async () => {
+      return { ok: false, status: 403 }
+    }) as unknown as typeof fetch
+
+    const result = await fetchFollowerCounts('tok', undefined, fetchStub)
+    expect(result).toEqual([])
+  })
+})
 
 const sampleMetrics = {
   impressions: 5000,
