@@ -1,5 +1,4 @@
 import { supabaseAdmin } from './supabase-admin'
-import { selfSubScores } from './growth-score'
 
 export type UserSubScores = {
   reach: number | null
@@ -28,15 +27,11 @@ export function computeCohortBaselines(users: UserSubScores[]) {
 }
 
 /**
- * Build each active user's *self* sub-scores (no pooling) from their persisted
- * Growth Score breakdown is NOT reliable (already pooled), so we recompute self
- * sub-scores from the same 28-day windows. To keep this rollup cheap we reuse the
- * breakdown's sub-scores only as a fallback; primary path recomputes via the
- * shared selfSubScores against pre-aggregated windows fetched per user.
- *
- * For v1 we approximate the cohort from the *latest persisted breakdowns*, which
- * is acceptable because pooling of an already-pooled prior converges (self≈prior
- * once a user has data). The calibration task revisits this.
+ * v1: approximate the cohort from each user's *latest persisted* Growth Score
+ * breakdown. Those sub-scores are already pooled, but pooling an already-pooled
+ * prior converges (self ≈ prior once a user has data), so this is an acceptable
+ * bootstrap. A later calibration task can recompute raw self sub-scores from each
+ * user's 28-day windows for a non-circular cohort median.
  */
 export async function persistCohortBaselines() {
   const { data } = await supabaseAdmin
@@ -62,6 +57,3 @@ export async function persistCohortBaselines() {
   await supabaseAdmin.from('cohort_baselines').insert(baseline)
   return baseline
 }
-
-// Re-export so callers that already import this module get the score input type.
-void selfSubScores
