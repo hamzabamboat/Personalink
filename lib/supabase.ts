@@ -95,6 +95,8 @@ export type Post = {
   impressions: number | null
   reactions: number | null
   comments: number | null
+  experiment_id: string | null
+  variant: 'control' | 'treatment' | null
   reshares: number | null
   saves: number | null
   link_clicks: number | null
@@ -336,3 +338,31 @@ export const CONTENT_PILLARS = [
   'Behind the Scenes', 'Team Culture', 'Client Success', 'Lessons Learned',
   'Career Advice', 'Entrepreneurship',
 ]
+
+export type ExperimentDimension = 'timing' | 'format' | 'pillar' | 'hook' | 'length'
+export type ExperimentStatus = 'running' | 'won' | 'lost' | 'inconclusive'
+export type Variant = 'control' | 'treatment'
+
+export type ExperimentResult = {
+  lift: number
+  confidence: number
+  n: number
+  decision: 'won' | 'lost' | 'inconclusive' | 'keep_running'
+  rollback: boolean
+  evaluated_at: string
+}
+
+export type Experiment = {
+  id: string
+  user_id: string
+  hypothesis: string
+  dimension: ExperimentDimension
+  control: Record<string, unknown>
+  treatment: Record<string, unknown>
+  baseline_metric: string
+  started_at: string
+  ended_at: string | null
+  status: ExperimentStatus
+  result: ExperimentResult | null
+  created_at: string
+}

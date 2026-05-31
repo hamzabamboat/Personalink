@@ -80,6 +80,8 @@ create table if not exists posts (
   impressions integer,
   reactions integer,
   comments integer,
+  experiment_id uuid,
+  variant text,
   reshares integer,
   saves integer,
   link_clicks integer,
@@ -294,3 +296,22 @@ create table if not exists cohort_baselines (
 
 create index if not exists cohort_baselines_key_computed_idx
   on cohort_baselines(cohort_key, computed_at desc);
+
+-- Organic Growth Engine — Phase 2: experiments (control-vs-treatment tweaks)
+create table if not exists experiments (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  hypothesis text not null,
+  dimension text not null,
+  control jsonb not null default '{}',
+  treatment jsonb not null default '{}',
+  baseline_metric text not null default 'engagement_rate',
+  started_at timestamptz default now(),
+  ended_at timestamptz,
+  status text not null default 'running',
+  result jsonb,
+  created_at timestamptz default now()
+);
+create index if not exists experiments_user_status_idx on experiments(user_id, status);
+create index if not exists experiments_user_dimension_idx on experiments(user_id, dimension, status);
+create index if not exists posts_experiment_idx on posts(experiment_id);
