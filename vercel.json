@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/cohort-baselines",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/evaluate-experiments",
+      "schedule": "30 4 * * *"
     }
   ]
 }
