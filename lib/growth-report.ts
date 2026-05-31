@@ -1,3 +1,6 @@
+import { supabaseAdmin } from './supabase-admin'
+import { getUserInsights } from './insights'
+
 /** The growth delta window the report narrates, in days (= one baseline window). */
 export const REPORT_WINDOW_DAYS = 28
 
@@ -152,4 +155,94 @@ export function composeGrowthNarrative(input: GrowthNarrativeInput): GrowthNarra
       cta,
     },
   }
+}
+
+/** Pick the score row closest to (but not after) `target`; null if none. */
+function scoreAtOrBefore(
+  rows: Array<{ score: number; captured_at: string }>,
+  target: Date,
+): number | null {
+  const eligible = rows.filter(r => new Date(r.captured_at) <= target)
+  if (eligible.length === 0) return null
+  eligible.sort((a, b) => new Date(b.captured_at).getTime() - new Date(a.captured_at).getTime())
+  return eligible[0].score
+}
+
+/** Sum impressions across published posts in a window. */
+function sumImpressions(rows: Array<{ impressions: number | null }>): number | null {
+  if (rows.length === 0) return null
+  return rows.reduce((acc, r) => acc + (r.impressions ?? 0), 0)
+}
+
+export async function buildGrowthReportForUser(
+  userId: string,
+  firstName: string,
+): Promise<GrowthNarrative & { hasData: boolean }> {
+  const now = new Date()
+  const day = 24 * 60 * 60 * 1000
+  const w = REPORT_WINDOW_DAYS
+  const curStart = new Date(now.getTime() - w * day)
+  const priorStart = new Date(now.getTime() - 2 * w * day)
+  const curStartDate = curStart.toISOString().slice(0, 10)
+  const priorStartDate = priorStart.toISOString().slice(0, 10)
+  const nowDate = now.toISOString().slice(0, 10)
+
+  const [scoresRes, curPostsRes, priorPostsRes, curFollowersRes, priorFollowersRes, insights] =
+    await Promise.all([
+      supabaseAdmin.from('growth_scores').select('score, captured_at')
+        .eq('user_id', userId).gte('captured_at', priorStart.toISOString())
+        .order('captured_at', { ascending: true }),
+      supabaseAdmin.from('posts').select('impressions')
+        .eq('user_id', userId).eq('status', 'published')
+        .gte('published_at', curStart.toISOString()),
+      supabaseAdmin.from('posts').select('impressions')
+        .eq('user_id', userId).eq('status', 'published')
+        .gte('published_at', priorStart.toISOString()).lt('published_at', curStart.toISOString()),
+      supabaseAdmin.from('follower_snapshots').select('follower_count, snapshot_date')
+        .eq('user_id', userId).gte('snapshot_date', curStartDate).lte('snapshot_date', nowDate)
+        .order('snapshot_date', { ascending: true }),
+      supabaseAdmin.from('follower_snapshots').select('follower_count, snapshot_date')
+        .eq('user_id', userId).gte('snapshot_date', priorStartDate).lt('snapshot_date', curStartDate)
+        .order('snapshot_date', { ascending: true }),
+      getUserInsights(userId),
+    ])
+
+  const scores = (scoresRes.data ?? []) as Array<{ score: number; captured_at: string }>
+  const curFollowers = (curFollowersRes.data ?? []) as Array<{ follower_count: number | null }>
+  const priorFollowers = (priorFollowersRes.data ?? []) as Array<{ follower_count: number | null }>
+  const lastFollower = (rows: Array<{ follower_count: number | null }>) =>
+    rows.length ? (rows[rows.length - 1].follower_count ?? null) : null
+
+  // Top attributed driver: the pillar that gained the most followers + the best slot.
+  const topAttr = insights.attribution?.[0]
+  const bestSlot = insights.byTimeSlot?.[0]
+  const topDriver =
+    topAttr && topAttr.key !== 'Uncategorized' && topAttr.followersGained > 0
+      ? {
+          pillar: topAttr.key,
+          followersGained: topAttr.followersGained,
+          bestSlot: bestSlot ? { day: bestSlot.day, hour: bestSlot.hour } : null,
+        }
+      : null
+
+  const input: GrowthNarrativeInput = {
+    firstName,
+    windowDays: w,
+    current: {
+      score: scoreAtOrBefore(scores, now),
+      impressions: sumImpressions((curPostsRes.data ?? []) as Array<{ impressions: number | null }>),
+      followers: lastFollower(curFollowers),
+    },
+    prior: {
+      score: scoreAtOrBefore(scores, curStart),
+      impressions: sumImpressions((priorPostsRes.data ?? []) as Array<{ impressions: number | null }>),
+      followers: lastFollower(priorFollowers),
+    },
+    topDriver,
+  }
+
+  const narrative = composeGrowthNarrative(input)
+  // "hasData" = the user posted at least once in the current window (worth emailing).
+  const hasData = (curPostsRes.data?.length ?? 0) > 0
+  return { ...narrative, hasData }
 }
