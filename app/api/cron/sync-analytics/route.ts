@@ -1,6 +1,8 @@
-// Vercel cron — every 6h. Snapshots published posts (latest + velocity row)
-// and writes daily follower_snapshots + profile_analytics for all connected
-// users, so capture is consistent across users (not on-click).
+// Vercel cron — daily (Hobby plan caps crons at once/day). Snapshots published
+// posts (latest + velocity row) and writes daily follower_snapshots +
+// profile_analytics for all connected users, so capture is consistent across
+// users (not on-click). The lock is hour-keyed (below), so restoring a
+// sub-daily schedule (e.g. on Pro, or via QStash) needs no code change.
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isTokenExpired } from '@/lib/linkedin-api'
@@ -18,9 +20,10 @@ async function handler(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Idempotency per 6h tick: include the hour in job_name so the daily lock
-  // pattern (UNIQUE job_name, run_date) allows 4 runs/day but still blocks a
-  // duplicate within the same tick. run_date stays a real DATE column value.
+  // Idempotency: hour-keyed job_name + DATE run_date under UNIQUE(job_name,
+  // run_date). At the daily schedule this blocks a same-day duplicate; if the
+  // schedule is later made sub-daily, it already allows one run per distinct
+  // hour with no code change.
   const now = new Date()
   const todayStr = now.toISOString().slice(0, 10) // YYYY-MM-DD
   const hourStr = String(now.getUTCHours()).padStart(2, '0') // HH
