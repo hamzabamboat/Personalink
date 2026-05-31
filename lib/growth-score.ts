@@ -32,3 +32,30 @@ export function ratioScore(current: number | null, baseline: number | null): num
   const c = current ?? 0
   return clamp0_100((c / baseline) * 100)
 }
+
+/** Mean of the defined entries; null if there are none. */
+export function meanOrNull(xs: Array<number | null>): number | null {
+  const defined = xs.filter((x): x is number => x != null)
+  if (defined.length === 0) return null
+  return defined.reduce((a, b) => a + b, 0) / defined.length
+}
+
+/**
+ * Partial pooling: blend the user's own sub-score toward the cohort median.
+ *   w_self = n / (n + K)
+ *   pooled = w_self * self + (1 - w_self) * cohortMedian
+ * - self null  → fully cohort
+ * - cohort null → self, or neutral 50 if self is also null (bootstrap floor)
+ */
+export function poolSubScore(args: {
+  self: number | null
+  cohortMedian: number | null
+  n: number
+  k: number
+}): number {
+  const { self, cohortMedian, n, k } = args
+  if (self == null) return cohortMedian ?? 50
+  if (cohortMedian == null) return self
+  const wSelf = n / (n + k)
+  return wSelf * self + (1 - wSelf) * cohortMedian
+}
