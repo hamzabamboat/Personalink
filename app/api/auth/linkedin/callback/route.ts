@@ -68,6 +68,12 @@ export async function GET(request: NextRequest) {
     // LinkedIn tokens expire in 60 days; fall back to that if expires_in is missing
     const expiresInMs = (tokenData.expires_in ?? 5184000) * 1000
     const expiresAt = new Date(Date.now() + expiresInMs)
+    // Persist the scopes LinkedIn actually granted (space-delimited) so capture
+    // can pick creator_api vs public_fallback per user. Null when absent.
+    const grantedScopes: string[] | null =
+      typeof tokenData.scope === 'string' && tokenData.scope.trim().length > 0
+        ? tokenData.scope.trim().split(/\s+/)
+        : null
 
     const profileResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -94,6 +100,7 @@ export async function GET(request: NextRequest) {
           ...(linkedinHeadline ? { linkedin_headline: linkedinHeadline } : {}),
           linkedin_access_token: accessToken,
           linkedin_token_expires_at: expiresAt.toISOString(),
+          ...(grantedScopes ? { linkedin_scopes: grantedScopes } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', agencyClientUserId)
@@ -143,6 +150,7 @@ export async function GET(request: NextRequest) {
           ...(linkedinHeadline ? { linkedin_headline: linkedinHeadline } : {}),
           linkedin_access_token: accessToken,
           linkedin_token_expires_at: expiresAt.toISOString(),
+          ...(grantedScopes ? { linkedin_scopes: grantedScopes } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', existingUser.id)
@@ -162,6 +170,7 @@ export async function GET(request: NextRequest) {
           ...(linkedinHeadline ? { linkedin_headline: linkedinHeadline } : {}),
           linkedin_access_token: accessToken,
           linkedin_token_expires_at: expiresAt.toISOString(),
+          ...(grantedScopes ? { linkedin_scopes: grantedScopes } : {}),
           updated_at: new Date().toISOString(),
         })
         .select()
