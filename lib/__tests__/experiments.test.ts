@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   assignVariant, hashToUnitInterval,
   computeLift, evaluateGuardrails, EXPERIMENT_THRESHOLDS,
-  applyTreatmentToGeneration,
+  applyTreatmentToGeneration, assertSupportedDimension,
 } from '../experiments'
 
 describe('hashToUnitInterval', () => {
@@ -142,6 +142,22 @@ describe('evaluateGuardrails', () => {
   it('small positive lift, not matured → keep_running', () => {
     expect(evaluateGuardrails({ n: 10, lift: 0.05, confidence: 0.9, matured: false }))
       .toEqual({ decision: 'keep_running', rollback: false })
+  })
+})
+
+describe('assertSupportedDimension', () => {
+  it('accepts timing, pillar, and format (v1 supported dimensions)', () => {
+    expect(() => assertSupportedDimension('timing')).not.toThrow()
+    expect(() => assertSupportedDimension('pillar')).not.toThrow()
+    expect(() => assertSupportedDimension('format')).not.toThrow()
+  })
+
+  it('rejects hook — promptSuffix is not yet threaded into generation (Phase 2 follow-up)', () => {
+    expect(() => assertSupportedDimension('hook')).toThrowError(/hook.*length.*Phase 2/i)
+  })
+
+  it('rejects length — targetWords is not yet threaded into generation (Phase 2 follow-up)', () => {
+    expect(() => assertSupportedDimension('length')).toThrowError(/hook.*length.*Phase 2/i)
   })
 })
 

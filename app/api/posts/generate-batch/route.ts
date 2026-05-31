@@ -384,9 +384,11 @@ export async function POST(request: NextRequest) {
 
     // ── Experiment provenance (Phase 2) ──────────────────────────────────────
     // Assign each post to control/treatment for the active experiment and apply
-    // the treatment's pillar/format override. The control arm is byte-identical
-    // to pre-Phase-2 output; only the treatment arm differs. Posts outside any
-    // experiment carry null experiment_id/variant.
+    // the treatment's pillar/format override. Control-arm CONTENT and scheduling
+    // are unchanged from pre-Phase-2 behavior; the `posts.format` column is now
+    // populated for ALL AI-generated posts (Phase 1 insights treats absent as
+    // 'unknown'). Only the treatment arm differs in pillar/format. Posts outside
+    // any experiment carry null experiment_id/variant.
     const basePillar = post.content_pillar || pillars[i % pillars.length]
     let finalPillar = basePillar
     let finalFormat = post.format

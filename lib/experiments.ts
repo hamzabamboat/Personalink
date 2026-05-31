@@ -178,10 +178,16 @@ export function applyTreatmentToGeneration(
     case 'format':
       return typeof t.format === 'string' ? { ...base, format: t.format } : base
     case 'hook':
+      // NOTE: promptSuffix is computed here but NOT yet threaded into generation.
+      // The generate-batch consumer reads only `applied.pillar` and `applied.format`.
+      // Phase 2 follow-up will inject promptSuffix into the prompt pre-generation.
       return typeof t.hook_style === 'string'
         ? { ...base, promptSuffix: `${base.promptSuffix}\nOpen with a ${t.hook_style} hook.`.trim() }
         : base
     case 'length':
+      // NOTE: targetWords is computed here but NOT yet threaded into generation.
+      // The generate-batch consumer reads only `applied.pillar` and `applied.format`.
+      // Phase 2 follow-up will inject targetWords into the prompt pre-generation.
       return typeof t.target_words === 'number' ? { ...base, targetWords: t.target_words } : base
     case 'timing':
     default:
@@ -190,6 +196,27 @@ export function applyTreatmentToGeneration(
 }
 
 // ── Thin DB wrappers ─────────────────────────────────────────────────────────
+
+/**
+ * Pure validator for v1-supported experiment dimensions.
+ * 'hook' and 'length' are valid ExperimentDimension types (reserved for a
+ * Phase 2 follow-up that threads promptSuffix/targetWords into generation
+ * pre-prompt), but cannot be wired up yet — the generate-batch consumer only
+ * reads `applied.pillar` and `applied.format`, so a hook/length experiment
+ * would track arms but generate identical content, measuring ~zero lift and
+ * auto-rolling-back after MATURE_DAYS without ever testing the hypothesis.
+ *
+ * Throws for hook/length so callers get a clear message instead of silently
+ * running an inert experiment.
+ */
+export function assertSupportedDimension(dimension: Experiment['dimension']): void {
+  if (dimension === 'hook' || dimension === 'length') {
+    throw new Error(
+      "v1 experiments support 'timing' | 'pillar' | 'format'; " +
+      "'hook'/'length' need prompt-level treatment (Phase 2 follow-up)",
+    )
+  }
+}
 
 /** Create a running experiment for a user. Returns the inserted row. */
 export async function createExperiment(args: {
@@ -200,6 +227,7 @@ export async function createExperiment(args: {
   control?: Record<string, unknown>
   baselineMetric?: string
 }): Promise<Experiment | null> {
+  assertSupportedDimension(args.dimension)
   const { data } = await supabaseAdmin
     .from('experiments')
     .insert({
