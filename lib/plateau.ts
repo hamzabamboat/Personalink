@@ -25,34 +25,35 @@ export function detectPlateau(
   scores: number[],
   followers: number[],
 ): PlateauVerdict {
-  if (scores.length < PLATEAU_WINDOWS + 1) {
-    return { plateaued: false, reason: 'insufficient data — need at least PLATEAU_WINDOWS+1 points' }
+  // Need at least 2 points to compute any delta.
+  if (scores.length < 2) {
+    return { plateaued: false, reason: 'insufficient data (need 2+ score points)' }
   }
 
-  // Regression: last two scores drop >= threshold in one step.
-  const lastDelta = scores[scores.length - 1] - scores[scores.length - 2]
+  const deltas = scores.slice(1).map((s, i) => s - scores[i])
+  const lastDelta = deltas[deltas.length - 1]
+
+  // 1. Regression — a sharp single-window drop, flagged immediately (needs only 2 points).
   if (lastDelta <= REGRESSION_SCORE_DELTA) {
     return { plateaued: true, reason: `regression: score dropped ${lastDelta} points in one window` }
   }
 
-  // Plateau: the last PLATEAU_WINDOWS deltas are all within ±PLATEAU_SCORE_DELTA
-  // AND follower growth over the same span is < PLATEAU_FOLLOWER_GROWTH_PCT.
-  const windowDeltas = scores
-    .slice(-(PLATEAU_WINDOWS + 1))
-    .map((v, i, arr) => (i === 0 ? null : v - arr[i - 1]))
-    .filter((d): d is number => d !== null)
+  // 2. Plateau — need a full run of PLATEAU_WINDOWS flat deltas.
+  if (deltas.length < PLATEAU_WINDOWS) {
+    return { plateaued: false, reason: 'insufficient data (not enough windows for a plateau)' }
+  }
 
-  const allFlat = windowDeltas.every(d => Math.abs(d) <= PLATEAU_SCORE_DELTA)
+  const recent = deltas.slice(-PLATEAU_WINDOWS)
+  const allFlat = recent.every(d => Math.abs(d) <= PLATEAU_SCORE_DELTA)
   if (!allFlat) return { plateaued: false, reason: 'score is still moving (not flat)' }
 
-  // Check follower growth floor.
-  const oldestFollower = followers[followers.length - PLATEAU_WINDOWS - 1]
-  const newestFollower = followers[followers.length - 1]
-  if (oldestFollower && oldestFollower > 0) {
-    const growthPct = (newestFollower - oldestFollower) / oldestFollower
-    if (growthPct >= PLATEAU_FOLLOWER_GROWTH_PCT) {
-      return { plateaued: false, reason: 'follower growth is still healthy — not a plateau' }
-    }
+  // Check follower growth floor across the same span (last PLATEAU_WINDOWS+1 points).
+  const span = PLATEAU_WINDOWS + 1
+  const fStart = followers.length >= span ? followers[followers.length - span] : followers[0]
+  const fEnd = followers.length ? followers[followers.length - 1] : 0
+  const fGrowth = fStart && fStart > 0 ? (fEnd - fStart) / fStart : 0
+  if (fGrowth >= PLATEAU_FOLLOWER_GROWTH_PCT) {
+    return { plateaued: false, reason: 'follower growth is still healthy — not a plateau' }
   }
 
   return { plateaued: true, reason: `plateau: ${PLATEAU_WINDOWS} consecutive flat windows with stalled follower growth` }
