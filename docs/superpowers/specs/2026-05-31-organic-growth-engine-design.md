@@ -258,6 +258,15 @@ Gate 0 and Phase 0 design proceed **now, in parallel** with the access review.
 Later phases are gated on *data readiness*, not just code — matching the
 "gather substantially first, only then tweak" discipline.
 
+**Migration ordering.** Because phases ship weeks apart, each phase's migrations
+are dated/created **at the time that phase is executed**, in phase order, so the
+canonical apply-order is: Phase 0 (capture) → Phase 1 (`growth_scores`,
+`cohort_baselines`, `posts.format`) → Phase 2 (`experiments`,
+`posts.experiment_id/variant`) → Phase 3 (`voice_samples.post_id`,
+`growth_report_sent_at`). The DDL is independent (no cross-phase foreign keys), so
+order is for clarity, not correctness. The dated filenames in the per-phase plans
+are illustrative placeholders to be re-stamped on execution.
+
 ## Risks & Mitigations
 
 | Risk | Mitigation |
