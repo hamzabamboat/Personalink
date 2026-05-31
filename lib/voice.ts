@@ -27,6 +27,45 @@ const MIN_LEN = 80      // ignore trivially short text
 const MAX_LEN = 4000    // cap stored length
 const DISTILL_EVERY = 3 // re-distil the fingerprint every N new samples
 
+/** v1 blend: combined = recency*(1-PERF_BLEND) + performance*PERF_BLEND. Calibrated in Task 8 doc. */
+export const PERF_BLEND = 0.5
+/** A post needs at least this many impressions before its performance is trusted. */
+export const PERF_SAMPLE_MIN_IMPRESSIONS = 50
+/** Engagement-rate ceiling for normalization (rates above this all map to 1.0). */
+const PERF_ENGAGEMENT_CEILING = 0.1 // 10% engagement rate is exceptional on LinkedIn
+
+export type SamplePostMetrics = {
+  impressions: number | null
+  reactions: number | null
+  comments: number | null
+  reshares: number | null
+  saves: number | null
+} | null
+
+/**
+ * Performance weight (0–1) of the post a voice sample came from, by engagement
+ * rate, normalized against a ceiling. PURE.
+ * - null metrics, or impressions below PERF_SAMPLE_MIN_IMPRESSIONS → null
+ *   (untrusted → caller falls back to recency-only).
+ */
+export function performanceWeight(m: SamplePostMetrics): number | null {
+  if (!m || m.impressions == null || m.impressions < PERF_SAMPLE_MIN_IMPRESSIONS) return null
+  const eng = (m.reactions ?? 0) + (m.comments ?? 0) + (m.reshares ?? 0) + (m.saves ?? 0)
+  const rate = eng / m.impressions
+  return Math.max(0, Math.min(1, rate / PERF_ENGAGEMENT_CEILING))
+}
+
+/**
+ * Combine a sample's normalized recency (0–1, newest=1) with its post's
+ * performance (0–1, or null) into a single ranking weight. PURE.
+ * - perf null → recency-only (don't penalize a sample for unknown performance).
+ */
+export function combinedWeight(args: { recencyNorm: number; perf: number | null }): number {
+  const { recencyNorm, perf } = args
+  if (perf == null) return recencyNorm
+  return recencyNorm * (1 - PERF_BLEND) + perf * PERF_BLEND
+}
+
 /** Store a piece of the person's real writing in the voice corpus. */
 export async function addVoiceSample(
   userId: string,
