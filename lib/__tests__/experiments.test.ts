@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   assignVariant, hashToUnitInterval,
   computeLift, evaluateGuardrails, EXPERIMENT_THRESHOLDS,
+  applyTreatmentToGeneration,
 } from '../experiments'
 
 describe('hashToUnitInterval', () => {
@@ -141,5 +142,47 @@ describe('evaluateGuardrails', () => {
   it('small positive lift, not matured → keep_running', () => {
     expect(evaluateGuardrails({ n: 10, lift: 0.05, confidence: 0.9, matured: false }))
       .toEqual({ decision: 'keep_running', rollback: false })
+  })
+})
+
+describe('applyTreatmentToGeneration', () => {
+  const base = { pillar: 'Industry Trends', format: 'insight', promptSuffix: '', targetWords: null as number | null }
+
+  it('control arm returns the base config unchanged', () => {
+    const exp = { dimension: 'pillar' as const, treatment: { pillar: 'Founder Lessons' } }
+    expect(applyTreatmentToGeneration(base, exp, 'control')).toEqual(base)
+  })
+
+  it('pillar treatment overrides the pillar for the treatment arm', () => {
+    const exp = { dimension: 'pillar' as const, treatment: { pillar: 'Founder Lessons' } }
+    const out = applyTreatmentToGeneration(base, exp, 'treatment')
+    expect(out.pillar).toBe('Founder Lessons')
+    expect(out.format).toBe('insight') // untouched
+  })
+
+  it('format treatment overrides the format', () => {
+    const exp = { dimension: 'format' as const, treatment: { format: 'story' } }
+    expect(applyTreatmentToGeneration(base, exp, 'treatment').format).toBe('story')
+  })
+
+  it('hook treatment appends a hook-style instruction to the prompt suffix', () => {
+    const exp = { dimension: 'hook' as const, treatment: { hook_style: 'question' } }
+    const out = applyTreatmentToGeneration(base, exp, 'treatment')
+    expect(out.promptSuffix).toContain('question')
+    expect(out.promptSuffix.length).toBeGreaterThan(0)
+  })
+
+  it('length treatment sets targetWords', () => {
+    const exp = { dimension: 'length' as const, treatment: { target_words: 90 } }
+    expect(applyTreatmentToGeneration(base, exp, 'treatment').targetWords).toBe(90)
+  })
+
+  it('timing treatment does NOT alter generation config (timing acts via the scheduler)', () => {
+    const exp = { dimension: 'timing' as const, treatment: { day: 'Tue', hour: 9 } }
+    expect(applyTreatmentToGeneration(base, exp, 'treatment')).toEqual(base)
+  })
+
+  it('a null/absent experiment returns the base config (no experiment running)', () => {
+    expect(applyTreatmentToGeneration(base, null, 'control')).toEqual(base)
   })
 })

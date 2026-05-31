@@ -1,7 +1,21 @@
+import { supabaseAdmin } from './supabase-admin'
 import type {
+  Experiment,
   ExperimentResult,
   Variant,
 } from '@/lib/supabase'
+import {
+  DOW_WEIGHT,
+  SLOT_WEIGHT_K,
+  slotPerformanceToDowWeights,
+  mergeSlotWeights,
+} from '@/lib/linkedin-schedule'
+
+/** Lazy import of Plan 1's pure insight helpers (keeps the import graph thin). */
+async function loadInsights() {
+  const mod = await import('@/lib/insights')
+  return { perTimeSlotPerformance: mod.perTimeSlotPerformance, type: undefined }
+}
 
 /**
  * Deterministic hash of a string to a uniform value in [0, 1). FNV-1a 32-bit;
@@ -130,4 +144,212 @@ export function evaluateGuardrails(args: {
 
   if (args.matured) return { decision: 'inconclusive', rollback: true }
   return { decision: 'keep_running', rollback: false }
+}
+
+/** The generation knobs an experiment treatment can turn. */
+export type GenerationConfig = {
+  pillar: string
+  format: string
+  promptSuffix: string
+  targetWords: number | null
+}
+
+type TreatmentExperiment = {
+  dimension: Experiment['dimension']
+  treatment: Record<string, unknown>
+}
+
+/**
+ * Apply an experiment's treatment to a post's generation config — PURELY.
+ * - control arm (or null experiment) → base config UNCHANGED (byte-identical to today)
+ * - treatment arm → only the field(s) for that dimension are overridden
+ * - timing acts via the scheduler (learned weights), so it is a no-op here
+ */
+export function applyTreatmentToGeneration(
+  base: GenerationConfig,
+  experiment: TreatmentExperiment | null,
+  variant: Variant,
+): GenerationConfig {
+  if (!experiment || variant !== 'treatment') return base
+  const t = experiment.treatment
+  switch (experiment.dimension) {
+    case 'pillar':
+      return typeof t.pillar === 'string' ? { ...base, pillar: t.pillar } : base
+    case 'format':
+      return typeof t.format === 'string' ? { ...base, format: t.format } : base
+    case 'hook':
+      return typeof t.hook_style === 'string'
+        ? { ...base, promptSuffix: `${base.promptSuffix}\nOpen with a ${t.hook_style} hook.`.trim() }
+        : base
+    case 'length':
+      return typeof t.target_words === 'number' ? { ...base, targetWords: t.target_words } : base
+    case 'timing':
+    default:
+      return base
+  }
+}
+
+// ── Thin DB wrappers ─────────────────────────────────────────────────────────
+
+/** Create a running experiment for a user. Returns the inserted row. */
+export async function createExperiment(args: {
+  userId: string
+  hypothesis: string
+  dimension: Experiment['dimension']
+  treatment: Record<string, unknown>
+  control?: Record<string, unknown>
+  baselineMetric?: string
+}): Promise<Experiment | null> {
+  const { data } = await supabaseAdmin
+    .from('experiments')
+    .insert({
+      user_id: args.userId,
+      hypothesis: args.hypothesis,
+      dimension: args.dimension,
+      control: args.control ?? {},
+      treatment: args.treatment,
+      baseline_metric: args.baselineMetric ?? 'engagement_rate',
+      status: 'running',
+    })
+    .select()
+    .single()
+  return (data as Experiment) ?? null
+}
+
+/**
+ * The single running experiment for a user (if any). v1 runs ONE change at a
+ * time per user (the framework forbids conflicting experiments on a dimension),
+ * so we take the most-recently-started running row.
+ */
+export async function getActiveExperiment(userId: string): Promise<Experiment | null> {
+  const { data } = await supabaseAdmin
+    .from('experiments')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'running')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return (data as Experiment) ?? null
+}
+
+/**
+ * Per-user learned day-of-week weights for the scheduler, or null to use the
+ * global DOW_WEIGHT. Only returns learned weights when the user has a timing
+ * experiment that is running or won (the timing intervention is itself gated by
+ * an experiment — no silent global change). Reads Plan 1's perTimeSlotPerformance.
+ */
+export async function getUserSlotWeights(userId: string): Promise<Record<number, number> | null> {
+  const { perTimeSlotPerformance } = await loadInsights()
+
+  const { data: timingExp } = await supabaseAdmin
+    .from('experiments')
+    .select('id, status')
+    .eq('user_id', userId)
+    .eq('dimension', 'timing')
+    .in('status', ['running', 'won'])
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!timingExp) return null
+
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: posts } = await supabaseAdmin
+    .from('posts')
+    .select('content_pillar, format, published_at, impressions, reactions, comments, reshares, saves')
+    .eq('user_id', userId)
+    .eq('status', 'published')
+    .gte('published_at', ninetyDaysAgo)
+
+  const slots = perTimeSlotPerformance((posts ?? []) as unknown as Parameters<typeof perTimeSlotPerformance>[0])
+  const { weights, counts } = slotPerformanceToDowWeights(slots)
+  if (Object.keys(counts).length === 0) return null
+  return mergeSlotWeights(DOW_WEIGHT, { weights, counts }, SLOT_WEIGHT_K)
+}
+
+/**
+ * Build the per-post engagement-rate series for one arm of an experiment, within
+ * the experiment's lifetime. engagement rate = (reactions+comments+reshares+saves)
+ * / impressions, computed per post (posts with 0 impressions are dropped).
+ */
+function engagementRateSeries(
+  rows: Array<{
+    impressions: number | null
+    reactions: number | null
+    comments: number | null
+    reshares: number | null
+    saves: number | null
+  }>,
+): number[] {
+  const out: number[] = []
+  for (const r of rows) {
+    const impr = r.impressions ?? 0
+    if (impr <= 0) continue
+    const eng = (r.reactions ?? 0) + (r.comments ?? 0) + (r.reshares ?? 0) + (r.saves ?? 0)
+    out.push(eng / impr)
+  }
+  return out
+}
+
+/**
+ * Evaluate one experiment: gather treatment-arm posts vs the user's pre-experiment
+ * baseline (the same metric over the 28 days BEFORE started_at, control-equivalent
+ * behavior), compute lift, apply guardrails, persist status/result, and on rollback
+ * mark the experiment terminal so future generation stops applying the treatment.
+ * Returns the result written.
+ */
+export async function evaluateExperiment(
+  experimentId: string,
+  now: Date = new Date(),
+): Promise<ExperimentResult | null> {
+  const { data: exp } = await supabaseAdmin
+    .from('experiments')
+    .select('*')
+    .eq('id', experimentId)
+    .maybeSingle()
+  if (!exp || (exp as Experiment).status !== 'running') return null
+  const e = exp as Experiment
+
+  const startedAt = new Date(e.started_at)
+  const baselineStart = new Date(startedAt.getTime() - 28 * 24 * 60 * 60 * 1000)
+  const cols = 'impressions, reactions, comments, reshares, saves'
+
+  const [treatmentRes, baselineRes] = await Promise.all([
+    // Treatment arm: posts in this experiment tagged treatment, published since start.
+    supabaseAdmin.from('posts').select(cols)
+      .eq('user_id', e.user_id).eq('experiment_id', e.id).eq('variant', 'treatment')
+      .eq('status', 'published').gte('published_at', e.started_at),
+    // Baseline: the user's published posts in the 28 days before the experiment
+    // began (their own pre-experiment behavior = the control reference).
+    supabaseAdmin.from('posts').select(cols)
+      .eq('user_id', e.user_id).eq('status', 'published')
+      .gte('published_at', baselineStart.toISOString()).lt('published_at', e.started_at),
+  ])
+
+  const treatmentSeries = engagementRateSeries((treatmentRes.data ?? []) as Parameters<typeof engagementRateSeries>[0])
+  const baselineSeries = engagementRateSeries((baselineRes.data ?? []) as Parameters<typeof engagementRateSeries>[0])
+
+  const { lift, confidence, n } = computeLift(baselineSeries, treatmentSeries)
+  const ageDays = (now.getTime() - startedAt.getTime()) / (24 * 60 * 60 * 1000)
+  const matured = ageDays >= EXPERIMENT_THRESHOLDS.MATURE_DAYS
+  const { decision, rollback } = evaluateGuardrails({ n, lift, confidence, matured })
+
+  const result: ExperimentResult = {
+    lift, confidence, n, decision, rollback, evaluated_at: now.toISOString(),
+  }
+
+  // Persist. keep_running leaves status unchanged; a verdict ends the experiment.
+  const terminal = decision !== 'keep_running'
+  await supabaseAdmin.from('experiments').update({
+    result,
+    ...(terminal
+      ? { status: decision as Experiment['status'], ended_at: now.toISOString() }
+      : {}),
+  }).eq('id', e.id)
+
+  // Rollback: clear future treatment application. The treatment stops being
+  // applied automatically because the experiment is no longer `running`
+  // (getActiveExperiment only returns running rows). No posts are mutated; this
+  // is purely "stop doing the new thing going forward".
+  return result
 }
