@@ -4,7 +4,7 @@
 **v1 defaults shipped now (locked until the gates below clear):**
 - Plateau: `PLATEAU_WINDOWS = 3`, `PLATEAU_SCORE_DELTA = 2`, `REGRESSION_SCORE_DELTA = -5`,
   `PLATEAU_FOLLOWER_GROWTH_PCT = 0.01` — in `lib/plateau.ts`.
-- Report cadence: weekly, Monday 13:00 UTC (`vercel.json`); window = 28 days (`REPORT_WINDOW_DAYS` in `lib/growth-report.ts`).
+- Report cadence: weekly, Monday 08:00 UTC (`vercel.json`); window = 28 days (`REPORT_WINDOW_DAYS` in `lib/growth-report.ts`).
 - Voice blend: `PERF_BLEND = 0.5`, `PERF_SAMPLE_MIN_IMPRESSIONS = 50` — in `lib/voice.ts`.
 
 These live in `lib/plateau.ts` and `lib/voice.ts`. Change ONLY after the gates below.
@@ -194,7 +194,7 @@ guardrail fails, widen `PLATEAU_SCORE_DELTA` by 1 point and re-run.
 
 ## B. Report cadence
 
-v1 = weekly, Mon 13:00 UTC, for all trend branches (up / flat / down / insufficient).
+v1 = weekly, Mon 08:00 UTC, for all trend branches (up / flat / down / insufficient).
 The cron always runs weekly; cadence tuning is implemented as a per-user skip in the
 cron body based on `trend + growth_report_sent_at` age — the schedule itself does not
 change.
@@ -213,7 +213,7 @@ keyword (subjects encode the trend: "up" subjects contain "is up", "flat" contai
 | Open rate for UP / DOWN remains above 35% but flat/insufficient below 20% | Ship the bi-weekly gate for flat/insufficient only (do not touch UP/DOWN). |
 | All four trend open rates consistently above 30% | Keep weekly; the reports are landing. Do not change. |
 
-Do not change the `0 13 * * 1` Vercel cron schedule itself. Only add per-user skip
+Do not change the `0 8 * * 1` Vercel cron schedule itself. Only add per-user skip
 logic in `app/api/cron/growth-report/route.ts`.
 
 ---
@@ -342,5 +342,5 @@ Wiring `post_id` on `addVoiceSample` calls is a follow-up — out of Phase 3 sco
 - `REGRESSION_SCORE_DELTA` capped at -5 (never miss a genuine 5-point drop).
 - `PERF_BLEND` changes require voice-fidelity gate: mean `voiceMatchScore` must stay
   within 5 points of the 0.0 baseline — do not trade voice identity for engagement.
-- Cadence changes are per-trend skip logic only; the Vercel cron schedule (`0 13 * * 1`)
+- Cadence changes are per-trend skip logic only; the Vercel cron schedule (`0 8 * * 1`)
   is never modified as a calibration action.
