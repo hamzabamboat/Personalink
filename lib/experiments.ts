@@ -1,6 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase-admin'
 import type {
-  Experiment,
   ExperimentResult,
   Variant,
 } from '@/lib/supabase'
@@ -133,9 +131,3 @@ export function evaluateGuardrails(args: {
   if (args.matured) return { decision: 'inconclusive', rollback: true }
   return { decision: 'keep_running', rollback: false }
 }
-
-// ── Silence the unused import of supabaseAdmin until DB wrappers are added ───
-// (The import is intentional — it will be used in a later unit. The mock stub
-// in tests resolves it to an empty object so tests run without real env vars.)
-void supabaseAdmin
-void (undefined as unknown as Experiment)
