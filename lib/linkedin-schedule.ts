@@ -29,6 +29,79 @@ export const DOW_WEIGHT: Record<number, number> = {
   6: 0.20, // Saturday — very low B2B
 }
 
+// ─── Per-user learned slot weights (Phase 2 — Intervene) ─────────────────────
+// Derive day-of-week weights from Plan 1's per-time-slot performance, pooled
+// toward the global DOW_WEIGHT with w_self = n/(n+K). Users with little/no data
+// fall back to the EXACT global table — no behavior change.
+
+/** v1 pooling strength for learned slot weights. Calibrated in the Phase 2 calibration doc. */
+export const SLOT_WEIGHT_K = 10
+
+const DOW_LABEL_TO_INDEX: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+}
+
+export type SlotPerf = { day: string; hour: number; posts: number; avgEngagementRate: number }
+
+/**
+ * Collapse Plan 1's per-(weekday,hour) slot performance into a per-weekday signal:
+ * - `weights[dow]` = that weekday's mean engagement rate, normalised so the best
+ *   weekday = 1.0 (matching DOW_WEIGHT's 0..1 scale). Absent for weekdays with no data.
+ * - `counts[dow]`  = total posts observed that weekday (drives pooling strength).
+ */
+export function slotPerformanceToDowWeights(slots: SlotPerf[]): {
+  weights: Record<number, number>
+  counts: Record<number, number>
+} {
+  // Sum engagement-rate * posts and posts per weekday → post-weighted mean rate.
+  const sumRate: Record<number, number> = {}
+  const counts: Record<number, number> = {}
+  for (const s of slots) {
+    const dow = DOW_LABEL_TO_INDEX[s.day]
+    if (dow === undefined) continue
+    const posts = s.posts ?? 0
+    if (posts <= 0) continue
+    sumRate[dow] = (sumRate[dow] ?? 0) + (s.avgEngagementRate ?? 0) * posts
+    counts[dow] = (counts[dow] ?? 0) + posts
+  }
+  const meanRate: Record<number, number> = {}
+  let max = 0
+  for (const k of Object.keys(counts)) {
+    const dow = Number(k)
+    meanRate[dow] = counts[dow] > 0 ? sumRate[dow] / counts[dow] : 0
+    if (meanRate[dow] > max) max = meanRate[dow]
+  }
+  const weights: Record<number, number> = {}
+  for (const k of Object.keys(meanRate)) {
+    const dow = Number(k)
+    weights[dow] = max > 0 ? meanRate[dow] / max : 0
+  }
+  return { weights, counts }
+}
+
+/**
+ * Blend the global DOW_WEIGHT with a user's per-weekday signal:
+ *   w_self = n / (n + K);  merged = w_self*userWeight + (1 - w_self)*globalWeight
+ * Weekdays with no user signal (or n=0) keep the global value exactly, so a user
+ * without enough data gets today's behavior unchanged. Pure: never mutates inputs.
+ */
+export function mergeSlotWeights(
+  globalDowWeight: Record<number, number>,
+  userSignal: { weights: Record<number, number>; counts: Record<number, number> },
+  k: number,
+): Record<number, number> {
+  const merged: Record<number, number> = { ...globalDowWeight }
+  for (const key of Object.keys(globalDowWeight)) {
+    const dow = Number(key)
+    const userWeight = userSignal.weights[dow]
+    const n = userSignal.counts[dow] ?? 0
+    if (userWeight === undefined || n <= 0) continue
+    const wSelf = n / (n + k)
+    merged[dow] = wSelf * userWeight + (1 - wSelf) * globalDowWeight[dow]
+  }
+  return merged
+}
+
 // ─── Peak hours by timezone region ────────────────────────────────────────────
 
 /**
@@ -130,6 +203,13 @@ export interface OptimalSlotsInput {
    * 30-day proportional window applies instead.
    */
   periodEndDate?: Date
+  /**
+   * Per-user learned day-of-week weights (Phase 2). When provided, the Pass-1
+   * day score uses these instead of the global DOW_WEIGHT. Omit (default) and
+   * behavior is byte-identical to before. Built by mergeSlotWeights / passed by
+   * the caller only when a timing experiment is active for the user.
+   */
+  learnedDowWeight?: Record<number, number>
 }
 
 /**
@@ -151,7 +231,7 @@ export function buildOptimalSlots(input: OptimalSlotsInput): Date[] {
   const {
     now, count, planMonthlyLimit, timezone, pillars,
     takenDateStrings, userPreferredDays, userPreferredHour,
-    periodEndDate,
+    periodEndDate, learnedDowWeight,
   } = input
 
   // ── Proportional window (hard-capped at 30 days) ────────────────────────
@@ -209,7 +289,7 @@ export function buildOptimalSlots(input: OptimalSlotsInput): Date[] {
     const dow = d.getDay()
     const dayName = d.toLocaleDateString('en-US', { weekday: 'long' })
 
-    const base    = DOW_WEIGHT[dow] ?? 0.50
+    const base    = (learnedDowWeight ?? DOW_WEIGHT)[dow] ?? 0.50
     const pillar  = pillarBoosts[dow] ?? 0
     const pref    = userPreferredDays.includes(dayName) ? 0.15 : 0
     const recency = Math.max(0, 0.10 - offset * 0.001)               // slight bias to sooner
