@@ -24,8 +24,11 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[linkedin/callback] LinkedIn error:', error, errorDescription)
-    // access_denied = user cancelled OR missing OIDC/Share products in LinkedIn app
-    const reason = error === 'access_denied' ? 'scope_denied' : 'linkedin_denied'
+    // access_denied = the member declined consent on LinkedIn's screen. Our scopes
+    // and products are all approved, so this is a deliberate cancel — not a config
+    // error. Any other LinkedIn error (invalid_scope, server_error, …) is a
+    // LinkedIn-side / configuration problem.
+    const reason = error === 'access_denied' ? 'linkedin_cancelled' : 'linkedin_error'
     return clearState(NextResponse.redirect(`${APP_URL}/?error=${reason}`))
   }
 

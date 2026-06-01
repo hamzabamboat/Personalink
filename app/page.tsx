@@ -192,7 +192,11 @@ function HomeContent() {
       {/* Error banner */}
       {error && (
         <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', color: '#dc2626', textAlign: 'center', fontSize: 14, padding: '12px 24px', marginTop: 64 }}>
-          {error === 'linkedin_denied' ? 'LinkedIn permissions were denied. Please try again.' : 'Something went wrong. Please try again.'}
+          {error === 'linkedin_cancelled'
+            ? 'LinkedIn sign-in was cancelled. Please try again.'
+            : error === 'linkedin_error'
+              ? "Couldn't connect to LinkedIn. Please try again."
+              : 'Something went wrong. Please try again.'}
         </div>
       )}
 

@@ -75,7 +75,7 @@ export const LINKEDIN_BASE_SCOPES = ['openid', 'profile', 'email', 'w_member_soc
 // ⚠️ These require LinkedIn approval (Member Data Portability) that is still
 // PENDING. Requesting an unapproved scope makes LinkedIn reject the ENTIRE
 // authorization (error=unauthorized_scope_error) — the callback maps that to
-// `linkedin_denied`, the landing page shows "LinkedIn permissions were denied",
+// `linkedin_error`, the landing page shows "Couldn't connect to LinkedIn",
 // and NO ONE can sign in. Same failure mode as the r_member_social incident
 // (commit f517b63). Keep these out of the request until approval lands.
 export const LINKEDIN_ANALYTICS_SCOPES = ['r_member_postAnalytics', 'r_member_profileAnalytics'] as const
