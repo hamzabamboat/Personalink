@@ -16,7 +16,24 @@ import {
   fetchFollowerCounts,
   buildPostsLatestUpdate,
   buildPostAnalyticsRow,
+  buildLinkedInAuthScope,
+  LINKEDIN_ANALYTICS_SCOPES,
+  LINKEDIN_BASE_SCOPES,
 } from '../linkedin-analytics'
+
+describe('buildLinkedInAuthScope (OAuth request scopes)', () => {
+  it('excludes unapproved analytics scopes by default — else LinkedIn rejects the whole authorization', () => {
+    const scope = buildLinkedInAuthScope()
+    expect(scope).toBe('openid profile email w_member_social')
+    for (const s of LINKEDIN_ANALYTICS_SCOPES) expect(scope).not.toContain(s)
+  })
+
+  it('requests analytics scopes only once LinkedIn approval is granted', () => {
+    const granted = buildLinkedInAuthScope(true).split(' ')
+    for (const s of LINKEDIN_BASE_SCOPES) expect(granted).toContain(s)
+    for (const s of LINKEDIN_ANALYTICS_SCOPES) expect(granted).toContain(s)
+  })
+})
 
 describe('constants', () => {
   it('pins the LinkedIn API version', () => {

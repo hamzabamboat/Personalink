@@ -67,6 +67,28 @@ export function hasCreatorScopes(scopes: string[] | null | undefined): boolean {
   return !!scopes && scopes.includes('r_member_postAnalytics')
 }
 
+// ── OAuth authorization scopes ─────────────────────────────────────────
+/** Scopes the LinkedIn app is approved for — always safe to request. */
+export const LINKEDIN_BASE_SCOPES = ['openid', 'profile', 'email', 'w_member_social'] as const
+
+// Analytics scopes powering the Organic Growth Engine's creator-metrics capture.
+// ⚠️ These require LinkedIn approval (Member Data Portability) that is still
+// PENDING. Requesting an unapproved scope makes LinkedIn reject the ENTIRE
+// authorization (error=unauthorized_scope_error) — the callback maps that to
+// `linkedin_denied`, the landing page shows "LinkedIn permissions were denied",
+// and NO ONE can sign in. Same failure mode as the r_member_social incident
+// (commit f517b63). Keep these out of the request until approval lands.
+export const LINKEDIN_ANALYTICS_SCOPES = ['r_member_postAnalytics', 'r_member_profileAnalytics'] as const
+
+/** Space-delimited scope string for the LinkedIn OAuth authorization request.
+ *  Analytics scopes are withheld until LinkedIn approval lands — pass `true` only then. */
+export function buildLinkedInAuthScope(analyticsApproved = false): string {
+  return [
+    ...LINKEDIN_BASE_SCOPES,
+    ...(analyticsApproved ? LINKEDIN_ANALYTICS_SCOPES : []),
+  ].join(' ')
+}
+
 /** Extracts the numeric id from a share/ugcPost urn, or null. */
 export function shareIdFromUrn(urn: string): string | null {
   const m = /urn:li:(?:share|ugcPost):(\d+)/.exec(urn)

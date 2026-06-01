@@ -4,14 +4,21 @@
 //   2. "Share on LinkedIn" → gives w_member_social scope
 // Add both at: https://www.linkedin.com/developers/apps → Your App → Products
 // Without the OIDC product, LinkedIn rejects the openid/profile/email scopes → error=access_denied
+//
+// NOTE: the Organic Growth Engine analytics scopes (r_member_postAnalytics,
+// r_member_profileAnalytics) are intentionally NOT requested here — they need
+// LinkedIn approval that is still pending, and requesting them rejects the whole
+// authorization (breaks sign-in for everyone). See buildLinkedInAuthScope below.
 
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { buildLinkedInAuthScope } from '@/lib/linkedin-analytics'
 
 export async function GET() {
   const clientId = process.env.LINKEDIN_CLIENT_ID!
   const redirectUri = 'https://www.personalink.in/api/auth/linkedin/callback'
-  const scope = 'openid profile email w_member_social r_member_postAnalytics r_member_profileAnalytics'
+  // Analytics scopes withheld until LinkedIn approval lands; flip to buildLinkedInAuthScope(true) then.
+  const scope = buildLinkedInAuthScope()
   const state = crypto.randomUUID()
 
   const cookieStore = await cookies()
