@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import type { User } from '@/lib/supabase'
 import { sendWelcomeEmail } from '@/lib/email'
 import { runProfileAnalysis } from '@/lib/profile-analyzer'
 import { attachVoiceAnalyzerFingerprint } from '@/lib/voice-analyzer'
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest) {
 
     const isNew = !existingUser
 
-    let user: Record<string, unknown> | null = null
+    let user: User | null = null
     let dbError: unknown = null
 
     if (existingUser) {
@@ -294,7 +295,7 @@ export async function GET(request: NextRequest) {
         $set: {
           profession: existingProfile?.role ?? null,
           country,
-          signup_date: isNew ? new Date().toISOString() : (user as Record<string, unknown>).created_at ?? null,
+          signup_date: isNew ? new Date().toISOString() : user.created_at,
         },
       },
     })

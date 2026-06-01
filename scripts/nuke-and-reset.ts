@@ -17,7 +17,6 @@ dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 import Razorpay from 'razorpay'
 import DodoPayments from 'dodopayments'
 import { createClient } from '@supabase/supabase-js'
-import ws from 'ws'
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -32,7 +31,6 @@ const dodo = new DodoPayments({
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!, // service role bypasses RLS
-  { realtime: { transport: ws } },
 )
 
 async function cancelRazorpaySubscriptions() {
@@ -78,7 +76,7 @@ async function cancelDodoSubscriptions() {
     const id = acct.dodo_subscription_id!
     console.log(`  Cancelling ${id} (db status: ${acct.subscription_status})…`)
     try {
-      await dodo.subscriptions.cancel(id)
+      await dodo.subscriptions.update(id, { status: 'cancelled' })
       console.log(`  ✓ Cancelled ${id}`)
     } catch (err: any) {
       const msg: string = err?.message ?? String(err)

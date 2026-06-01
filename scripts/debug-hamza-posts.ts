@@ -14,12 +14,10 @@
 
 import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
-import ws from 'ws'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { realtime: { transport: ws } },
 )
 
 const HAMZA_EMAIL = 'hamzabamboat@gmail.com'

@@ -21,7 +21,6 @@
 
 import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
-import ws from 'ws'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -34,7 +33,6 @@ async function main() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { realtime: { transport: ws } },
   )
 
   // 1. User
