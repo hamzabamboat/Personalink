@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
+import { toast } from 'sonner'
 import type { UserProfile } from '@/lib/supabase'
 import { getProfileCompleteness, type CompletenessGroup } from '@/lib/profile-completeness'
 import { MCQ_QUESTIONS, MULTI_SELECT_QUESTIONS } from '@/lib/onboarding-questions'
@@ -50,6 +51,14 @@ export default function FinishProfilePage() {
   // Save state
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Post-payment confirmation: paid users now land here (not /dashboard) after checkout,
+  // and the Dodo return URL carries ?upgraded=1. Preserve the "Subscription activated" toast.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('upgraded')) {
+      toast.success('Subscription activated! Welcome to the plan.')
+    }
+  }, [])
 
   // ── Load profile ───────────────────────────────────────────────────────────
   useEffect(() => {
