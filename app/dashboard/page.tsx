@@ -26,6 +26,7 @@ import { UpgradeBanner } from '@/components/upgrade-banner'
 import { IncompleteProfileBanner } from '@/components/dashboard/IncompleteProfileBanner'
 import { FinishProfileNudge } from '@/components/dashboard/FinishProfileNudge'
 import { getProfileCompleteness } from '@/lib/profile-completeness'
+import { selectTipOfDay } from '@/lib/daily-tip'
 
 type ProfileAnalysis = {
   score: number
@@ -279,7 +280,7 @@ function DashboardContent() {
   const postsLimit = profile?.posts_limit || 3
   const _now       = new Date()
   const _dayOfYear = Math.floor((_now.getTime() - new Date(_now.getFullYear(), 0, 0).getTime()) / 86400000)
-  const tipOfDay   = TIPS[_dayOfYear % TIPS.length]
+  const tipOfDay   = selectTipOfDay(_dayOfYear, TIPS)
   const nextPost   = posts[0] || null
 
   /* ── Loading skeleton ── */
