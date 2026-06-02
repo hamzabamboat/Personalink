@@ -4,19 +4,21 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import posthog from 'posthog-js'
-import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
+import { PLAN_FEATURES } from '@/lib/supabase'
 import { MCQ_QUESTIONS, MULTI_SELECT_QUESTIONS } from '@/lib/onboarding-questions'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import { TIER_LIMITS } from '@/lib/pricing-config'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
-import { Loader2, Bot, CheckCircle2, Lightbulb, Check } from 'lucide-react'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 import { QuarterRings } from '@/components/concentric-rings'
 import { WordMark } from '@/components/word-mark'
+import { StepIdentity } from '@/components/onboarding/StepIdentity'
+import { StepPersonalityQuiz } from '@/components/onboarding/StepPersonalityQuiz'
+import { StepWritingSample } from '@/components/onboarding/StepWritingSample'
+import { StepContentPillars } from '@/components/onboarding/StepContentPillars'
+import { StepControlPreference } from '@/components/onboarding/StepControlPreference'
+import { StepImageBrief } from '@/components/onboarding/StepImageBrief'
 
 const TOTAL_STEPS = 7
 
@@ -275,90 +277,12 @@ export default function OnboardingPage() {
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Tell us about yourself</h1>
               <p className="text-slate-500 text-base">This helps us personalise your content pillars and voice.</p>
             </div>
-            <div className="flex flex-col gap-5">
-              {/* Full name */}
-              <div>
-                <Label className="mb-1.5">Full name<span className="text-red-500 ml-0.5">*</span></Label>
-                <Input
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Arjun Mehta"
-                />
-              </div>
-
-              {/* Role / Title */}
-              <div>
-                <Label className="mb-1.5">Role / Title<span className="text-red-500 ml-0.5">*</span></Label>
-                <Input
-                  value={form.role}
-                  onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                  placeholder="e.g. Founder, Student, Consultant"
-                />
-              </div>
-
-              {/* Industry — dropdown with Other */}
-              <div>
-                <Label className="mb-1.5">Industry<span className="text-red-500 ml-0.5">*</span></Label>
-                <select
-                  value={industryOther ? 'Other' : form.industry}
-                  onChange={e => {
-                    const v = e.target.value
-                    if (v === 'Other') { setIndustryOther(true); setForm(f => ({ ...f, industry: '' })) }
-                    else { setIndustryOther(false); setForm(f => ({ ...f, industry: v })) }
-                  }}
-                  className="h-8 w-full min-w-0 rounded-lg border border-input px-2.5 py-1 text-base md:text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  style={{ color: 'var(--ink)', backgroundColor: 'var(--surface)' }}
-                >
-                  <option value="" disabled style={{ color: 'var(--ink-3)', background: 'var(--surface)' }}>Select your industry…</option>
-                  {INDUSTRIES.map(ind => <option key={ind} value={ind} style={{ color: 'var(--ink)', background: 'var(--surface)' }}>{ind}</option>)}
-                  <option value="Other" style={{ color: 'var(--ink)', background: 'var(--surface)' }}>Other…</option>
-                </select>
-                {industryOther && (
-                  <Input
-                    className="mt-2"
-                    value={form.industry}
-                    onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}
-                    placeholder="Type your industry"
-                    autoFocus
-                  />
-                )}
-              </div>
-
-              {/* Company / Institution */}
-              <div>
-                <Label className="mb-1.5">Company / Institution</Label>
-                <Input
-                  value={form.company}
-                  onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
-                  placeholder="e.g. Acme Inc, IIT Bombay"
-                />
-              </div>
-
-              {/* LinkedIn URL */}
-              <div>
-                <Label className="mb-1.5">LinkedIn profile URL<span className="text-red-500 ml-0.5">*</span></Label>
-                <Input
-                  value={form.linkedin_url}
-                  onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
-                  placeholder="https://linkedin.com/in/yourname"
-                />
-              </div>
-
-              {/* Current age */}
-              <div>
-                <Label className="mb-1.5">Current age</Label>
-                <Input
-                  type="number"
-                  value={form.age}
-                  onChange={e => setForm(f => ({ ...f, age: e.target.value }))}
-                  placeholder="32"
-                />
-              </div>
-
-              <p className="text-[12px] text-slate-400 mt-1">
-                The more you fill out, the better we can personalise your content and match your voice exactly.
-              </p>
-            </div>
+            <StepIdentity
+              form={form}
+              onChange={updates => setForm(f => ({ ...f, ...updates }))}
+              industryOther={industryOther}
+              onIndustryOtherChange={setIndustryOther}
+            />
             <NavButtons onNext={() => {
               if (!form.name || !form.role || !form.industry || !form.linkedin_url) {
                 setError('Please fill in your name, role, industry, and LinkedIn URL.')
@@ -377,34 +301,10 @@ export default function OnboardingPage() {
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Your LinkedIn personality</h1>
               <p className="text-slate-500 text-base">Helps our AI match your communication style perfectly.</p>
             </div>
-            <div className="flex flex-col gap-8">
-              {MCQ_QUESTIONS.map(q => {
-                const isMulti = MULTI_SELECT_QUESTIONS.includes(q.id)
-                const answer = form.mcq_answers[q.id]
-                return (
-                  <div key={q.id}>
-                    <p className="font-semibold text-slate-900 mb-1 text-[15px]">{q.q}</p>
-                    <p className="text-[12px] text-slate-400 mb-3">{isMulti ? 'Select all that apply.' : 'Pick one.'}</p>
-                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-2.5">
-                      {q.options.map(opt => {
-                        const selected = Array.isArray(answer) ? answer.includes(opt) : answer === opt
-                        return (
-                          <button
-                            key={opt}
-                            onClick={() => toggleMcq(q.id, opt)}
-                            className={`px-4 py-3 sm:py-2.5 rounded-xl sm:rounded-full border-2 text-sm transition-all text-left sm:text-center min-h-[48px] sm:min-h-0 ${
-                              selected ? 'border-brand bg-brand-light text-brand font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <StepPersonalityQuiz
+              answers={form.mcq_answers}
+              onToggle={toggleMcq}
+            />
             <NavButtons onNext={() => {
               const allAnswered = MCQ_QUESTIONS.every(q => {
                 const a = form.mcq_answers[q.id]
@@ -424,15 +324,11 @@ export default function OnboardingPage() {
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Write like you normally do</h1>
               <p className="text-slate-500 text-base">Write 2-3 paragraphs about anything you did recently — a meeting, a decision, a lesson. We analyse your vocabulary, tone, and rhythm to build your voice fingerprint.</p>
             </div>
-            <Textarea
+            <StepWritingSample
               value={form.writing_sample}
-              onChange={e => setForm(f => ({ ...f, writing_sample: e.target.value }))}
-              placeholder="This week I had a tough conversation with a potential investor. They pushed back hard on our unit economics, and honestly — they were right. Here's what I learned from getting humbled in a pitch room..."
-              className="min-h-[220px]"
+              onChange={value => setForm(f => ({ ...f, writing_sample: value }))}
+              wordCount={wordCount}
             />
-            <div className={`mt-2 text-[13px] ${wordCount >= 80 ? 'text-emerald-600' : 'text-slate-400'}`}>
-              {wordCount} words {wordCount < 80 ? '(aim for at least 80)' : '✓'}
-            </div>
             <NavButtons onNext={() => {
               if (wordCount < 40) { setError('Please write at least 40 words so we can analyse your voice.'); return }
               posthog.capture('voice_samples_submitted', { sample_count: 1 })
@@ -449,30 +345,10 @@ export default function OnboardingPage() {
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Pick your 3 content pillars</h1>
               <p className="text-slate-500 text-base">These are the themes your posts will rotate across. Pick exactly 3.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {CONTENT_PILLARS.map(p => {
-                const selected = form.content_pillars.includes(p)
-                const maxed = form.content_pillars.length >= 3 && !selected
-                return (
-                  <button
-                    key={p}
-                    onClick={() => togglePillar(p)}
-                    disabled={maxed}
-                    className={`p-4 rounded-xl border-2 text-left text-[15px] font-medium transition-all flex items-center justify-between ${
-                      selected ? 'border-brand bg-brand-light text-brand font-bold' : maxed ? 'border-slate-200 text-slate-300 cursor-not-allowed' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                    }`}
-                  >
-                    {p}
-                    {selected && (
-                      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#0A66C2"/><polyline points="4.5,8.5 6.5,10.5 11.5,5.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-            <div className={`text-[13px] font-medium ${form.content_pillars.length === 3 ? 'text-emerald-600' : 'text-slate-400'}`}>
-              {form.content_pillars.length}/3 selected {form.content_pillars.length === 3 ? '✓' : ''}
-            </div>
+            <StepContentPillars
+              selected={form.content_pillars}
+              onToggle={togglePillar}
+            />
             <NavButtons onNext={() => {
               if (form.content_pillars.length !== 3) { setError('Please select exactly 3 content pillars.'); return }
               nextStep()
@@ -488,38 +364,10 @@ export default function OnboardingPage() {
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">How much control do you want?</h1>
               <p className="text-slate-500 text-base">You can change this anytime from Settings.</p>
             </div>
-            <div className="flex flex-col gap-4">
-              {[
-                { id: 'autopilot' as const, icon: Bot, iconColor: '#0A66C2', iconBg: '#e8f0fb', title: 'Full Autopilot', desc: 'AI generates and posts everything automatically on your schedule. Sit back and grow.' },
-                { id: 'approve' as const, icon: CheckCircle2, iconColor: '#059669', iconBg: '#ecfdf5', title: 'Approve Before Posting', desc: 'AI generates posts, you get an email to approve each one before it goes live. Best of both worlds.' },
-                { id: 'suggest' as const, icon: Lightbulb, iconColor: '#d97706', iconBg: '#fffbeb', title: 'Suggest Only', desc: 'AI suggests ideas and drafts, you decide which ones to develop and post yourself.' },
-              ].map(opt => {
-                const selected = form.control_preference === opt.id
-                const Icon = opt.icon
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => setForm(f => ({ ...f, control_preference: opt.id }))}
-                    className={`p-6 rounded-xl border-2 text-left transition-all ${selected ? 'border-brand bg-brand-light shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
-                  >
-                    <div className="flex gap-4 items-start">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: opt.iconBg }}>
-                        <Icon className="w-5 h-5" style={{ color: opt.iconColor }} strokeWidth={1.75} />
-                      </div>
-                      <div className="flex-1">
-                        <div className={`font-bold text-[17px] mb-1.5 ${selected ? 'text-brand' : 'text-slate-900'}`}>{opt.title}</div>
-                        <div className="text-slate-500 text-sm leading-relaxed">{opt.desc}</div>
-                      </div>
-                      {selected && (
-                        <div className="w-5 h-5 rounded-full bg-brand flex items-center justify-center shrink-0">
-                          <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+            <StepControlPreference
+              value={form.control_preference}
+              onChange={value => setForm(f => ({ ...f, control_preference: value }))}
+            />
             <NavButtons onNext={() => {
               if (!form.control_preference) { setError('Please choose a control preference.'); return }
               nextStep()
@@ -535,25 +383,7 @@ export default function OnboardingPage() {
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Your photo content brief</h1>
               <p className="text-slate-500 text-base">Based on your industry and pillars, here are 5 photo prompts to shoot this month. Images boost engagement by 3x.</p>
             </div>
-            <div className="flex flex-col gap-3.5 mb-8">
-              {[
-                `At your desk or workspace — showing your setup and how you think`,
-                `A whiteboard or notebook with your ${form.content_pillars[0] || 'key idea'} framework`,
-                `You in a meeting or on a call — candid, natural`,
-                `Walking outdoors — candid shot that shows you as a real person`,
-                `Screenshot of a result or metric you're proud of this month`,
-              ].map((prompt, i) => (
-                <Card key={i}>
-                  <CardContent className="py-4 px-5 flex gap-4 items-start">
-                    <div className="w-7 h-7 bg-brand-light rounded-lg flex items-center justify-center text-[13px] font-bold text-brand shrink-0">{i + 1}</div>
-                    <p className="text-sm text-slate-600 leading-relaxed">{prompt}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <div className="text-[13px] text-slate-500 bg-slate-50 rounded-xl px-4 py-3.5 border border-slate-200">
-              💡 Standard and Pro plans get a fresh, personalised image brief generated by AI every month.
-            </div>
+            <StepImageBrief firstPillar={form.content_pillars[0]} />
             <NavButtons onNext={nextStep} onPrev={prevStep} step={step} />
           </div>
         )}
