@@ -23,6 +23,8 @@ import { Eyebrow } from '@/components/eyebrow'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { RefinementCard } from '@/components/refinement-card'
 import { UpgradeBanner } from '@/components/upgrade-banner'
+import { IncompleteProfileBanner } from '@/components/dashboard/IncompleteProfileBanner'
+import { getProfileCompleteness } from '@/lib/profile-completeness'
 
 type ProfileAnalysis = {
   score: number
@@ -353,6 +355,14 @@ function DashboardContent() {
           </div>
         </div>
       )}
+
+      {/* ── Incomplete-profile nudge (free tier, warn-only) ── */}
+      {(() => {
+        const { complete, missing } = getProfileCompleteness(profile)
+        return (!complete && profile?.plan === 'free')
+          ? <IncompleteProfileBanner missing={missing} />
+          : null
+      })()}
 
       {/* ── Soft-upgrade nudge (free tier only, self-hides otherwise) ── */}
       <UpgradeBanner />

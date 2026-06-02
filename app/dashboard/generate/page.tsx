@@ -15,6 +15,8 @@ import {
   CheckCircle2, ArrowRight, Brain, Lightbulb,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { IncompleteProfileBanner } from '@/components/dashboard/IncompleteProfileBanner'
+import { getProfileCompleteness } from '@/lib/profile-completeness'
 
 function utcToLocalInput(utcString: string): string {
   if (!utcString) return ''
@@ -513,6 +515,11 @@ function GenerateContent() {
   const [plan, setPlan] = useState('starter')
   const [postsLimit, setPostsLimit] = useState<number | null>(null)
   const [postsRemaining, setPostsRemaining] = useState<number | null>(null)
+  const [profileForCompleteness, setProfileForCompleteness] = useState<{
+    mcq_answers?: Record<string, unknown> | null
+    content_pillars?: string[] | null
+    control_preference?: string | null
+  } | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState('')
   const [recording, setRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
@@ -553,6 +560,11 @@ function GenerateContent() {
         setPlan(meData.profile.plan || 'starter')
         setPostsLimit(meData.profile.posts_limit ?? 12)
         if (meData.profile.content_pillars?.length) setContentPillars(meData.profile.content_pillars)
+        setProfileForCompleteness({
+          mcq_answers: meData.profile.mcq_answers ?? null,
+          content_pillars: meData.profile.content_pillars ?? null,
+          control_preference: meData.profile.control_preference ?? null,
+        })
       }
       if (usageData.usage?.posts_generated) setPostsRemaining(usageData.usage.posts_generated.remaining)
     }).catch(() => {})
@@ -740,6 +752,14 @@ function GenerateContent() {
           </Link>
         </div>
       </div>
+
+      {/* ── Incomplete-profile nudge (free tier, warn-only) ── */}
+      {(() => {
+        const { complete, missing } = getProfileCompleteness(profileForCompleteness)
+        return (!complete && plan === 'free')
+          ? <IncompleteProfileBanner missing={missing} />
+          : null
+      })()}
 
       {/* ── Error banner ── */}
       {error && (
