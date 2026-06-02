@@ -6,6 +6,7 @@ import Script from 'next/script'
 import posthog from 'posthog-js'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import { resolvePlanFromParam } from '@/lib/onboarding-plan'
+import { LOCALE_OPTIONS, type LocaleId } from '@/lib/prompts/locales'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, CheckCircle2 } from 'lucide-react'
@@ -38,7 +39,7 @@ const INDUSTRIES = [
 type FormData = {
   name: string; role: string; industry: string; company: string; age: string; linkedin_url: string
   mcq_answers: Record<string, string | string[]>; writing_sample: string; content_pillars: string[]
-  control_preference: 'autopilot' | 'approve' | 'suggest' | ''; plan: string
+  control_preference: 'autopilot' | 'approve' | 'suggest' | ''; plan: string; voice_locale: LocaleId
 }
 
 const STORAGE_KEY = 'onboarding_progress'
@@ -52,7 +53,7 @@ export default function OnboardingPage() {
   const [userCountry, setUserCountry] = useState('IN')
   const [form, setForm] = useState<FormData>({
     name: '', role: '', industry: '', company: '', age: '', linkedin_url: '',
-    mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'free',
+    mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'free', voice_locale: 'english',
   })
   const [codeInput, setCodeInput] = useState('')
   const [codeChecking, setCodeChecking] = useState(false)
@@ -402,6 +403,29 @@ export default function OnboardingPage() {
               onChange={value => setForm(f => ({ ...f, writing_sample: value }))}
               wordCount={wordCount}
             />
+
+            <div className="mt-6">
+              <div className="text-[13px] font-semibold text-slate-700 mb-1">Language style</div>
+              <p className="text-[13px] text-slate-400 mb-3">How your posts should read. You can change this anytime in Settings.</p>
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-2.5">
+                {LOCALE_OPTIONS.map(opt => {
+                  const selected = form.voice_locale === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, voice_locale: opt.id }))}
+                      title={opt.blurb}
+                      className={`px-4 py-2.5 rounded-full border-2 text-sm transition-all min-h-[44px] ${
+                        selected ? 'border-brand bg-brand-light text-brand font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
             {/* Access code affordance */}
             <div className="mt-4 mb-2">
