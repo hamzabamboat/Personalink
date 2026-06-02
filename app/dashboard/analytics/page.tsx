@@ -103,10 +103,10 @@ export default function AnalyticsPage() {
   async function fetchData(uid: string) {
     const [scoresRes, postsRes] = await Promise.all([
       supabase.from('linkedin_scores').select('score, recorded_at').eq('user_id', uid).order('recorded_at', { ascending: true }).limit(12),
-      supabase.from('posts').select('*').eq('user_id', uid).eq('status', 'published').order('reactions', { ascending: false }),
+      fetch('/api/posts?status=published').then((r) => r.json()),
     ])
     setScores(scoresRes.data || [])
-    setPosts(postsRes.data || [])
+    setPosts(postsRes.posts || [])
   }
 
   const fetchAnalysis = useCallback(async (uid: string, forceRefresh = false) => {
