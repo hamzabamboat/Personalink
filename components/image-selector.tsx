@@ -202,7 +202,7 @@ function AiGenerateTab({
 
           <div className="flex gap-2 mt-auto">
             <Button onClick={useImage} className="flex-1 gap-2">
-              <Check className="w-4 h-4" /> Use This Image
+              <Check className="w-4 h-4" /> Add to post
             </Button>
             <Button variant="outline" onClick={generate} disabled={generating} className="gap-1.5">
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}

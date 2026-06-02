@@ -520,7 +520,6 @@ function GenerateContent() {
     content_pillars?: string[] | null
     control_preference?: string | null
   } | null>(null)
-  const [uploadedImageUrl, setUploadedImageUrl] = useState('')
   const [recording, setRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [transcribing, setTranscribing] = useState(false)
@@ -534,6 +533,7 @@ function GenerateContent() {
   const [imageSuggestions, setImageSuggestions] = useState<Array<{ icon: string; suggestion: string; why: string }>>([])
   const [fetchingImages, setFetchingImages] = useState(false)
   const [selectedImages, setSelectedImages] = useState<PostImage[]>([])
+  const [attachedImages, setAttachedImages] = useState<string[]>([])
   const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
   const [pendingPillar, setPendingPillar] = useState<string | null>(null)
   const [voiceImages, setVoiceImages] = useState<File[]>([])
@@ -694,13 +694,13 @@ function GenerateContent() {
 
   const originalDraftRef = useRef<string>('')
 
-  function selectPost(post: { id: string; content: string; scheduled_at?: string | null }) {
+  function selectPost(post: { id: string; content: string; scheduled_at?: string | null; image_urls?: string[] | null }) {
     setSelectedPost(post)
     setEditContent(post.content)
     setActionResult('')
     setScheduleDate(post.scheduled_at ? utcToLocalInput(post.scheduled_at) : '')
     setImageSuggestions([])
-    setUploadedImageUrl('')
+    setAttachedImages(post.image_urls || [])
     originalDraftRef.current = post.content
     fetchImageSuggestions(post.content)
   }
@@ -722,7 +722,7 @@ function GenerateContent() {
       const dist = levenshtein(original, editContent)
       posthog.capture('post_edited_before_publish', { post_id: selectedPost.id, edit_percent: Math.round((dist / original.length) * 100) })
     }
-    await fetch(`/api/posts/${selectedPost.id}/update`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: editContent, image_url: uploadedImageUrl || undefined }) })
+    await fetch(`/api/posts/${selectedPost.id}/update`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: editContent, image_urls: attachedImages.length > 0 ? attachedImages : null }) })
     const res = await fetch(`/api/posts/${selectedPost.id}/schedule`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scheduledAt: new Date(scheduleDate).toISOString() }) })
     const data = await res.json()
     setScheduling(false); setActionResult(data.error ? `Error: ${data.error}` : 'scheduled')
@@ -1199,12 +1199,59 @@ function GenerateContent() {
                 </div>
               )}
 
-              <ImageUploadSection onUpload={url => setUploadedImageUrl(url)} />
-              {uploadedImageUrl && (
-                <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: '#059669', marginTop: 4 }}>
-                  <Check size={12} /> Image ready — will be attached when you schedule
-                </div>
-              )}
+              {/* ── Attached-images gallery ── */}
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginTop: 4 }}>
+                <label className="db-label" style={{ marginBottom: 8 }}>
+                  {'// '}images ({attachedImages.length}/9)
+                </label>
+
+                {/* Thumbnails */}
+                {attachedImages.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    {attachedImages.map((url, i) => (
+                      <div key={i} style={{ position: 'relative', width: 60, height: 60, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          onClick={() => setAttachedImages(prev => prev.filter((_, j) => j !== i))}
+                          style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', opacity: 0, transition: 'opacity .15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = '0')}>
+                          <X size={13} color="#fff" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {attachedImages.length >= 9 ? (
+                  <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+                    Maximum of 9 images per post.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {/* AI generate */}
+                    <AiImageButton
+                      plan={plan}
+                      postContent={editContent}
+                      onSelect={imgs => {
+                        setAttachedImages(prev => {
+                          const toAdd = imgs.map(i => i.public_url).filter(u => !prev.includes(u))
+                          return [...prev, ...toAdd].slice(0, 9)
+                        })
+                      }}
+                    />
+                    {/* Manual upload */}
+                    <ImageUploadSection
+                      onUpload={url => {
+                        setAttachedImages(prev =>
+                          prev.includes(url) ? prev : [...prev, url].slice(0, 9)
+                        )
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
