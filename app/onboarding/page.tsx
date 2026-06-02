@@ -16,6 +16,8 @@ import { StepWritingSample } from '@/components/onboarding/StepWritingSample'
 
 const TOTAL_STEPS = 2
 
+type PreviewState = 'idle' | 'loading' | 'ready' | 'error'
+
 
 const INDUSTRIES = [
   'Software & SaaS', 'Information Technology', 'Artificial Intelligence', 'Cybersecurity',
@@ -57,6 +59,8 @@ export default function OnboardingPage() {
   const [codeError, setCodeError] = useState('')
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
+  const [previewState, setPreviewState] = useState<PreviewState>('idle')
+  const [previewPost, setPreviewPost] = useState('')
   const onboardingStartFiredRef = useRef(false)
 
   useEffect(() => { document.title = 'Getting Started — PersonaLink' }, [])
@@ -117,6 +121,40 @@ export default function OnboardingPage() {
       setCodeError(d.error || 'Invalid code')
     }
     setCodeChecking(false)
+  }
+
+  async function generatePreview() {
+    setPreviewState('loading')
+    try {
+      const res = await fetch('/api/onboarding/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          role: form.role,
+          industry: form.industry,
+          writing_sample: form.writing_sample,
+        }),
+      })
+      const data = await res.json()
+      if (data.error || !data.post) {
+        setPreviewState('error')
+        return
+      }
+      setPreviewPost(data.post)
+      setPreviewState('ready')
+      posthog.capture('preview_generated')
+    } catch {
+      setPreviewState('error')
+    }
+  }
+
+  function finishOnboarding() {
+    if (appliedCode) {
+      handleFinishWithCode()
+    } else {
+      proceedFromCore()
+    }
   }
 
   async function handleFinishWithCode() {
@@ -262,8 +300,88 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        {/* Preview beat — shown after writing sample submission, before the branch */}
+        {step === 2 && previewState !== 'idle' && (
+          <div className="animate-fade">
+            {previewState === 'loading' && (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="size-8 animate-spin" style={{ color: 'var(--pl-accent)' }} />
+                <p className="text-base font-semibold" style={{ color: 'var(--ink-2)' }}>Writing a post in your voice…</p>
+                <p className="text-sm text-center max-w-xs" style={{ color: 'var(--ink-4)' }}>We&apos;re analysing your writing sample to generate a personalised LinkedIn post.</p>
+              </div>
+            )}
+
+            {previewState === 'ready' && (
+              <div>
+                <div className="mb-6 md:mb-8">
+                  <div className="text-[13px] font-semibold text-brand mb-2">YOUR VOICE PREVIEW</div>
+                  <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Here&apos;s a post in your voice</h1>
+                  <p className="text-slate-500 text-base">We&apos;ll generate more like this on your dashboard. This is your first one.</p>
+                </div>
+                <div
+                  className="rounded-2xl p-5 mb-6 whitespace-pre-wrap text-sm leading-relaxed"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink-1)' }}
+                >
+                  {previewPost}
+                </div>
+                <div className="flex gap-3 mt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPreviewState('idle')}
+                    className="flex-1 h-[52px] text-[15px] font-semibold"
+                  >
+                    ← Edit sample
+                  </Button>
+                  <Button
+                    onClick={finishOnboarding}
+                    disabled={saving}
+                    className="flex-[2] h-[52px] text-[15px] font-bold"
+                    style={{ background: 'var(--pl-accent)' }}
+                  >
+                    {saving
+                      ? <><Loader2 className="size-5 mr-2 animate-spin" /> Setting up your account…</>
+                      : appliedCode
+                        ? `Activate ${appliedCode.plan.charAt(0).toUpperCase() + appliedCode.plan.slice(1)} Plan →`
+                        : form.plan === 'free' ? 'Get Started →' : 'Start Free Trial →'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {previewState === 'error' && (
+              <div>
+                <div className="mb-6 md:mb-8">
+                  <div className="text-[13px] font-semibold text-brand mb-2">ALMOST THERE</div>
+                  <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">You&apos;re all set</h1>
+                  <p className="text-slate-500 text-base">We&apos;ll generate your first post on the dashboard.</p>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPreviewState('idle')}
+                    className="flex-1 h-[52px] text-[15px] font-semibold"
+                  >
+                    ← Edit sample
+                  </Button>
+                  <Button
+                    onClick={finishOnboarding}
+                    disabled={saving}
+                    className="flex-[2] h-[52px] text-[15px] font-bold"
+                  >
+                    {saving
+                      ? <><Loader2 className="size-5 mr-2 animate-spin" /> Setting up your account…</>
+                      : appliedCode
+                        ? `Activate ${appliedCode.plan.charAt(0).toUpperCase() + appliedCode.plan.slice(1)} Plan →`
+                        : form.plan === 'free' ? 'Continue to Dashboard →' : 'Start Free Trial →'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Step 2 — Writing Sample */}
-        {step === 2 && (
+        {step === 2 && previewState === 'idle' && (
           <div className="animate-fade">
             <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 2 — WRITING SAMPLE</div>
@@ -322,7 +440,7 @@ export default function OnboardingPage() {
                   onClick={() => {
                     if (wordCount < 40) { setError('Please write at least 40 words so we can analyse your voice.'); return }
                     posthog.capture('voice_samples_submitted', { sample_count: 1 })
-                    handleFinishWithCode()
+                    generatePreview()
                   }}
                   disabled={saving}
                   className="flex-[2] h-[52px] text-[15px] font-bold bg-emerald-600 hover:bg-emerald-700"
@@ -337,7 +455,7 @@ export default function OnboardingPage() {
                   onClick={() => {
                     if (wordCount < 40) { setError('Please write at least 40 words so we can analyse your voice.'); return }
                     posthog.capture('voice_samples_submitted', { sample_count: 1 })
-                    proceedFromCore()
+                    generatePreview()
                   }}
                   disabled={saving}
                   className="flex-[2] h-[52px] text-[15px] font-bold"
