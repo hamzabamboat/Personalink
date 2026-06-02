@@ -36,16 +36,12 @@ export default function ProfilePage() {
         if (!data.user) { window.location.href = '/'; return }
         if (cancelled) return
         setProfile(data.profile || null)
-        // Load top published posts as reference posts
-        const { supabase } = await import('@/lib/supabase')
-        const { data: postsData } = await supabase
-          .from('posts')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .in('status', ['published', 'approved'])
-          .order('created_at', { ascending: false })
-          .limit(5)
-        if (!cancelled) setPosts(postsData || [])
+        // Load top published/approved posts as reference posts. Must go through
+        // the server API: `posts` has RLS enabled, and the browser anon client
+        // has no Supabase session, so a client-side read returns zero rows.
+        const postsRes = await fetch('/api/posts?status=published,approved&limit=5')
+        const postsJson = await postsRes.json()
+        if (!cancelled) setPosts(postsJson.posts || [])
       } catch { /* non-fatal */ } finally {
         if (!cancelled) setLoading(false)
       }

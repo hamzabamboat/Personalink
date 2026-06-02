@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, PostSuggestion, Post } from '@/lib/supabase'
+import { PostSuggestion, Post } from '@/lib/supabase'
 import Link from 'next/link'
 
 function formatAge(createdAt: string): { label: string; fresh: boolean } {
@@ -62,13 +62,13 @@ export default function SuggestionsPage() {
         setFirstName(user.linkedin_name?.split(' ')[0] || profile?.name?.split(' ')[0] || 'you')
         const [suggestionsRes, postsRes] = await Promise.all([
           fetch('/api/suggestions/refresh'),
-          supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }).limit(10),
+          fetch('/api/posts?status=published&limit=10').then((r) => r.json()),
         ])
         if (cancelled) return
         const suggestionsData = await suggestionsRes.json()
         const data: PostSuggestion[] = suggestionsData.suggestions || []
         applySuggestions(data, suggestionsData.last_generated_at)
-        setTopPosts(postsRes.data || [])
+        setTopPosts(postsRes.posts || [])
         if (data.length > 0) {
           const hoursDiff = (Date.now() - new Date(data[0].created_at).getTime()) / (1000 * 60 * 60)
           if (hoursDiff >= 6) {

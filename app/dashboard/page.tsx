@@ -228,18 +228,14 @@ function DashboardContent() {
           })
         }
 
-        // Real voice-fingerprint match: compare the user's actual posts to their writing sample
+        // Real voice-fingerprint match: compare the user's actual posts to their
+        // writing sample. Read via the server API — `posts` has RLS and the
+        // browser anon client can't read it (no Supabase session).
         if (u?.id) {
-          const { supabase } = await import('@/lib/supabase')
-          const { data: refPostsData } = await supabase
-            .from('posts')
-            .select('content')
-            .eq('user_id', u.id)
-            .in('status', ['published', 'approved'])
-            .order('created_at', { ascending: false })
-            .limit(10)
+          const refRes = await fetch('/api/posts?status=published,approved&limit=10')
+          const refJson = await refRes.json()
           const reference = p.writing_sample || p.post_examples || ''
-          const match = computeVoiceMatch(reference, (refPostsData || []).map(r => r.content).filter(Boolean))
+          const match = computeVoiceMatch(reference, (refJson.posts || []).map((r: Post) => r.content).filter(Boolean))
           if (!cancelled) setVoiceMatch(match)
         }
       } catch {

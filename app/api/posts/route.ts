@@ -22,7 +22,11 @@ export async function GET(request: NextRequest) {
       .order(orderBy, { ascending: orderBy === 'scheduled_at' })
       .limit(limit)
 
-    if (status) query = query.eq('status', status)
+    if (status) {
+      // Accept a comma-separated list (e.g. "published,approved") → IN filter.
+      const statuses = status.split(',').map((s) => s.trim()).filter(Boolean)
+      query = statuses.length > 1 ? query.in('status', statuses) : query.eq('status', statuses[0])
+    }
 
     if (scheduledMonth) {
       const [y, m] = scheduledMonth.split('-').map(Number)
