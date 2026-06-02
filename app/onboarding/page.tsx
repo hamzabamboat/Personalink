@@ -187,6 +187,7 @@ export default function OnboardingPage() {
       const data = await res.json()
       if (!res.ok || data.error) { setError(data.error || 'Failed to save'); setSaving(false); return }
       sessionStorage.removeItem(STORAGE_KEY)
+      posthog.capture('core_completed', { plan: form.plan })
 
       // Free tier — no checkout needed, jump straight to the dashboard.
       if (form.plan === 'free') {
@@ -238,6 +239,9 @@ export default function OnboardingPage() {
           })
           const verifyData = await verifyRes.json()
           if (verifyData.error) { setError('Payment verification failed. Please email support@personalink.in'); setSaving(false); return }
+          posthog.capture('payment_completed', { plan: form.plan, processor: 'razorpay' })
+          // Note: Dodo payments redirect to a hosted checkout so payment_completed cannot be
+          // captured client-side here — fire it server-side from the Dodo webhook/return handler (future task).
           window.location.href = '/dashboard'
         },
         modal: { ondismiss: () => setSaving(false) },

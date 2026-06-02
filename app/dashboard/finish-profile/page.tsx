@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 import type { UserProfile } from '@/lib/supabase'
 import { getProfileCompleteness, type CompletenessGroup } from '@/lib/profile-completeness'
 import { MCQ_QUESTIONS, MULTI_SELECT_QUESTIONS } from '@/lib/onboarding-questions'
@@ -156,6 +157,7 @@ export default function FinishProfilePage() {
         setSaveError((data as { error?: string }).error ?? 'Save failed. Please try again.')
         return
       }
+      posthog.capture('config_completed')
       router.push('/dashboard')
     } catch {
       setSaveError('Network error. Please check your connection and try again.')
