@@ -494,8 +494,9 @@ export async function beautifyLinkedInProfile(input: {
   company?: string
   voiceFingerprint?: string
   writingSample?: string
+  guidance?: string
 }): Promise<BeautifyProfileResult> {
-  const { name, currentHeadline, currentAbout, currentSkills, role, industry, company, voiceFingerprint, writingSample } = input
+  const { name, currentHeadline, currentAbout, currentSkills, role, industry, company, voiceFingerprint, writingSample, guidance } = input
 
   const profileContext = [
     name && `Name: ${name}`,
@@ -516,6 +517,12 @@ export async function beautifyLinkedInProfile(input: {
     ? `\nWriting sample (match this voice):\n"${writingSample.slice(0, 400)}"`
     : ''
 
+  // User-stated direction for how they want to come across. Prioritised over
+  // generic optimisation choices, and seeds a from-scratch bio for new accounts.
+  const directionSection = guidance?.trim()
+    ? `\nThe user's stated direction for how they want their profile to sound (PRIORITISE this over generic choices about tone, emphasis, and positioning):\n"${guidance.trim().slice(0, 600)}"`
+    : ''
+
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: 3000,
@@ -526,9 +533,12 @@ export async function beautifyLinkedInProfile(input: {
 Person context:
 ${profileContext}
 ${voiceSection}
+${directionSection}
 
 Current profile:
 ${currentProfileSection}
+
+If the current profile is empty or sparse (e.g. a brand-new LinkedIn account with no bio yet), write a strong first profile from scratch using the person context and the stated direction above — never refuse for lack of an existing bio.
 
 Generate an optimised profile. Return ONLY a valid JSON object with exactly these fields:
 {

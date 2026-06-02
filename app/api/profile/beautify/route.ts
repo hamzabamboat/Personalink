@@ -50,10 +50,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}))
-  const { headline, about, skills } = body as {
+  const { headline, about, skills, guidance } = body as {
     headline?: string
     about?: string
     skills?: string[]
+    guidance?: string
   }
 
   // Save the user's current profile inputs for future pre-fill
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       company: profile?.company,
       voiceFingerprint: profile?.voice_fingerprint,
       writingSample: profile?.writing_sample,
+      guidance,
     })
 
     const { data: saved } = await supabaseAdmin

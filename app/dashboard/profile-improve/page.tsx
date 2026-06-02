@@ -308,6 +308,7 @@ export default function ProfileImprovePage() {
   const [headline, setHeadline] = useState('')
   const [about, setAbout] = useState('')
   const [skills, setSkills] = useState('')
+  const [guidance, setGuidance] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -359,8 +360,8 @@ export default function ProfileImprovePage() {
   }
 
   async function handleBeautify() {
-    if (!headline.trim() && !about.trim()) {
-      toast.error('Add at least a headline or bio to beautify')
+    if (!headline.trim() && !about.trim() && !guidance.trim()) {
+      toast.error('Add a headline or bio — or tell us how you want to come across')
       return
     }
     setBeautifying(true)
@@ -372,6 +373,7 @@ export default function ProfileImprovePage() {
           headline: headline.trim() || undefined,
           about: about.trim() || undefined,
           skills: skills.trim() ? skills.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+          guidance: guidance.trim() || undefined,
         }),
       })
       const d = await r.json()
@@ -490,6 +492,24 @@ export default function ProfileImprovePage() {
         </div>
 
         <div className="p-5 flex flex-col gap-4">
+          {/* How you want to come across — direction / first-bio seed */}
+          <div>
+            <label className="block text-[12px] font-semibold mb-1.5" style={{ color: 'var(--ink-3)', fontFamily: 'var(--f-sans)' }}>
+              How do you want to come across? <span style={{ color: 'var(--ink-4)', fontWeight: 400 }}>(optional)</span>
+            </label>
+            <textarea
+              value={guidance}
+              onChange={e => setGuidance(e.target.value)}
+              rows={3}
+              placeholder="e.g. Confident but approachable, lead with my fintech experience, keep it concise. — New to LinkedIn with no bio yet? Just describe what you do and we'll write your first one."
+              className="w-full px-3.5 py-2.5 rounded-lg text-[13px] outline-none resize-y transition-colors"
+              style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--ink)', lineHeight: 1.6 }}
+            />
+            <span className="text-[11px] mt-1 block" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+              Tell us the tone &amp; emphasis you want — or describe yourself if this is your first bio.
+            </span>
+          </div>
+
           {/* Headline */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
