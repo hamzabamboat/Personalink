@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       content_pillars: null,
       control_preference: null,
       writing_sample: writing_sample || null,
+      voice_locale: 'english',
       plan: 'free',
       onboarding_completed_at: null,
       posts_used_this_month: 0,

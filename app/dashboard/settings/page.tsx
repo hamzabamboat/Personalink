@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
+import { LOCALE_OPTIONS } from '@/lib/prompts/locales'
 import { TIER_LIMITS } from '@/lib/pricing-config'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import Script from 'next/script'
@@ -525,6 +526,35 @@ function SettingsContent() {
                     >
                       {selected && <Check className="w-3 h-3 inline mr-1.5" strokeWidth={2.5} />}
                       {p}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <Separator className="bg-slate-100 dark:bg-slate-800" />
+
+            <div>
+              <Label className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                Language &amp; dialect
+              </Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {LOCALE_OPTIONS.map(opt => {
+                  const selected = (profile.voice_locale as string) === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setProfile(p => ({ ...p, voice_locale: opt.id }))}
+                      title={opt.blurb}
+                      className={`px-3.5 py-1.5 rounded-full border text-[13px] transition-all duration-150 font-medium ${
+                        selected
+                          ? 'border-brand bg-brand-light text-brand shadow-sm'
+                          : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+                      }`}
+                    >
+                      {selected && <Check className="w-3 h-3 inline mr-1.5" strokeWidth={2.5} />}
+                      {opt.label}
                     </button>
                   )
                 })}

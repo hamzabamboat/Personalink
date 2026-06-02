@@ -6,6 +6,7 @@ import { addVoiceSample } from '@/lib/voice'
 import { PLAN_LIMITS } from '@/lib/supabase'
 import { getTierLimits, TIER_LIMITS, type TierID } from '@/lib/pricing-config'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { isLocaleId } from '@/lib/prompts/locales/types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   const {
     name, role, industry, company, age, linkedin_url,
-    mcq_answers, writing_sample, content_pillars, control_preference, plan,
+    mcq_answers, writing_sample, content_pillars, control_preference, plan, voice_locale,
   } = body
 
   // Generate voice fingerprint from writing sample
@@ -91,6 +92,8 @@ export async function POST(request: NextRequest) {
     upsertPayload.mcq_answers = mcq_answers
   }
   if (control_preference) upsertPayload.control_preference = control_preference
+  // Language mode (additive; only written when a valid locale is supplied).
+  if (isLocaleId(voice_locale)) upsertPayload.voice_locale = voice_locale
 
   const { error } = await supabaseAdmin
     .from('user_profiles')

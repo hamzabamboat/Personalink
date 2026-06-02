@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { TIER_LIMITS, TIER_PRICING, TIER_FEATURE_BULLETS, TIER_LABEL, type TierID } from './pricing-config'
+import type { LocaleId } from './prompts/locales/types'
 
 export type Plan = TierID
 
@@ -57,6 +58,7 @@ export type UserProfile = {
   content_pillars: string[] | null
   control_preference: 'autopilot' | 'approve' | 'suggest' | null
   writing_sample: string | null
+  voice_locale: LocaleId
   plan: Plan | null
   onboarding_completed_at: string | null
   posts_used_this_month: number

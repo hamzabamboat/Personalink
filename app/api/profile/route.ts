@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { analyzeVoiceFingerprint } from '@/lib/anthropic'
 import { addVoiceSample } from '@/lib/voice'
+import { isLocaleId } from '@/lib/prompts/locales/types'
 
 export const maxDuration = 60
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       name, role, industry, company, years_experience, linkedin_url,
       job_title, topics, writing_style, tone, post_examples,
       voice_fingerprint, mcq_answers, content_pillars, control_preference,
-      writing_sample, plan, preferred_days, preferred_post_hour, timezone,
+      writing_sample, plan, preferred_days, preferred_post_hour, timezone, voice_locale,
     } = body
 
     let computedFingerprint = voice_fingerprint
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
         voice_fingerprint: computedFingerprint,
         mcq_answers, content_pillars, control_preference,
         writing_sample, plan,
+        voice_locale: isLocaleId(voice_locale) ? voice_locale : undefined,
         preferred_days, preferred_post_hour, timezone,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })

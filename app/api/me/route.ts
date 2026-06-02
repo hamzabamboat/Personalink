@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { isLanguageModesEnabled } from '@/lib/flags'
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,11 +39,14 @@ export async function GET(request: NextRequest) {
       agencyClientName = clientRow?.client_name ?? null
     }
 
+    const languageModesEnabled = await isLanguageModesEnabled(user.id)
+
     return NextResponse.json(
       {
         user,
         profile,
         subscription,
+        languageModesEnabled,
         agencyMode: agencyContext
           ? { agencyId: agencyContext.id, agencyName: agencyContext.name, clientName: agencyClientName }
           : null,
