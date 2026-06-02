@@ -753,12 +753,10 @@ function GenerateContent() {
         </div>
       </div>
 
-      {/* ── Incomplete-profile nudge (free tier, warn-only) ── */}
+      {/* ── Incomplete-profile banner (any plan) ── */}
       {(() => {
         const { complete, missing } = getProfileCompleteness(profileForCompleteness)
-        return (!complete && plan === 'free')
-          ? <IncompleteProfileBanner missing={missing} />
-          : null
+        return !complete ? <IncompleteProfileBanner missing={missing} /> : null
       })()}
 
       {/* ── Error banner ── */}

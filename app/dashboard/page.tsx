@@ -24,6 +24,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { RefinementCard } from '@/components/refinement-card'
 import { UpgradeBanner } from '@/components/upgrade-banner'
 import { IncompleteProfileBanner } from '@/components/dashboard/IncompleteProfileBanner'
+import { FinishProfileNudge } from '@/components/dashboard/FinishProfileNudge'
 import { getProfileCompleteness } from '@/lib/profile-completeness'
 
 type ProfileAnalysis = {
@@ -179,6 +180,7 @@ function DashboardContent() {
   const [voiceMatch,  setVoiceMatch]  = useState<VoiceMatch | null>(null)
   const [user,        setUser]        = useState<{ id?: string; linkedin_name?: string; linkedin_picture?: string } | null>(null)
   const [userId,      setUserId]      = useState<string | null>(null)
+  const [nudgeSeen,   setNudgeSeen]   = useState(true) // default true prevents SSR flash; set to false after mount when needed
 
   useEffect(() => {
     if (upgraded) toast.success('Subscription activated! Welcome to the plan.')
@@ -192,7 +194,16 @@ function DashboardContent() {
         if (!meRes.ok) { window.location.href = '/'; return }
         const { user: u, profile: p } = await meRes.json()
         if (!p || cancelled) return
-        if (!cancelled) { setProfile(p); setUser(u); setUserId(u?.id ?? null) }
+        if (!cancelled) {
+          setProfile(p)
+          setUser(u)
+          const uid = u?.id ?? null
+          setUserId(uid)
+          if (uid && typeof window !== 'undefined') {
+            const key = `pl_finish_profile_nudge_seen_${uid}`
+            setNudgeSeen(localStorage.getItem(key) === '1')
+          }
+        }
 
         const now = new Date()
         const createdMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -356,12 +367,26 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* ── Incomplete-profile nudge (free tier, warn-only) ── */}
+      {/* ── Incomplete-profile nudge / banner ── */}
       {(() => {
         const { complete, missing } = getProfileCompleteness(profile)
-        return (!complete && profile?.plan === 'free')
-          ? <IncompleteProfileBanner missing={missing} />
-          : null
+        if (complete) return null
+        const isPaid = !!profile?.plan && profile.plan !== 'free'
+        if (isPaid && !nudgeSeen) {
+          const dismiss = () => {
+            if (userId && typeof window !== 'undefined') {
+              localStorage.setItem(`pl_finish_profile_nudge_seen_${userId}`, '1')
+            }
+            setNudgeSeen(true)
+          }
+          return (
+            <FinishProfileNudge
+              plan={profile!.plan as string}
+              onDismiss={dismiss}
+            />
+          )
+        }
+        return <IncompleteProfileBanner missing={missing} />
       })()}
 
       {/* ── Soft-upgrade nudge (free tier only, self-hides otherwise) ── */}
