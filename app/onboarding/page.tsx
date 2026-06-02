@@ -242,7 +242,7 @@ export default function OnboardingPage() {
           posthog.capture('payment_completed', { plan: form.plan, processor: 'razorpay' })
           // Note: Dodo payments redirect to a hosted checkout so payment_completed cannot be
           // captured client-side here — fire it server-side from the Dodo webhook/return handler (future task).
-          window.location.href = '/dashboard'
+          window.location.href = '/dashboard/finish-profile'
         },
         modal: { ondismiss: () => setSaving(false) },
       })

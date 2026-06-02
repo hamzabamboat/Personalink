@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       product_id: planConfig.productId,
       quantity: 1,
       payment_link: true,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=1`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/finish-profile?upgraded=1`,
       metadata: { user_id: user.id, account_id: resolvedAccountId ?? '', plan, currency, billing_period: billingPeriod },
     })
   } catch (err) {
