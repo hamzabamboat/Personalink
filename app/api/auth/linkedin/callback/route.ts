@@ -281,10 +281,16 @@ export async function GET(request: NextRequest) {
     // route through /onboarding first.
     const postAuthIntent = request.cookies.get('pl_post_auth_intent')?.value
     const hasOnboarded = !isNew && existingProfile?.onboarding_completed_at
+    // Carry the chosen plan (set by landing CTAs) to /onboarding as a query param.
+    // The cookie is cleared after use so it doesn't persist across sessions.
+    const onboardingPlan = request.cookies.get('pl_onboarding_plan')?.value
+    const onboardingBase = onboardingPlan
+      ? `${APP_URL}/onboarding?plan=${encodeURIComponent(onboardingPlan)}`
+      : `${APP_URL}/onboarding`
     const redirectTo = hasOnboarded && postAuthIntent === 'affiliate_apply'
       ? `${APP_URL}/affiliate/apply`
       : isNew || !existingProfile?.onboarding_completed_at
-        ? `${APP_URL}/onboarding`
+        ? onboardingBase
         : `${APP_URL}/dashboard`
 
     const country = request.headers.get('x-vercel-ip-country') ?? null
@@ -354,6 +360,7 @@ export async function GET(request: NextRequest) {
     response.cookies.delete('linkedin_oauth_state')
     response.cookies.delete('pl_va_email')
     response.cookies.delete('pl_post_auth_intent')
+    response.cookies.delete('pl_onboarding_plan')
     // Clear the ref cookie only if we attributed (or if no attribution was
     // possible). Either way, the first signup consumed it.
     if (isNew) response.cookies.delete('pl_ref')

@@ -85,8 +85,11 @@ function HomeContent() {
     localStorage.setItem('personalink_billing_period', billingPeriod)
   }, [billingPeriod, billingMounted])
 
-  function handleLinkedInAuth() {
+  function handleLinkedInAuth(plan?: string) {
     document.cookie = `account_type=${accountType}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`
+    if (plan) {
+      document.cookie = `pl_onboarding_plan=${plan}; path=/; max-age=600; samesite=lax`
+    }
     window.location.href = '/api/auth/linkedin'
   }
 
@@ -139,7 +142,7 @@ function HomeContent() {
               >{label}</a>
             ))}
             <div style={{ margin: '0 4px' }}><AppearanceTrigger variant="nav" /></div>
-            <button onClick={handleLinkedInAuth} style={{
+            <button onClick={() => handleLinkedInAuth()} style={{
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '9px 18px', fontSize: 14, fontWeight: 600,
               background: 'var(--ink)', color: 'var(--bg)',
@@ -177,7 +180,7 @@ function HomeContent() {
                 {label}
               </a>
             ))}
-            <button onClick={handleLinkedInAuth} style={{
+            <button onClick={() => handleLinkedInAuth()} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               background: 'var(--ink)', color: 'var(--bg)', borderRadius: 'var(--r-md)',
               padding: '14px 20px', fontSize: 16, fontWeight: 600, cursor: 'pointer',
@@ -201,7 +204,7 @@ function HomeContent() {
       )}
 
       {/* ── Hero (new) ── */}
-      <Hero />
+      <Hero onConnect={() => handleLinkedInAuth('free')} />
 
       {/* ── Authenticity Stack ── */}
       <AuthenticityStack />
@@ -719,7 +722,7 @@ function HomeContent() {
                         </li>
                       ))}
                     </ul>
-                    <button onClick={handleLinkedInAuth} style={{
+                    <button onClick={() => handleLinkedInAuth(plan.id)} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       padding: '13px 20px', borderRadius: 'var(--r-md)', fontWeight: 600, fontSize: 14,
                       cursor: 'pointer', transition: 'opacity .15s',
@@ -771,7 +774,7 @@ function HomeContent() {
                 </p>
               </div>
               <button
-                onClick={handleLinkedInAuth}
+                onClick={() => handleLinkedInAuth('free')}
                 className="pl-free-strip-cta"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 9,
@@ -952,7 +955,7 @@ function HomeContent() {
               Generate, post, and analyse — <em style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'rgba(255,255,255,.65)' }}>all in one place.</em>
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
-              <button onClick={handleLinkedInAuth} style={{
+              <button onClick={() => handleLinkedInAuth('free')} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 9,
                 height: 54, padding: '0 28px', borderRadius: 'var(--r-md)',
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
