@@ -4,23 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import posthog from 'posthog-js'
-import { PLAN_FEATURES } from '@/lib/supabase'
-import { MCQ_QUESTIONS, MULTI_SELECT_QUESTIONS } from '@/lib/onboarding-questions'
 import { getCurrency, getPaymentProcessor } from '@/lib/currency'
-import { TIER_LIMITS } from '@/lib/pricing-config'
+import { resolvePlanFromParam } from '@/lib/onboarding-plan'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { QuarterRings } from '@/components/concentric-rings'
 import { WordMark } from '@/components/word-mark'
 import { StepIdentity } from '@/components/onboarding/StepIdentity'
-import { StepPersonalityQuiz } from '@/components/onboarding/StepPersonalityQuiz'
 import { StepWritingSample } from '@/components/onboarding/StepWritingSample'
-import { StepContentPillars } from '@/components/onboarding/StepContentPillars'
-import { StepControlPreference } from '@/components/onboarding/StepControlPreference'
-import { StepImageBrief } from '@/components/onboarding/StepImageBrief'
 
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 2
 
 
 const INDUSTRIES = [
@@ -37,13 +31,6 @@ const INDUSTRIES = [
   'Medical Devices', 'Education', 'EdTech', 'Non-Profit', 'Government & Public Sector',
   'Legal', 'Fashion & Apparel', 'Sports & Fitness', 'Beauty & Wellness',
   'Climate & Sustainability', 'Travel',
-]
-
-const PLAN_META = [
-  { id: 'free', label: 'Free', posts: TIER_LIMITS.free.postsPerMonth ?? 3, features: PLAN_FEATURES.free, color: '#10b981' },
-  { id: 'starter', label: 'Starter', posts: TIER_LIMITS.starter.postsPerMonth ?? 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-  { id: 'standard', label: 'Standard', posts: TIER_LIMITS.standard.postsPerMonth ?? 22, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
-  { id: 'pro', label: 'Pro', posts: TIER_LIMITS.pro.postsPerMonth ?? 50, features: PLAN_FEATURES.pro, color: '#7c3aed' },
 ]
 
 type FormData = {
@@ -86,7 +73,7 @@ export default function OnboardingPage() {
     if (match) setUserCountry(match[1])
   }, [])
 
-  // Restore progress from sessionStorage on mount
+  // Restore progress from sessionStorage on mount, then apply ?plan= with precedence
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY)
@@ -96,6 +83,11 @@ export default function OnboardingPage() {
         if (savedForm) setForm(savedForm)
       }
     } catch {}
+
+    // ?plan= takes precedence over any sessionStorage-restored plan
+    const param = new URLSearchParams(window.location.search).get('plan')
+    const { plan } = resolvePlanFromParam(param)
+    setForm(f => ({ ...f, plan }))
   }, [])
 
   // Persist progress whenever step or form changes
@@ -112,26 +104,6 @@ export default function OnboardingPage() {
 
   function nextStep() { setError(''); if (step < TOTAL_STEPS) setStep(s => s + 1) }
   function prevStep() { setError(''); if (step > 1) setStep(s => s - 1) }
-
-  function toggleMcq(qid: string, opt: string) {
-    setForm(f => {
-      if (MULTI_SELECT_QUESTIONS.includes(qid)) {
-        const cur = Array.isArray(f.mcq_answers[qid]) ? (f.mcq_answers[qid] as string[]) : []
-        const next = cur.includes(opt) ? cur.filter(x => x !== opt) : [...cur, opt]
-        return { ...f, mcq_answers: { ...f.mcq_answers, [qid]: next } }
-      }
-      return { ...f, mcq_answers: { ...f.mcq_answers, [qid]: opt } }
-    })
-  }
-
-  function togglePillar(p: string) {
-    setForm(f => {
-      const current = f.content_pillars
-      if (current.includes(p)) return { ...f, content_pillars: current.filter(x => x !== p) }
-      if (current.length >= 3) return f
-      return { ...f, content_pillars: [...current, p] }
-    })
-  }
 
   async function checkCode() {
     if (!codeInput.trim()) return
@@ -166,7 +138,9 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleFinish() {
+  // proceedFromCore: save core fields then branch by plan.
+  // Named clearly so a future preview step can be inserted before the branch.
+  async function proceedFromCore() {
     setSaving(true); setError('')
     try {
       const res = await fetch('/api/onboarding/save', {
@@ -239,11 +213,6 @@ export default function OnboardingPage() {
 
   const progress = ((step - 1) / (TOTAL_STEPS - 1)) * 100
   const wordCount = form.writing_sample.split(/\s+/).filter(Boolean).length
-  const currencyInfo = getCurrency(userCountry)
-  const PLANS = PLAN_META.map(p => ({
-    ...p,
-    price: p.id === 'free' ? 0 : (currencyInfo[p.id as keyof typeof currencyInfo] as number),
-  }))
 
   return (
     <>
@@ -293,34 +262,11 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2 — MCQ */}
+        {/* Step 2 — Writing Sample */}
         {step === 2 && (
           <div className="animate-fade">
             <div className="mb-6 md:mb-8">
-              <div className="text-[13px] font-semibold text-brand mb-2">STEP 2 — PERSONALITY QUIZ</div>
-              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Your LinkedIn personality</h1>
-              <p className="text-slate-500 text-base">Helps our AI match your communication style perfectly.</p>
-            </div>
-            <StepPersonalityQuiz
-              answers={form.mcq_answers}
-              onToggle={toggleMcq}
-            />
-            <NavButtons onNext={() => {
-              const allAnswered = MCQ_QUESTIONS.every(q => {
-                const a = form.mcq_answers[q.id]
-                return Array.isArray(a) ? a.length > 0 : !!a
-              })
-              if (!allAnswered) { setError('Please answer all questions.'); return }
-              nextStep()
-            }} onPrev={prevStep} step={step} />
-          </div>
-        )}
-
-        {/* Step 3 — Writing Sample */}
-        {step === 3 && (
-          <div className="animate-fade">
-            <div className="mb-6 md:mb-8">
-              <div className="text-[13px] font-semibold text-brand mb-2">STEP 3 — WRITING SAMPLE</div>
+              <div className="text-[13px] font-semibold text-brand mb-2">STEP 2 — WRITING SAMPLE</div>
               <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Write like you normally do</h1>
               <p className="text-slate-500 text-base">Write 2-3 paragraphs about anything you did recently — a meeting, a decision, a lesson. We analyse your vocabulary, tone, and rhythm to build your voice fingerprint.</p>
             </div>
@@ -329,117 +275,9 @@ export default function OnboardingPage() {
               onChange={value => setForm(f => ({ ...f, writing_sample: value }))}
               wordCount={wordCount}
             />
-            <NavButtons onNext={() => {
-              if (wordCount < 40) { setError('Please write at least 40 words so we can analyse your voice.'); return }
-              posthog.capture('voice_samples_submitted', { sample_count: 1 })
-              nextStep()
-            }} onPrev={prevStep} step={step} />
-          </div>
-        )}
 
-        {/* Step 4 — Content Pillars */}
-        {step === 4 && (
-          <div className="animate-fade">
-            <div className="mb-6 md:mb-8">
-              <div className="text-[13px] font-semibold text-brand mb-2">STEP 4 — CONTENT PILLARS</div>
-              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Pick your 3 content pillars</h1>
-              <p className="text-slate-500 text-base">These are the themes your posts will rotate across. Pick exactly 3.</p>
-            </div>
-            <StepContentPillars
-              selected={form.content_pillars}
-              onToggle={togglePillar}
-            />
-            <NavButtons onNext={() => {
-              if (form.content_pillars.length !== 3) { setError('Please select exactly 3 content pillars.'); return }
-              nextStep()
-            }} onPrev={prevStep} step={step} />
-          </div>
-        )}
-
-        {/* Step 5 — Control Preferences */}
-        {step === 5 && (
-          <div className="animate-fade">
-            <div className="mb-6 md:mb-8">
-              <div className="text-[13px] font-semibold text-brand mb-2">STEP 5 — CONTROL PREFERENCES</div>
-              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">How much control do you want?</h1>
-              <p className="text-slate-500 text-base">You can change this anytime from Settings.</p>
-            </div>
-            <StepControlPreference
-              value={form.control_preference}
-              onChange={value => setForm(f => ({ ...f, control_preference: value }))}
-            />
-            <NavButtons onNext={() => {
-              if (!form.control_preference) { setError('Please choose a control preference.'); return }
-              nextStep()
-            }} onPrev={prevStep} step={step} />
-          </div>
-        )}
-
-        {/* Step 6 — Image Brief */}
-        {step === 6 && (
-          <div className="animate-fade">
-            <div className="mb-6 md:mb-8">
-              <div className="text-[13px] font-semibold text-brand mb-2">STEP 6 — MONTHLY IMAGE BRIEF</div>
-              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Your photo content brief</h1>
-              <p className="text-slate-500 text-base">Based on your industry and pillars, here are 5 photo prompts to shoot this month. Images boost engagement by 3x.</p>
-            </div>
-            <StepImageBrief firstPillar={form.content_pillars[0]} />
-            <NavButtons onNext={nextStep} onPrev={prevStep} step={step} />
-          </div>
-        )}
-
-        {/* Step 7 — Plan Selection */}
-        {step === 7 && (
-          <div className="animate-fade">
-            <div className="mb-6 md:mb-8">
-              <div className="text-[13px] font-semibold text-brand mb-2">STEP 7 — CHOOSE YOUR PLAN</div>
-              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Try free for 7 days</h1>
-              <p className="text-slate-500 text-base">Pick a plan — you won&apos;t be charged for 7 days. Cancel anytime.</p>
-            </div>
-            <div className="flex flex-col gap-4 mb-8">
-              {PLANS.map(p => {
-                const selected = form.plan === p.id
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setForm(f => ({ ...f, plan: p.id }))}
-                    className={`p-6 rounded-xl border-2 text-left transition-all relative ${selected ? '' : 'border-slate-200 bg-white hover:border-slate-300'}`}
-                    style={selected ? { borderColor: p.color, background: p.color + '10' } : {}}
-                  >
-                    {p.popular && (
-                      <div className="absolute -top-2.5 right-4 bg-amber-400 text-white rounded-full px-3 py-0.5 text-[11px] font-bold">Most Popular</div>
-                    )}
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="font-bold text-[17px] mb-0.5" style={{ color: p.color }}>{p.label}</div>
-                        <div className="text-[13px] text-slate-500">{p.posts} posts/month</div>
-                      </div>
-                      <div className="text-right">
-                        {p.id === 'free' ? (
-                          <>
-                            <div className="text-[13px] font-bold text-emerald-600 mb-0.5">Free forever</div>
-                            <div className="text-sm text-slate-400">No card required</div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="text-[13px] font-bold text-emerald-600 mb-0.5">Free for 7 days</div>
-                            <div className="text-sm text-slate-400">then {currencyInfo.symbol}{p.price.toLocaleString()}/mo</div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {p.features.slice(0, 4).map(f => (
-                        <span key={f} className="text-xs text-slate-500 bg-slate-100 rounded-md px-2.5 py-1">{f}</span>
-                      ))}
-                      {p.features.length > 4 && <span className="text-xs text-slate-400">+{p.features.length - 4} more</span>}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            {/* Access code section */}
-            <div className="mb-4">
+            {/* Access code affordance */}
+            <div className="mt-4 mb-2">
               {!showCodeField ? (
                 <button
                   onClick={() => setShowCodeField(true)}
@@ -478,16 +316,36 @@ export default function OnboardingPage() {
             </div>
 
             {appliedCode ? (
-              <Button onClick={handleFinishWithCode} disabled={saving} className="w-full h-14 text-[17px] font-bold mb-2.5 bg-emerald-600 hover:bg-emerald-700">
-                {saving ? <><Loader2 className="size-5 mr-2 animate-spin" /> Activating...</> : `Activate ${appliedCode.plan.charAt(0).toUpperCase() + appliedCode.plan.slice(1)} Plan →`}
-              </Button>
+              <div className="flex gap-3 mt-6">
+                <Button variant="outline" onClick={prevStep} className="flex-1 h-[52px] text-[15px] font-semibold">← Back</Button>
+                <Button
+                  onClick={() => {
+                    if (wordCount < 40) { setError('Please write at least 40 words so we can analyse your voice.'); return }
+                    posthog.capture('voice_samples_submitted', { sample_count: 1 })
+                    handleFinishWithCode()
+                  }}
+                  disabled={saving}
+                  className="flex-[2] h-[52px] text-[15px] font-bold bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {saving ? <><Loader2 className="size-5 mr-2 animate-spin" /> Activating...</> : `Activate ${appliedCode.plan.charAt(0).toUpperCase() + appliedCode.plan.slice(1)} Plan →`}
+                </Button>
+              </div>
             ) : (
-              <Button onClick={handleFinish} disabled={saving} className="w-full h-14 text-[17px] font-bold mb-2.5">
-                {saving ? <><Loader2 className="size-5 mr-2 animate-spin" /> Setting up your account...</> : 'Start Free Trial →'}
-              </Button>
+              <div className="flex gap-3 mt-6">
+                <Button variant="outline" onClick={prevStep} className="flex-1 h-[52px] text-[15px] font-semibold">← Back</Button>
+                <Button
+                  onClick={() => {
+                    if (wordCount < 40) { setError('Please write at least 40 words so we can analyse your voice.'); return }
+                    posthog.capture('voice_samples_submitted', { sample_count: 1 })
+                    proceedFromCore()
+                  }}
+                  disabled={saving}
+                  className="flex-[2] h-[52px] text-[15px] font-bold"
+                >
+                  {saving ? <><Loader2 className="size-5 mr-2 animate-spin" /> Setting up your account...</> : form.plan === 'free' ? 'Get Started →' : 'Start Free Trial →'}
+                </Button>
+              </div>
             )}
-            {!appliedCode && <p className="text-center text-[12px] text-slate-400 mb-2">Card required. No charge for 7 days. Cancel anytime.</p>}
-            <Button variant="outline" onClick={prevStep} className="w-full">← Back</Button>
           </div>
         )}
       </div>
