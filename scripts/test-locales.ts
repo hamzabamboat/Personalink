@@ -51,14 +51,20 @@ const TOPICS = [
   'Customer support as growth', 'Building in public',
 ]
 
+// CLI: [limit] [locale] [startOffset]
 const limit = Number(process.argv[2]) || TOPICS.length
-const topics = TOPICS.slice(0, limit)
+const start = Number(process.argv[4]) || 0
+const topics = TOPICS.slice(start, start + limit)
 
 async function main() {
   // Dynamic import AFTER env is loaded so the SDK clients construct with credentials.
   const { anthropic, generateLinkedInPosts } = await import('../lib/anthropic')
   const { cleanThroughAIGate } = await import('../lib/ai-detector')
   const { LOCALE_IDS } = await import('../lib/prompts/locales')
+  const localeArg = process.argv[3]
+  const localesToRun = localeArg && (LOCALE_IDS as readonly string[]).includes(localeArg)
+    ? [localeArg as LocaleId]
+    : LOCALE_IDS
 
   async function scoreNaturalness(post: string, locale: LocaleId): Promise<string> {
     if (locale === 'english') return 'n/a'
@@ -74,7 +80,7 @@ async function main() {
     return msg.content[0].type === 'text' ? msg.content[0].text.trim() : '?'
   }
 
-  for (const locale of LOCALE_IDS) {
+  for (const locale of localesToRun) {
     console.log(`\n\n========================  ${locale.toUpperCase()}  ========================`)
     for (let i = 0; i < topics.length; i++) {
       const topic = topics[i]
@@ -82,7 +88,7 @@ async function main() {
         const posts = await generateLinkedInPosts({ profile: PROFILE, topic, voiceExemplars: exemplars, locale })
         const gated = await cleanThroughAIGate(posts[0], { profile: PROFILE, voiceExemplars: exemplars, locale })
         const score = await scoreNaturalness(gated.content, locale)
-        console.log(`\n--- [${locale}] ${i + 1}. ${topic} | naturalness: ${score} ---\n${gated.content}`)
+        console.log(`\n--- [${locale}] ${start + i + 1}. ${topic} | naturalness: ${score} ---\n${gated.content}`)
       } catch (err) {
         console.error(`[${locale}] ${topic} FAILED:`, err)
       }
