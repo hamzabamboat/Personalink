@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { generateLinkedInPosts } from '@/lib/anthropic'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 import type { UserProfile } from '@/lib/supabase'
 
 export const maxDuration = 30
@@ -9,6 +10,12 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getUserFromRequest(request)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // Preview hits the paid LLM — rate-limit it (shares the generation bucket)
+    // so a signed-in user can't loop it to burn credits. On limit the client
+    // falls back gracefully (it treats any error response as "skip the preview").
+    const rl = await checkRateLimit(user.id, 'claude_calls')
+    if (!rl.allowed) return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
 
     const body = await request.json()
     const { name, role, industry, writing_sample } = body as {
@@ -66,6 +73,7 @@ export async function POST(request: NextRequest) {
       profile: minimalProfile,
       voiceExemplars,
     })
+    incrementRateLimit(user.id, 'claude_calls').catch(() => {})
 
     const post = posts[0] ?? ''
     return NextResponse.json({ post })

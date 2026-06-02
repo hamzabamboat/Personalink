@@ -88,10 +88,14 @@ export default function OnboardingPage() {
       }
     } catch {}
 
-    // ?plan= takes precedence over any sessionStorage-restored plan
+    // ?plan= takes precedence over any sessionStorage-restored plan — but only
+    // when present, so reloading /onboarding without the param doesn't silently
+    // downgrade a restored paid selection to free.
     const param = new URLSearchParams(window.location.search).get('plan')
-    const { plan } = resolvePlanFromParam(param)
-    setForm(f => ({ ...f, plan }))
+    if (param) {
+      const { plan } = resolvePlanFromParam(param)
+      setForm(f => ({ ...f, plan }))
+    }
   }, [])
 
   // Persist progress whenever step or form changes
@@ -242,7 +246,8 @@ export default function OnboardingPage() {
           posthog.capture('payment_completed', { plan: form.plan, processor: 'razorpay' })
           // Note: Dodo payments redirect to a hosted checkout so payment_completed cannot be
           // captured client-side here — fire it server-side from the Dodo webhook/return handler (future task).
-          window.location.href = '/dashboard/finish-profile'
+          // ?upgraded=1 mirrors the Dodo return URL so finish-profile shows the "Subscription activated" toast.
+          window.location.href = '/dashboard/finish-profile?upgraded=1'
         },
         modal: { ondismiss: () => setSaving(false) },
       })
