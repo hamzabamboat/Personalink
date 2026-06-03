@@ -119,12 +119,32 @@ export async function getUserInsights(userId: string) {
 
   const { data: posts } = await supabaseAdmin
     .from('posts')
-    .select('id, content_pillar, format, published_at, impressions, reactions, comments, reshares, saves, followers_gained, profile_views_from_post')
+    .select('id, content_pillar, format, published_at, members_reached, reshares, saves, followers_gained, profile_views_from_post')
     .eq('user_id', userId)
     .eq('status', 'published')
     .gte('published_at', ninetyDaysAgo)
 
-  const rows = (posts ?? []) as Array<PostPerfRow & AttributionRow & { id: string }>
+  // `posts` caches members_reached (reach) + reshares/saves. Per-snapshot
+  // reactions/impressions/comments live in post_analytics, not here — so map
+  // reach into the impressions slot and treat reactions/comments as absent (0).
+  // The pure perf functions are unchanged; they just see the real columns.
+  const rows = ((posts ?? []) as Array<{
+    id: string; content_pillar: string | null; format: string | null; published_at: string | null
+    members_reached: number | null; reshares: number | null; saves: number | null
+    followers_gained: number | null; profile_views_from_post: number | null
+  }>).map((p) => ({
+    id: p.id,
+    content_pillar: p.content_pillar,
+    format: p.format,
+    published_at: p.published_at,
+    impressions: p.members_reached,
+    reactions: null,
+    comments: null,
+    reshares: p.reshares,
+    saves: p.saves,
+    followers_gained: p.followers_gained,
+    profile_views_from_post: p.profile_views_from_post,
+  })) as Array<PostPerfRow & AttributionRow & { id: string }>
 
   // Velocity: classify each post from its post_analytics snapshots, then tally classes.
   const { data: snaps } = await supabaseAdmin
