@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 430" width="720" height="430" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="Posting frequency versus reach. Follower growth rises steeply from zero to about three posts a week, then flattens. Three posts a week is the best effort-to-reward ratio. A separate burnout-risk line rises steadily as frequency increases.">
+  <rect x="1" y="1" width="718" height="428" rx="14" fill="#ffffff" stroke="#e4e7ef" stroke-width="1.5"/>
+  <text x="28" y="40" font-size="15" font-weight="600" fill="#0a1024">Posting frequency vs. reach</text>
+
+  <!-- faint vertical gridlines -->
+  <g stroke="#eef0f6" stroke-width="1">
+    <line x1="154" y1="70" x2="154" y2="350"/>
+    <line x1="238" y1="70" x2="238" y2="350"/>
+    <line x1="323" y1="70" x2="323" y2="350"/>
+    <line x1="407" y1="70" x2="407" y2="350"/>
+    <line x1="491" y1="70" x2="491" y2="350"/>
+    <line x1="576" y1="70" x2="576" y2="350"/>
+    <line x1="660" y1="70" x2="660" y2="350"/>
+  </g>
+
+  <!-- axes -->
+  <line x1="70" y1="70" x2="70" y2="350" stroke="#d6dbe7" stroke-width="1.5"/>
+  <line x1="70" y1="350" x2="660" y2="350" stroke="#d6dbe7" stroke-width="1.5"/>
+
+  <!-- burnout-risk line (dashed amber) -->
+  <line x1="70" y1="338" x2="660" y2="96" stroke="#c2620c" stroke-width="2" stroke-dasharray="6 5" opacity="0.55"/>
+  <text x="648" y="86" font-size="12" font-weight="600" fill="#c2620c" opacity="0.85" text-anchor="end">burnout risk</text>
+
+  <!-- main growth curve -->
+  <path d="M70 348 C 150 300 205 212 238 188 C 282 158 305 152 323 150 C 430 143 560 134 660 132" fill="none" stroke="#2b4dff" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- sweet-spot dot + callout -->
+  <line x1="323" y1="150" x2="356" y2="120" stroke="#9fb0ff" stroke-width="1.5"/>
+  <rect x="356" y="96" width="262" height="50" rx="8" fill="#eef2ff" stroke="#2b4dff" stroke-opacity="0.25" stroke-width="1"/>
+  <text x="370" y="118" font-size="12.5" font-weight="600" fill="#0a1024">3 posts a week — the sweet spot</text>
+  <text x="370" y="135" font-size="11" fill="#5a6478">best effort-to-reward ratio for most people</text>
+  <circle cx="323" cy="150" r="8" fill="#ffffff"/>
+  <circle cx="323" cy="150" r="6" fill="#2b4dff"/>
+
+  <!-- x ticks + labels -->
+  <g font-size="11" fill="#8a92a6" text-anchor="middle">
+    <text x="70" y="370">0</text>
+    <text x="154" y="370">1</text>
+    <text x="238" y="370">2</text>
+    <text x="323" y="370">3</text>
+    <text x="407" y="370">4</text>
+    <text x="491" y="370">5</text>
+    <text x="576" y="370">6</text>
+    <text x="660" y="370">7</text>
+  </g>
+  <text x="365" y="400" font-size="12" font-weight="600" fill="#5a6478" text-anchor="middle">posts per week</text>
+
+  <!-- y axis title -->
+  <text transform="translate(40 210) rotate(-90)" font-size="12" font-weight="600" fill="#5a6478" text-anchor="middle">follower growth →</text>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" width="720" height="400" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="The LinkedIn India reach funnel: impressions narrow down to profile visits, then new followers, then inbound (DMs, leads, job offers). Most advice obsesses over the top; growth that pays you back lives at the bottom.">
+  <rect x="1" y="1" width="718" height="398" rx="14" fill="#ffffff" stroke="#e4e7ef" stroke-width="1.5"/>
+  <text x="28" y="40" font-size="15" font-weight="600" fill="#0a1024">The LinkedIn India reach funnel</text>
+
+  <!-- Funnel bands, centred on x=250 -->
+  <rect x="30" y="70" width="440" height="56" rx="8" fill="#e8edff"/>
+  <text x="250" y="104" font-size="15" font-weight="600" fill="#1e3a8a" text-anchor="middle">Impressions</text>
+
+  <path d="M244 130 l6 7 l6 -7 z" fill="#b9c6ff"/>
+  <rect x="82" y="142" width="336" height="56" rx="8" fill="#bcccff"/>
+  <text x="250" y="176" font-size="15" font-weight="600" fill="#1e3a8a" text-anchor="middle">Profile visits</text>
+
+  <path d="M244 202 l6 7 l6 -7 z" fill="#8fa3ff"/>
+  <rect x="126" y="214" width="248" height="56" rx="8" fill="#6f86ff"/>
+  <text x="250" y="248" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">New followers</text>
+
+  <path d="M244 274 l6 7 l6 -7 z" fill="#5f7bff"/>
+  <rect x="172" y="286" width="156" height="52" rx="8" fill="#2b4dff"/>
+  <text x="250" y="318" font-size="15" font-weight="600" fill="#ffffff" text-anchor="middle">Inbound</text>
+  <text x="250" y="360" font-size="11.5" fill="#5a6478" text-anchor="middle">DMs · leads · job offers</text>
+
+  <!-- Right-hand note -->
+  <rect x="476" y="84" width="2" height="244" rx="1" fill="#dfe4f0"/>
+  <text x="498" y="150" font-size="13.5" fill="#5a6478">
+    <tspan x="498" dy="0">Most advice obsesses</tspan>
+    <tspan x="498" dy="20">over the top.</tspan>
+  </text>
+  <text x="498" y="234" font-size="13.5" font-weight="600" fill="#2c3349">
+    <tspan x="498" dy="0">Growth that pays you</tspan>
+    <tspan x="498" dy="20">back lives at the bottom.</tspan>
+  </text>
+</svg>
