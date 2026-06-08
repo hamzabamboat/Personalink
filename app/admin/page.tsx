@@ -78,6 +78,12 @@ function MetricCard({ label, value, sub }: { label: string; value: string | numb
   )
 }
 
+// PostHog public insight embeds shown on the admin dashboard.
+// Add more by sharing an insight in PostHog (Share → Embed) and dropping its token here.
+const POSTHOG_EMBEDS: { title: string; token: string }[] = [
+  { title: 'Unique visitors', token: 'rTIQLtaYHAp74dduuRqFlccvhAxC3Q' },
+]
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState<UserRow[]>([])
   const [revenue, setRevenue] = useState<Revenue | null>(null)
@@ -202,6 +208,38 @@ export default function AdminDashboard() {
             <MetricCard label="Avg AI Detection Score" value={metrics.avg_ai_detection_score} sub={`${metrics.pct_drafts_rewritten}% rewritten · ${metrics.ai_posts_30d} posts in 30d`} />
           </div>
         ) : null}
+      </div>
+
+      {/* Web Analytics (embedded PostHog insights) */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Web Analytics</h2>
+          <a
+            href="https://us.posthog.com/project/428938/web"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-slate-400 hover:text-brand transition-colors"
+          >
+            Open in PostHog ↗
+          </a>
+        </div>
+        <div className="grid grid-cols-1 gap-4">
+          {POSTHOG_EMBEDS.map(e => (
+            <div key={e.token} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="px-4 py-2 text-[13px] font-semibold text-slate-700 border-b border-slate-100">
+                {e.title}
+              </div>
+              <iframe
+                title={e.title}
+                src={`https://us.posthog.com/embedded/${e.token}`}
+                loading="lazy"
+                allow="fullscreen"
+                className="w-full block"
+                style={{ height: 380, border: 0 }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Sync All Sheets */}
