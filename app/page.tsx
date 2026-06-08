@@ -1038,7 +1038,6 @@ const JSON_LD = {
   url: 'https://personalink.in',
   offers: { '@type': 'AggregateOffer', lowPrice: '999', highPrice: '4999', priceCurrency: 'INR' },
   operatingSystem: 'Web',
-  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '47' },
 }
 
 export default function Home() {

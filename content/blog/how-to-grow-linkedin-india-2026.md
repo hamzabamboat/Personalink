@@ -144,7 +144,7 @@ What to do instead is simple and unglamorous. Reply to every comment in the firs
 
 You can do all of this with a notes app and discipline. Most people do not, because the bottleneck is not knowing what to write — it is sounding like yourself, consistently, when you are busy. That is the specific problem we built PersonaLink to solve.
 
-PersonaLink reads your last 30 LinkedIn posts, learns how you actually write, and drafts one post a day in your voice. You approve it before it goes out — nothing posts without you. It is built in India, bills in rupees with a GST invoice, and handles Hinglish properly rather than mangling it. The pricing is plain: ₹1,499 a month, cancel any time. You can see the full breakdown on our [pricing page](/pricing).
+PersonaLink reads your last 30 LinkedIn posts, learns how you actually write, and drafts one post a day in your voice. You approve it before it goes out — nothing posts without you. It is built in India, bills in rupees with a GST invoice, and handles Hinglish properly rather than mangling it. The pricing is plain: from ₹999 a month (there is a free tier too), cancel any time. You can see the full breakdown on our [pricing page](/pricing).
 
 If you are comparing options, most global tools were built for an American workflow and price in dollars. We wrote a straight comparison of [PersonaLink versus Taplio](/vs/taplio) for Indian creators — including the INR billing and Hinglish differences — so you can decide without a sales call. And if you run an agency posting for multiple clients, the [for-agencies](/for-agencies) setup gives each client their own voice fingerprint and a white-label dashboard, so one writer can keep ten founders sounding like themselves.
 

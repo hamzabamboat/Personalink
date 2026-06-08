@@ -551,7 +551,7 @@ export default function Article() {
             PersonaLink reads your last 30 LinkedIn posts, learns how you actually write, and drafts one post a day in
             your voice. You approve it before it goes out — nothing posts without you. It is built in India, bills in
             rupees with a GST invoice, and handles Hinglish properly rather than mangling it. The pricing is plain:
-            ₹1,499 a month, cancel any time. You can see the full breakdown on our{' '}
+            from ₹999 a month (there is a free tier too), cancel any time. You can see the full breakdown on our{' '}
             <Link href="/pricing" style={linkSx}>
               pricing page
             </Link>
@@ -646,7 +646,7 @@ export default function Article() {
             </h3>
             <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 16 }}>
               PersonaLink reads your last 30 posts, learns your voice, and drafts one post a day. You approve it. It
-              posts. ₹1,499/month, GST included, cancel any time.
+              posts. From ₹999/month, GST included, cancel any time.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
               <Link
