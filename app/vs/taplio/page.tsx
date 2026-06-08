@@ -54,7 +54,6 @@ const JSON_LD = {
     offerCount: 3,
     availability: 'https://schema.org/InStock',
   },
-  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '47' },
 }
 
 const FAQ_LD = {
