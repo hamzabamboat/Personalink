@@ -77,11 +77,23 @@ const nextConfig: NextConfig = {
     ]
   },
   async headers() {
+    const noindex = [{ key: 'X-Robots-Tag', value: 'noindex' }]
     return [
       {
         source: '/(.*)',
         headers: securityHeaders,
       },
+      // Keep gated / utility routes out of the index (defense-in-depth alongside
+      // robots.txt — and robust for client-component pages that can't export metadata).
+      { source: '/dashboard/:path*', headers: noindex },
+      { source: '/admin/:path*', headers: noindex },
+      { source: '/agency/:path*', headers: noindex },
+      { source: '/approve/:path*', headers: noindex },
+      { source: '/voice-analyzer/results/:path*', headers: noindex },
+      { source: '/onboarding', headers: noindex },
+      { source: '/welcome', headers: noindex },
+      { source: '/upgrade', headers: noindex },
+      { source: '/offline', headers: noindex },
     ]
   },
 }

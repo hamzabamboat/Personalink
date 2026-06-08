@@ -9,7 +9,7 @@ import { ease, fadeUp, staggerParent } from './motion'
 const HERO_H1_FLAG = 'landing-hero-h1'
 
 const H1_VARIANTS = {
-  control: "The only AI that doesn't sound like AI.",
+  control: "The only LinkedIn AI that doesn't sound like AI.",
   'variant-b': "Your LinkedIn voice, automated. Not someone else's voice, badly faked.",
 } as const
 
@@ -132,7 +132,7 @@ function VoiceFingerprintDemo() {
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
           fingerprint locked
         </span>
-        <span>confidence · 98%</span>
+        <span>confidence · high</span>
       </motion.div>
     </motion.div>
   )

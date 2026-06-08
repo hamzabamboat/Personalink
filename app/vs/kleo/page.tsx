@@ -5,7 +5,7 @@ import { COMPETITORS } from '@/lib/competitor-data'
 const c = COMPETITORS.kleo
 
 export const metadata: Metadata = {
-  title: 'Kleo Alternative for Indian Creators | INR Billing & Ongoing Voice Tuning with PersonaLink',
+  title: 'Kleo Alternative for Indian Creators | PersonaLink',
   description:
     'Kleo is a static lifetime tool. PersonaLink is a learning system — voice retunes weekly, India trends refresh, auto-publishes on schedule. INR billing, GST invoices, Hinglish supported.',
   keywords: [
@@ -71,6 +71,7 @@ export default function Page() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_LD) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Home', item: 'https://personalink.in' }, { '@type': 'ListItem', position: 2, name: 'Compare', item: 'https://personalink.in/vs' }, { '@type': 'ListItem', position: 3, name: `${c.name} alternative`, item: `https://personalink.in/vs/${c.slug}` }] }) }} />
       <ComparisonPage competitor={c} />
     </>
   )

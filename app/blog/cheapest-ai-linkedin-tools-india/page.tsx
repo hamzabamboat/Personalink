@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { WordMark } from '@/components/word-mark'
 
 export const metadata: Metadata = {
-  title: 'Cheapest AI LinkedIn Tools in India 2026: Honest INR Comparison [Free & Under ₹1,000]',
+  title: 'Cheapest AI LinkedIn Tools in India 2026 (Under ₹1,000)',
   description:
     'The cheapest AI LinkedIn tools for India in 2026, compared honestly in INR — real entry prices, GST invoices, Hinglish support, and which few actually cost under ₹1,000 a month.',
   keywords: [

@@ -4,18 +4,57 @@ import { WordMark } from '@/components/word-mark'
 
 export const metadata: Metadata = {
   title: 'Why Your LinkedIn Posts Get Zero Engagement (And How to Fix It) | PersonaLink',
-  description: 'Most LinkedIn posts fail because of 3 fixable mistakes. After analysing 500+ posts from Indian professionals, we found the patterns that kill reach and how a LinkedIn profile manager can fix them.',
+  description: 'Most LinkedIn posts fail because of 3 fixable mistakes. Here are the patterns that kill reach on Indian LinkedIn — and how a LinkedIn profile manager can fix each one.',
   keywords: ['LinkedIn profile manager', 'LinkedIn engagement', 'LinkedIn posts India', 'improve LinkedIn reach', 'LinkedIn content strategy'],
+  alternates: { canonical: 'https://personalink.in/blog/why-your-linkedin-posts-get-zero-engagement' },
   openGraph: {
+    type: 'article',
+    locale: 'en_IN',
+    siteName: 'PersonaLink',
     title: 'Why Your LinkedIn Posts Get Zero Engagement (And How to Fix It)',
-    description: 'The 3 fixable mistakes killing your LinkedIn reach, based on analysis of 500+ posts from Indian professionals.',
+    description: 'The 3 fixable mistakes that kill your LinkedIn reach — and how to fix them.',
     url: 'https://personalink.in/blog/why-your-linkedin-posts-get-zero-engagement',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Why your LinkedIn posts get zero engagement' }],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Why Your LinkedIn Posts Get Zero Engagement (And How to Fix It)',
+    description: 'The 3 fixable mistakes that kill your LinkedIn reach — and how to fix them.',
+    images: ['/og-image.png'],
+  },
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: 'Why Your LinkedIn Posts Get Zero Engagement (And How to Fix It)',
+      description: 'The three fixable mistakes that kill LinkedIn reach on Indian LinkedIn — and how to fix each one.',
+      image: 'https://personalink.in/og-image.png',
+      datePublished: '2026-03-01',
+      dateModified: '2026-03-01',
+      inLanguage: 'en-IN',
+      author: { '@type': 'Organization', name: 'PersonaLink Team', url: 'https://personalink.in' },
+      publisher: { '@type': 'Organization', name: 'PersonaLink', url: 'https://personalink.in', logo: { '@type': 'ImageObject', url: 'https://personalink.in/logo.png' } },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': 'https://personalink.in/blog/why-your-linkedin-posts-get-zero-engagement' },
+      articleSection: 'LinkedIn Growth',
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://personalink.in' },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://personalink.in/blog' },
+        { '@type': 'ListItem', position: 3, name: 'Why Your LinkedIn Posts Get Zero Engagement', item: 'https://personalink.in/blog/why-your-linkedin-posts-get-zero-engagement' },
+      ],
+    },
+  ],
 }
 
 export default function Article3() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <nav style={{ background: 'color-mix(in srgb, var(--surface) 95%, transparent)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(16px,4vw,32px)', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/">
@@ -39,7 +78,7 @@ export default function Article3() {
 
         <div className="prose prose-slate max-w-none text-slate-600 leading-[1.8]">
           <p className="text-lg text-slate-700 font-medium mb-6">
-            We analysed 500+ LinkedIn posts from Indian founders, consultants, and professionals over six months. The patterns were clear: most posts that get zero engagement make the same three mistakes. The good news: all three are completely fixable.
+            Across LinkedIn feeds from Indian founders, consultants, and professionals, the same patterns recur: most posts that get zero engagement make the same three mistakes. The good news: all three are completely fixable.
           </p>
 
           <h2 className="text-xl font-bold text-slate-900 mt-10 mb-4">Mistake #1: The hook doesn't stop the scroll</h2>

@@ -1,4 +1,4 @@
-export const metadata = { title: 'Privacy Policy – Personalink', description: 'How Personalink collects, uses, and protects your data.' };
+export const metadata = { title: 'Privacy Policy – PersonaLink', description: 'How PersonaLink collects, uses, and protects your data.', alternates: { canonical: 'https://personalink.in/privacy' } };
 
 export default function PrivacyPage() {
   return (

@@ -69,6 +69,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://personalink.in'),
   title: "PersonaLink — The only LinkedIn AI that doesn't sound like AI",
   description: '6-dimensional voice mapping plus an Anti-AI humanizer. Generate LinkedIn posts in your exact tone. Pay in INR. Get GST invoices. Built in India.',
   keywords: [
@@ -141,8 +142,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: '#2B4DFF',
 }
 

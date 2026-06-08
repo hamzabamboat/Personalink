@@ -163,7 +163,7 @@ export default function AffiliateLandingPage() {
             {[
               {
                 title: 'A product that actually converts',
-                body: 'Personalink fingerprints your audience’s voice in 6 dimensions and writes posts that sound like them — not generic AI. Average tone match: 96–98% by week two.',
+                body: 'Personalink fingerprints your audience’s voice in 6 dimensions and writes posts that sound like them — not generic AI. Every draft is constrained to that voice fingerprint.',
               },
               {
                 title: 'India-first means India-trust',

@@ -1,4 +1,4 @@
-export const metadata = { title: 'Terms of Service – Personalink', description: 'Terms governing use of the Personalink platform.' };
+export const metadata = { title: 'Terms of Service – PersonaLink', description: 'Terms governing use of the PersonaLink platform.', alternates: { canonical: 'https://personalink.in/terms' } };
 
 export default function TermsPage() {
   return (

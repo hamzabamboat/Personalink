@@ -6,6 +6,16 @@ import { BLOG_POSTS as ARTICLES } from '@/lib/blog-posts'
 export const metadata: Metadata = {
   title: 'Blog — LinkedIn Growth Tips | PersonaLink',
   description: 'Actionable LinkedIn growth strategies, AI content tips, and personal branding insights for Indian founders, consultants, and professionals.',
+  alternates: { canonical: 'https://personalink.in/blog' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://personalink.in/blog',
+    siteName: 'PersonaLink',
+    title: 'PersonaLink Blog — LinkedIn Growth Tips for India',
+    description: 'Actionable LinkedIn growth, AI content, and personal-branding insights for Indian founders, consultants, and professionals.',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'PersonaLink Blog' }],
+  },
 }
 
 export default function BlogPage() {

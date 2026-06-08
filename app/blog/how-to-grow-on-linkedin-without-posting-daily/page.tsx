@@ -6,16 +6,55 @@ export const metadata: Metadata = {
   title: 'How to Grow on LinkedIn Without Posting Daily | PersonaLink',
   description: 'You don\'t need to post every day to grow on LinkedIn. Here\'s the smarter approach that busy founders use to build a 10,000+ following using LinkedIn automation.',
   keywords: ['LinkedIn automation', 'LinkedIn manager', 'grow LinkedIn without posting daily', 'LinkedIn growth strategy India'],
+  alternates: { canonical: 'https://personalink.in/blog/how-to-grow-on-linkedin-without-posting-daily' },
   openGraph: {
+    type: 'article',
+    locale: 'en_IN',
+    siteName: 'PersonaLink',
     title: 'How to Grow on LinkedIn Without Posting Daily',
     description: 'The smarter LinkedIn growth strategy for busy founders and professionals.',
     url: 'https://personalink.in/blog/how-to-grow-on-linkedin-without-posting-daily',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'How to grow on LinkedIn without posting daily' }],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'How to Grow on LinkedIn Without Posting Daily',
+    description: 'The smarter LinkedIn growth strategy for busy founders and professionals.',
+    images: ['/og-image.png'],
+  },
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: 'How to Grow on LinkedIn Without Posting Daily',
+      description: 'The smarter LinkedIn growth strategy busy founders use to grow without posting every day.',
+      image: 'https://personalink.in/og-image.png',
+      datePublished: '2026-05-01',
+      dateModified: '2026-05-01',
+      inLanguage: 'en-IN',
+      author: { '@type': 'Organization', name: 'PersonaLink Team', url: 'https://personalink.in' },
+      publisher: { '@type': 'Organization', name: 'PersonaLink', url: 'https://personalink.in', logo: { '@type': 'ImageObject', url: 'https://personalink.in/logo.png' } },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': 'https://personalink.in/blog/how-to-grow-on-linkedin-without-posting-daily' },
+      articleSection: 'LinkedIn Growth',
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://personalink.in' },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://personalink.in/blog' },
+        { '@type': 'ListItem', position: 3, name: 'How to Grow on LinkedIn Without Posting Daily', item: 'https://personalink.in/blog/how-to-grow-on-linkedin-without-posting-daily' },
+      ],
+    },
+  ],
 }
 
 export default function Article1() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <nav style={{ background: 'color-mix(in srgb, var(--surface) 95%, transparent)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(16px,4vw,32px)', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/">

@@ -12,6 +12,51 @@ export type BlogPost = {
 // always advertised to crawlers. Newest first.
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'linkedin-content-ideas-india',
+    title: 'LinkedIn content ideas for Indian professionals (2026)',
+    excerpt:
+      '30+ LinkedIn content ideas for Indian founders, consultants and professionals — founder lessons, contrarian takes, behind-the-scenes, and Hinglish angles.',
+    tags: ['LinkedIn India', 'Content Strategy', 'Ideas'],
+    date: 'June 2026',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'is-ai-linkedin-automation-allowed',
+    title: 'Is AI LinkedIn automation against the rules? (2026)',
+    excerpt:
+      'Content automation via the official API is fine; scraping and DM/connection bots are what get accounts restricted. Where the line actually is.',
+    tags: ['LinkedIn Automation', 'LinkedIn Safety'],
+    date: 'June 2026',
+    readTime: '5 min read',
+  },
+  {
+    slug: 'how-to-humanize-ai-linkedin-posts',
+    title: 'How to humanize AI LinkedIn posts (so they don’t sound like AI)',
+    excerpt:
+      'AI-written posts have obvious tells. The 10 giveaways to cut, the manual fixes, and why voice-matching beats find-and-replace.',
+    tags: ['LinkedIn Growth', 'AI Writing'],
+    date: 'June 2026',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'best-taplio-alternatives',
+    title: 'Best Taplio alternatives in 2026 (including INR-priced picks)',
+    excerpt:
+      'Taplio is great — but it bills in USD with no GST. Here are the best Taplio alternatives in 2026, including the cheapest and the India-first options.',
+    tags: ['Taplio Alternative', 'LinkedIn Tools', 'Comparison'],
+    date: 'June 2026',
+    readTime: '8 min read',
+  },
+  {
+    slug: 'best-time-to-post-linkedin-india',
+    title: 'The best time to post on LinkedIn in India (IST, 2026)',
+    excerpt:
+      "Most 'best time to post' advice is built on US data. Here's what actually works for Indian audiences on IST — and why consistency beats perfect timing.",
+    tags: ['LinkedIn India', 'Growth Strategy', 'IST'],
+    date: 'June 2026',
+    readTime: '7 min read',
+  },
+  {
     slug: 'cheapest-ai-linkedin-tools-india',
     title: 'The cheapest AI LinkedIn tools in India in 2026 (honest INR comparison)',
     excerpt:
@@ -51,7 +96,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'why-your-linkedin-posts-get-zero-engagement',
     title: 'Why your LinkedIn posts get zero engagement (and how to fix it)',
     excerpt:
-      'Most LinkedIn posts fail because of 3 fixable mistakes. After analysing 500+ posts from Indian professionals, we found the patterns that kill reach.',
+      'Most LinkedIn posts fail because of 3 fixable mistakes. Here are the patterns that kill reach on Indian LinkedIn — and how to fix each one.',
     tags: ['LinkedIn Profile Manager', 'Content Strategy', 'Engagement'],
     date: 'March 2026',
     readTime: '6 min read',

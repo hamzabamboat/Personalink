@@ -475,7 +475,7 @@ function HomeContent() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[
                       { dot: 'blue', text: 'voice fingerprint loaded' },
-                      { dot: 'ok',   text: 'tone match · 98%' },
+                      { dot: 'ok',   text: 'voice match · strong' },
                       { dot: 'ok',   text: 'length · 142 words' },
                     ].map((m, i) => (
                       <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>
@@ -489,7 +489,7 @@ function HomeContent() {
                 <div style={{ padding: '24px 28px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                     <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>// we ship —</span>
-                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#10b981' }}>drafted in 2.4s</span>
+                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#10b981' }}>drafted in seconds</span>
                   </div>
                   <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.75, whiteSpace: 'pre-line', marginBottom: 24, animation: 'fadeSwap .4s ease' }}>
                     {SAMPLES[activeSample].output}
@@ -516,24 +516,24 @@ function HomeContent() {
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
           <FadeUp>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface)' }}>
-              // 04 — In their voice
+              // 04 — What changes
             </div>
             <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 40 }}>
-              What it sounds like {serif('after a quiet quarter.')}
+              What changes when every post {serif('sounds like you.')}
             </h2>
           </FadeUp>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20 }}>
             {[
-              { quote: 'Went from posting once a month to three times a week without spending more time on it. Inbound DMs from potential clients tripled.', name: 'Rahul Gupta',     title: 'VP Sales · B2B SaaS',          initial: 'R', c1: '#3257ff', c2: '#0b1a8b' },
-              { quote: 'The voice match is almost uncomfortable. My team couldn\'t tell which posts were AI-assisted. That\'s the whole game.',             name: 'Marcus Williams', title: 'Product Manager · New York',   initial: 'M', c1: '#0a1024', c2: '#3a4868' },
-              { quote: "I'd been \"planning to post more\" for two years. PersonaLink made it real in week one. Forty new followers in the first ten days.", name: 'Sofia Lindqvist', title: 'Marketing Director · Stockholm', initial: 'S', c1: '#2563eb', c2: '#1e3a8a' },
-              { quote: 'Three inbound investor leads in my first month. The posts were finally reaching the right people, not just my mom.',                 name: 'James Osei',     title: 'Co-founder · Accra',           initial: 'J', c1: '#1e40af', c2: '#0a1024' },
+              { quote: 'Show up three times a week in your own voice — without spending more time writing.', name: 'Consistency, handled',     title: 'Your cadence on autopilot',          initial: 'R', c1: '#3257ff', c2: '#0b1a8b' },
+              { quote: 'Drafts that read like you wrote them, not a generic AI assistant.',             name: 'Sounds like you', title: '6-dimension voice fingerprint',   initial: 'M', c1: '#0a1024', c2: '#3a4868' },
+              { quote: 'Pay in INR, get a GST invoice, and post in Hinglish when it fits.', name: 'Built for India', title: 'INR · GST · UPI · Hinglish', initial: 'S', c1: '#2563eb', c2: '#1e3a8a' },
+              { quote: 'See what lands, then double down — analytics on every post.',                 name: 'Know what works',     title: 'Impressions & engagement',           initial: 'J', c1: '#1e40af', c2: '#0a1024' },
             ].map((t, i) => (
               <FadeUp key={t.name} delay={i * 0.08}>
                 <figure style={{ margin: 0, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '28px', boxShadow: 'var(--sh-1)' }}>
                   <blockquote style={{ margin: '0 0 24px', fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(16px,1.6vw,19px)', color: 'var(--ink-2)', lineHeight: 1.55 }}>
-                    &ldquo;{t.quote}&rdquo;
+                    {t.quote}
                   </blockquote>
                   <figcaption style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span style={{
@@ -541,7 +541,7 @@ function HomeContent() {
                       background: `linear-gradient(135deg, ${t.c1}, ${t.c2})`,
                       color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 700, fontSize: 15,
-                    }}>{t.initial}</span>
+                    }}>{t.name.charAt(0)}</span>
                     <div>
                       <strong style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{t.name}</strong>
                       <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>{t.title}</span>
@@ -855,7 +855,7 @@ function HomeContent() {
           <FadeUp delay={0.1}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {[
-                { q: 'Will the posts actually sound like me?', a: 'During onboarding we ingest 3–5 of your own posts and build a voice fingerprint — sentence rhythm, vocabulary, openings, pet phrases. Every draft is constrained inside that space. Tone match averages 96–98% on the second week.' },
+                { q: 'Will the posts actually sound like me?', a: 'During onboarding we ingest 3–5 of your own posts and build a voice fingerprint — sentence rhythm, vocabulary, openings, pet phrases. Every draft is constrained inside that space, so it reads like you wrote it.' },
                 { q: 'Can I edit before it goes live?', a: 'Always. Pick Full Autopilot, Approve Before Posting, or Suggest Only. You own the publish button.' },
                 { q: 'How does the LinkedIn connection work?', a: 'Official LinkedIn OAuth. We only request posting permission. We never read your DMs, never touch your network, never store your password.' },
                 { q: "What if I hit my post limit?", a: "You get a heads-up at 80%. Upgrade your plan or wait for the monthly reset — no surprise charges, ever." },
@@ -997,11 +997,12 @@ function HomeContent() {
             >support@personalink.in</a>
           </div>
           {/* Link columns */}
-          <div className="pl-footer-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
+          <div className="pl-footer-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 24 }}>
             {[
-              { heading: 'Product', links: [['#features', 'Features'], ['/pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']] },
-              { heading: 'Company', links: [['#', 'About'], ['#', 'Blog'], ['#', 'Changelog'], ['#', 'Careers']] },
-              { heading: 'Legal',   links: [['/privacy', 'Privacy'], ['/terms', 'Terms'], ['#', 'Security'], ['mailto:support@personalink.in', 'Contact']] },
+              { heading: 'Product', links: [['/ai-linkedin-automation-tool', 'AI automation tool'], ['/pricing', 'Pricing'], ['/for-agencies', 'For agencies'], ['#faq', 'FAQ']] },
+              { heading: 'For India', links: [['/cheap-linkedin-ai-tool-india', 'Under ₹1,000'], ['/faq', 'GST, UPI & Hinglish'], ['/blog/cheapest-ai-linkedin-tools-india', 'Cheapest tools compared']] },
+              { heading: 'Company', links: [['/blog', 'Blog'], ['/vs/taplio', 'vs Taplio'], ['/vs/supergrow', 'vs Supergrow']] },
+              { heading: 'Legal',   links: [['/privacy', 'Privacy'], ['/terms', 'Terms'], ['mailto:support@personalink.in', 'Contact']] },
             ].map(col => (
               <div key={col.heading}>
                 <h4 style={{ fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,.4)', marginBottom: 16, textTransform: 'uppercase' }}>{col.heading}</h4>
@@ -1029,15 +1030,56 @@ function HomeContent() {
 }
 
 /* ─── JSON-LD schema ─── */
+const HOME_FAQS = [
+  { q: 'Will the posts actually sound like me?', a: 'During onboarding we ingest 3–5 of your own posts and build a voice fingerprint — sentence rhythm, vocabulary, openings, pet phrases. Every draft is constrained inside that space, so it reads like you wrote it.' },
+  { q: 'Can I edit before it goes live?', a: 'Always. Pick Full Autopilot, Approve Before Posting, or Suggest Only. You own the publish button.' },
+  { q: 'How does the LinkedIn connection work?', a: 'Official LinkedIn OAuth. We only request posting permission. We never read your DMs, never touch your network, never store your password.' },
+  { q: 'What if I hit my post limit?', a: 'You get a heads-up at 80%. Upgrade your plan or wait for the monthly reset — no surprise charges, ever.' },
+  { q: 'Is payment secure?', a: 'All payments run through Razorpay — one of India\'s most trusted gateways. We never see or store your card details.' },
+  { q: 'Can I use this for client accounts at my agency?', a: 'Yes. We have a dedicated agency plan with per-client voice isolation, white-label dashboard, and INR billing with GST. See personalink.in/for-agencies for details and to request a quote.' },
+  { q: 'Can I cancel anytime?', a: 'One click in Settings. You keep full access until the end of your billing period.' },
+]
+
 const JSON_LD = {
   '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'PersonaLink',
-  applicationCategory: 'BusinessApplication',
-  description: 'AI LinkedIn manager that generates posts in your voice, auto-publishes on schedule, and shows you what resonates — all in one place',
-  url: 'https://personalink.in',
-  offers: { '@type': 'AggregateOffer', lowPrice: '999', highPrice: '4999', priceCurrency: 'INR' },
-  operatingSystem: 'Web',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://personalink.in/#organization',
+      name: 'PersonaLink',
+      url: 'https://personalink.in',
+      logo: 'https://personalink.in/logo-full.png',
+      description: 'AI LinkedIn manager (India) that writes posts in your voice, auto-publishes on schedule, and shows what resonates. INR billing with GST invoices.',
+      // TODO: add real social profile URLs to `sameAs` (LinkedIn, X, Crunchbase) —
+      // strongest signal to disambiguate PersonaLink from personalink.me (exec-search firm).
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://personalink.in/#website',
+      url: 'https://personalink.in',
+      name: 'PersonaLink',
+      inLanguage: 'en-IN',
+      publisher: { '@id': 'https://personalink.in/#organization' },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'PersonaLink',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      description: 'AI LinkedIn manager that generates posts in your voice, auto-publishes on schedule, and shows you what resonates — all in one place',
+      url: 'https://personalink.in',
+      offers: { '@type': 'AggregateOffer', lowPrice: '999', highPrice: '4999', priceCurrency: 'INR' },
+      publisher: { '@id': 'https://personalink.in/#organization' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: HOME_FAQS.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    },
+  ],
 }
 
 export default function Home() {

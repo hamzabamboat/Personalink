@@ -282,7 +282,7 @@ const kleo: Competitor = {
     },
     {
       q: 'Will the posts actually sound like me?',
-      a: 'During onboarding we ingest 3–5 of your best posts and build a 6-dimension voice fingerprint — rhythm, vocabulary, openings, pet phrases, emotional register, punctuation tics. Tone match averages 96–98% by week two.',
+      a: 'During onboarding we ingest 3–5 of your best posts and build a 6-dimension voice fingerprint — rhythm, vocabulary, openings, pet phrases, emotional register, punctuation tics. Every draft is constrained to that fingerprint, so it reads like you wrote it.',
     },
     {
       q: 'Can I run Personalink for an agency?',
@@ -373,11 +373,11 @@ const supergrow: Competitor = {
     },
     {
       q: 'Will my voice actually sound different?',
-      a: 'Yes — Supergrow uses a single style prompt. Personalink fingerprints six voice dimensions (rhythm, vocabulary, openings, pet phrases, warmth, punctuation tics) and constrains every draft inside that space. Average tone match: 96–98% by week two.',
+      a: 'Yes — Supergrow uses a single style prompt. Personalink fingerprints six voice dimensions (rhythm, vocabulary, openings, pet phrases, warmth, punctuation tics) and constrains every draft inside that space, so it reads like you rather than generic AI.',
     },
     {
       q: 'Is the post quality measurably better?',
-      a: 'Independent users running both side-by-side report Personalink drafts need 30–50% fewer edits before publish. We\'re happy to share user tests on request — email hello@personalink.in.',
+      a: 'Personalink is built so drafts need fewer edits before publish — the voice fingerprint constrains every draft to your style. We\'re happy to share user tests on request — email hello@personalink.in.',
     },
     {
       q: 'Does Personalink have an agency plan?',

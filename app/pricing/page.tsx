@@ -79,7 +79,10 @@ function pickTaplioMonthlyUsdForPosts(posts: number): number {
 }
 
 export default function PricingPage() {
-  const [currency, setCurrency] = useState<Currency>('USD')
+  // Default SSR currency to INR (India-first): ensures ₹999 is in the crawlable
+  // HTML for "under ₹1000 / India" queries. Client useEffect corrects to the
+  // visitor's real currency on mount (no hydration mismatch — same initial).
+  const [currency, setCurrency] = useState<Currency>('INR')
   const [billing, setBilling] = useState<BillingPeriod>('monthly')
   const [posts, setPosts] = useState(22)
   const [mounted, setMounted] = useState(false)

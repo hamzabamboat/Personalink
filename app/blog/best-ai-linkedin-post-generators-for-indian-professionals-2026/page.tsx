@@ -6,16 +6,55 @@ export const metadata: Metadata = {
   title: 'Best AI LinkedIn Post Generators for Indian Professionals 2026 | PersonaLink',
   description: 'We tested 8 AI LinkedIn post generators available in India. Here\'s which ones write in your voice, support INR, and actually understand the Indian professional market.',
   keywords: ['AI LinkedIn manager India', 'AI LinkedIn post generator India', 'LinkedIn automation India', 'best LinkedIn tools India 2026'],
+  alternates: { canonical: 'https://personalink.in/blog/best-ai-linkedin-post-generators-for-indian-professionals-2026' },
   openGraph: {
+    type: 'article',
+    locale: 'en_IN',
+    siteName: 'PersonaLink',
     title: 'Best AI LinkedIn Post Generators for Indian Professionals 2026',
-    description: 'Which AI LinkedIn tools actually work for Indian professionals? We tested 8 and ranked them.',
+    description: 'Which AI LinkedIn tools actually work for Indian professionals? A researched, ranked comparison.',
     url: 'https://personalink.in/blog/best-ai-linkedin-post-generators-for-indian-professionals-2026',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Best AI LinkedIn post generators for Indian professionals 2026' }],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Best AI LinkedIn Post Generators for Indian Professionals 2026',
+    description: 'A researched, ranked comparison of AI LinkedIn tools available in India.',
+    images: ['/og-image.png'],
+  },
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: 'Best AI LinkedIn Post Generators for Indian Professionals 2026',
+      description: 'A researched, ranked comparison of AI LinkedIn post generators available in India — voice match, INR support, and Indian-audience fit.',
+      image: 'https://personalink.in/og-image.png',
+      datePublished: '2026-04-01',
+      dateModified: '2026-04-01',
+      inLanguage: 'en-IN',
+      author: { '@type': 'Organization', name: 'PersonaLink Team', url: 'https://personalink.in' },
+      publisher: { '@type': 'Organization', name: 'PersonaLink', url: 'https://personalink.in', logo: { '@type': 'ImageObject', url: 'https://personalink.in/logo.png' } },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': 'https://personalink.in/blog/best-ai-linkedin-post-generators-for-indian-professionals-2026' },
+      articleSection: 'LinkedIn Tools',
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://personalink.in' },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://personalink.in/blog' },
+        { '@type': 'ListItem', position: 3, name: 'Best AI LinkedIn Post Generators for Indian Professionals 2026', item: 'https://personalink.in/blog/best-ai-linkedin-post-generators-for-indian-professionals-2026' },
+      ],
+    },
+  ],
 }
 
 export default function Article2() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <nav style={{ background: 'color-mix(in srgb, var(--surface) 95%, transparent)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(16px,4vw,32px)', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/">
