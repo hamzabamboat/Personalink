@@ -233,9 +233,10 @@ export default function AdminDashboard() {
                 title={e.title}
                 src={`https://us.posthog.com/embedded/${e.token}`}
                 loading="lazy"
-                allow="fullscreen"
+                allowFullScreen
+                sandbox="allow-scripts allow-same-origin allow-popups"
                 className="w-full block"
-                style={{ height: 380, border: 0 }}
+                style={{ height: 400, border: 0 }}
               />
             </div>
           ))}
