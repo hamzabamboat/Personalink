@@ -65,6 +65,17 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  // Required so PostHog's trailing-slash endpoints (e.g. /decide/) aren't redirected.
+  skipTrailingSlashRedirect: true,
+  // Reverse proxy for PostHog (client inits with api_host: '/ingest'). Without
+  // this, every browser event POSTs to /ingest/* and 404s — so no analytics.
+  // 'static' MUST come before the catch-all so JS assets hit us-assets, not us.
+  async rewrites() {
+    return [
+      { source: '/ingest/static/:path*', destination: 'https://us-assets.i.posthog.com/static/:path*' },
+      { source: '/ingest/:path*', destination: 'https://us.i.posthog.com/:path*' },
+    ]
+  },
   async headers() {
     return [
       {
