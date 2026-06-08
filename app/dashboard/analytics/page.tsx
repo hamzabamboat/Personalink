@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase, Post } from '@/lib/supabase'
 import Link from 'next/link'
 import {
-  ThumbsUp, Eye, FileEdit, BarChart3, Zap, Trophy, TrendingUp, Sparkles,
+  Eye, FileEdit, BarChart3, Zap, Trophy, TrendingUp, Sparkles, Repeat2,
 } from 'lucide-react'
 
 type ScoreRecord = { score: number; recorded_at: string }
@@ -83,8 +83,8 @@ function HeatmapCell({ value, max }: { value: number; max: number }) {
 }
 
 const STAT_CONFIGS = [
-  { key: 'reactions', label: 'Avg Reactions', icon: ThumbsUp },
-  { key: 'impressions', label: 'Total Impressions', icon: Eye },
+  { key: 'reach', label: 'Total Reach', icon: Eye },
+  { key: 'reshares', label: 'Total Reshares', icon: Repeat2 },
   { key: 'posts', label: 'Posts Published', icon: FileEdit },
   { key: 'score', label: 'Current Score', icon: BarChart3 },
 ]
@@ -243,7 +243,7 @@ export default function AnalyticsPage() {
   }
 
   const scoreValues = scores.map(s => s.score)
-  const topPosts = posts.slice(0, 3)
+  const topPosts = [...posts].sort((a, b) => (b.members_reached ?? 0) - (a.members_reached ?? 0)).slice(0, 3)
   const publishedByPillar: Record<string, number> = {}
   posts.forEach(p => { if (p.content_pillar) publishedByPillar[p.content_pillar] = (publishedByPillar[p.content_pillar] || 0) + 1 })
 
@@ -266,15 +266,15 @@ export default function AnalyticsPage() {
       const d = new Date(p.published_at)
       const day = DAYS[d.getDay() === 0 ? 6 : d.getDay() - 1]
       const key = `${day}-${d.getHours()}`
-      heatmapData[key] = (heatmapData[key] || 0) + (p.reactions || 0)
+      heatmapData[key] = (heatmapData[key] || 0) + (p.members_reached || 0)
     }
   })
   const heatmapMax = Math.max(...Object.values(heatmapData), 1)
-  const avgEngagement = posts.length > 0 ? Math.round(posts.reduce((s, p) => s + (p.reactions || 0), 0) / posts.length) : 0
-  const totalImpressions = posts.reduce((s, p) => s + (p.impressions || 0), 0)
+  const totalReshares = posts.reduce((s, p) => s + (p.reshares || 0), 0)
+  const totalReach = posts.reduce((s, p) => s + (p.members_reached || 0), 0)
   const statValues = {
-    reactions: avgEngagement,
-    impressions: totalImpressions > 0 ? totalImpressions.toLocaleString('en-IN') : '–',
+    reach: totalReach > 0 ? totalReach.toLocaleString('en-IN') : '–',
+    reshares: totalReshares > 0 ? totalReshares.toLocaleString('en-IN') : '–',
     posts: posts.length,
     score: analysis?.score ?? scores[scores.length - 1]?.score ?? '–',
   }
@@ -555,7 +555,7 @@ export default function AnalyticsPage() {
       <div className="mb-4 sm:mb-5"
         style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '16px' }}>
         <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>Best Posting Times</div>
-        <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14, fontFamily: 'var(--f-mono)' }}>// based on reactions per time slot</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14, fontFamily: 'var(--f-mono)' }}>// based on reach per time slot</div>
         <div className="overflow-x-auto -mx-1 px-1">
           <div style={{ display: 'grid', gridTemplateColumns: `44px repeat(${DAYS.length}, 28px)`, gap: 3, minWidth: 260 }}>
             <div />
@@ -602,14 +602,14 @@ export default function AnalyticsPage() {
                     {post.content}
                   </p>
                   <div className="flex gap-3 flex-wrap" style={{ rowGap: 4 }}>
-                    {post.impressions != null && (
+                    {post.members_reached != null && (
                       <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                        <Eye className="w-3 h-3" /> {post.impressions.toLocaleString()}
+                        <Eye className="w-3 h-3" /> {post.members_reached.toLocaleString()}
                       </span>
                     )}
-                    {post.reactions != null && (
+                    {post.reshares != null && (
                       <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                        <ThumbsUp className="w-3 h-3" /> {post.reactions}
+                        <Repeat2 className="w-3 h-3" /> {post.reshares}
                       </span>
                     )}
                     {post.published_at && (

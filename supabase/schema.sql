@@ -77,10 +77,9 @@ create table if not exists posts (
   story_bank_id uuid,
   generation_prompt text,
   content_pillar text,
-  engagement_score integer,
-  impressions integer,
-  reactions integer,
-  comments integer,
+  -- Engagement metrics live in the columns added by 20260531_organic_growth_capture.sql
+  -- (reshares/saves/members_reached/etc.). Per-snapshot reactions/impressions/comments
+  -- live in the post_analytics time-series table, not here.
   experiment_id uuid,
   variant text,
   reshares integer,

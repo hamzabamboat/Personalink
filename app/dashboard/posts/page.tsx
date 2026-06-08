@@ -446,7 +446,7 @@ function PostsContent() {
               <span>SCHEDULED</span>
               <span>PLATFORM</span>
               <span>STATUS</span>
-              <span>IMPRESSIONS</span>
+              <span>REACH</span>
               <span>ENGAGEMENT</span>
               <span />
             </div>
@@ -489,15 +489,15 @@ function PostsContent() {
                     {STATUS_LABEL[post.status] || post.status}
                   </span>
 
-                  {/* Impressions */}
-                  <span className={post.impressions != null && post.impressions > 0 ? 'pt-up' : ''}>
-                    {post.impressions != null ? post.impressions.toLocaleString() : '—'}
+                  {/* Reach (members reached) */}
+                  <span className={post.members_reached != null && post.members_reached > 0 ? 'pt-up' : ''}>
+                    {post.members_reached != null ? post.members_reached.toLocaleString() : '—'}
                   </span>
 
-                  {/* Engagement (reactions + comments) */}
-                  <span className={((post.reactions ?? 0) + (post.comments ?? 0)) > 0 ? 'pt-up' : ''}>
-                    {post.reactions != null || post.comments != null
-                      ? ((post.reactions ?? 0) + (post.comments ?? 0)).toLocaleString()
+                  {/* Engagement (reshares + saves) */}
+                  <span className={((post.reshares ?? 0) + (post.saves ?? 0)) > 0 ? 'pt-up' : ''}>
+                    {post.reshares != null || post.saves != null
+                      ? ((post.reshares ?? 0) + (post.saves ?? 0)).toLocaleString()
                       : '—'}
                   </span>
 

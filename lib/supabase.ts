@@ -92,11 +92,6 @@ export type Post = {
   story_bank_id: string | null
   generation_prompt: string | null
   content_pillar: string | null
-  content_pillars: string | null
-  engagement_score: number | null
-  impressions: number | null
-  reactions: number | null
-  comments: number | null
   experiment_id: string | null
   variant: 'control' | 'treatment' | null
   reshares: number | null

@@ -19,7 +19,7 @@ function formatAge(createdAt: string): { label: string; fresh: boolean } {
 import { toast } from 'sonner'
 import {
   RefreshCw, Flame, TrendingUp, Repeat2, Lightbulb, X,
-  ArrowRight, Zap, Lock, ThumbsUp, Eye,
+  ArrowRight, Zap, Lock, Eye,
 } from 'lucide-react'
 
 type SuggestionTab = 'trending' | 'history' | 'repurpose'
@@ -323,14 +323,14 @@ export default function SuggestionsPage() {
                     </p>
                     <div className="flex gap-4 items-center">
                       <div className="flex gap-3">
-                        {post.reactions != null && (
+                        {post.reshares != null && (
                           <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                            <ThumbsUp className="w-3 h-3" /> {post.reactions}
+                            <Repeat2 className="w-3 h-3" /> {post.reshares}
                           </span>
                         )}
-                        {post.impressions != null && (
+                        {post.members_reached != null && (
                           <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                            <Eye className="w-3 h-3" /> {post.impressions?.toLocaleString()}
+                            <Eye className="w-3 h-3" /> {post.members_reached?.toLocaleString()}
                           </span>
                         )}
                       </div>
