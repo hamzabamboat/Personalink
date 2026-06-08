@@ -11,7 +11,7 @@ export async function computeLinkedInScore(userId: string): Promise<{
     supabaseAdmin.from('user_profiles').select('*').eq('user_id', userId).maybeSingle(),
     supabaseAdmin
       .from('posts')
-      .select('status, scheduled_at, published_at, impressions, reactions, engagement_score')
+      .select('status, scheduled_at, published_at, members_reached, reshares, saves')
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString()),
   ])
@@ -25,12 +25,14 @@ export async function computeLinkedInScore(userId: string): Promise<{
   const consistencyRatio = Math.min(publishedOrScheduled.length / planLimit, 1)
   const posting_consistency = Math.round(consistencyRatio * 30)
 
-  // Avg engagement (40 pts): based on reactions/impressions ratio
-  const postsWithEngagement = posts.filter(p => p.impressions && p.impressions > 0)
+  // Avg engagement (40 pts): (reshares + saves) / reach (members_reached) ratio.
+  // posts caches reach + reshares/saves; per-snapshot reactions/impressions live
+  // in the post_analytics table, not on posts.
+  const postsWithEngagement = posts.filter(p => p.members_reached && p.members_reached > 0)
   let avg_engagement = 0
   if (postsWithEngagement.length > 0) {
     const avgRate = postsWithEngagement.reduce((sum, p) => {
-      const rate = ((p.reactions || 0) / (p.impressions || 1)) * 100
+      const rate = (((p.reshares || 0) + (p.saves || 0)) / (p.members_reached || 1)) * 100
       return sum + rate
     }, 0) / postsWithEngagement.length
     // 5% engagement rate = full score

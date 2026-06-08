@@ -284,12 +284,21 @@ export async function getUserSlotWeights(userId: string): Promise<Record<number,
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
   const { data: posts } = await supabaseAdmin
     .from('posts')
-    .select('content_pillar, format, published_at, impressions, reactions, comments, reshares, saves')
+    .select('content_pillar, format, published_at, members_reached, reshares, saves')
     .eq('user_id', userId)
     .eq('status', 'published')
     .gte('published_at', ninetyDaysAgo)
 
-  const slots = perTimeSlotPerformance((posts ?? []) as unknown as Parameters<typeof perTimeSlotPerformance>[0])
+  // Map live posts columns into the perf-row shape: reach→impressions slot,
+  // reactions/comments absent on posts (→0). See lib/insights.ts for rationale.
+  const perfRows = ((posts ?? []) as Array<{
+    content_pillar: string | null; format: string | null; published_at: string | null
+    members_reached: number | null; reshares: number | null; saves: number | null
+  }>).map((p) => ({
+    content_pillar: p.content_pillar, format: p.format, published_at: p.published_at,
+    impressions: p.members_reached, reactions: null, comments: null, reshares: p.reshares, saves: p.saves,
+  }))
+  const slots = perTimeSlotPerformance(perfRows as Parameters<typeof perTimeSlotPerformance>[0])
   const { weights, counts } = slotPerformanceToDowWeights(slots)
   if (Object.keys(counts).length === 0) return null
   return mergeSlotWeights(DOW_WEIGHT, { weights, counts }, SLOT_WEIGHT_K)
@@ -340,7 +349,9 @@ export async function evaluateExperiment(
 
   const startedAt = new Date(e.started_at)
   const baselineStart = new Date(startedAt.getTime() - 28 * 24 * 60 * 60 * 1000)
-  const cols = 'impressions, reactions, comments, reshares, saves'
+  // posts has no reactions/impressions/comments columns — read the real metrics
+  // (reach + reshares/saves) and map below into the engagement-rate row shape.
+  const cols = 'members_reached, reshares, saves'
 
   const [treatmentRes, baselineRes] = await Promise.all([
     // Treatment arm: posts in this experiment tagged treatment, published since start.
@@ -354,8 +365,12 @@ export async function evaluateExperiment(
       .gte('published_at', baselineStart.toISOString()).lt('published_at', e.started_at),
   ])
 
-  const treatmentSeries = engagementRateSeries((treatmentRes.data ?? []) as Parameters<typeof engagementRateSeries>[0])
-  const baselineSeries = engagementRateSeries((baselineRes.data ?? []) as Parameters<typeof engagementRateSeries>[0])
+  // reach (members_reached) stands in for impressions; reactions/comments aren't
+  // captured on posts, so engagement rate = (reshares+saves)/reach per post.
+  const toRateRows = (rows: Array<{ members_reached: number | null; reshares: number | null; saves: number | null }>) =>
+    rows.map((p) => ({ impressions: p.members_reached, reactions: null, comments: null, reshares: p.reshares, saves: p.saves }))
+  const treatmentSeries = engagementRateSeries(toRateRows((treatmentRes.data ?? []) as Array<{ members_reached: number | null; reshares: number | null; saves: number | null }>))
+  const baselineSeries = engagementRateSeries(toRateRows((baselineRes.data ?? []) as Array<{ members_reached: number | null; reshares: number | null; saves: number | null }>))
 
   const { lift, confidence, n } = computeLift(baselineSeries, treatmentSeries)
   const ageDays = (now.getTime() - startedAt.getTime()) / (24 * 60 * 60 * 1000)
