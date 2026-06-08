@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" role="img" aria-label="The 90-day plan timeline. Days 1 to 30 foundation, two posts a week, reach flat. Days 31 to 60 rhythm, three posts a week, the line bends up around week six. Days 61 to 90 compounding, three to four posts a week, inbound begins. Most people quit at day 30.">
+  <rect x="1" y="1" width="718" height="378" rx="14" fill="#ffffff" stroke="#e4e7ef" stroke-width="1.5"/>
+  <text x="28" y="40" font-size="15" font-weight="600" fill="#0a1024">The 90-day plan</text>
+
+  <!-- segment dividers -->
+  <line x1="266" y1="60" x2="266" y2="332" stroke="#d6dbe7" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <line x1="473" y1="60" x2="473" y2="332" stroke="#d6dbe7" stroke-width="1.5" stroke-dasharray="5 5"/>
+
+  <!-- segment headers -->
+  <g text-anchor="middle">
+    <text x="163" y="80" font-size="11" font-weight="700" letter-spacing="0.06em" fill="#2b4dff">DAYS 1–30</text>
+    <text x="163" y="102" font-size="15" font-weight="600" fill="#0a1024">Foundation</text>
+    <text x="163" y="122" font-size="11.5" fill="#5a6478">2 posts/week · reach flat</text>
+
+    <text x="370" y="80" font-size="11" font-weight="700" letter-spacing="0.06em" fill="#2b4dff">DAYS 31–60</text>
+    <text x="370" y="102" font-size="15" font-weight="600" fill="#0a1024">Rhythm</text>
+    <text x="370" y="122" font-size="11.5" fill="#5a6478">3 posts/week · bends up ~week 6</text>
+
+    <text x="577" y="80" font-size="11" font-weight="700" letter-spacing="0.06em" fill="#2b4dff">DAYS 61–90</text>
+    <text x="577" y="102" font-size="15" font-weight="600" fill="#0a1024">Compounding</text>
+    <text x="577" y="122" font-size="11.5" fill="#5a6478">3–4 posts/week · inbound begins</text>
+  </g>
+
+  <!-- growth curve: flat, then bends up, then climbs -->
+  <path d="M60 300 L266 298 C 330 297 352 262 386 244 C 430 222 451 210 473 202 C 560 184 624 162 680 150" fill="none" stroke="#2b4dff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="266" cy="298" r="4.5" fill="#2b4dff"/>
+  <circle cx="473" cy="202" r="4.5" fill="#2b4dff"/>
+
+  <!-- quit annotation -->
+  <text x="150" y="244" font-size="12.5" font-weight="600" fill="#b45309" text-anchor="middle">most people quit here</text>
+  <path d="M205 252 C 230 268 250 282 264 294" fill="none" stroke="#b45309" stroke-width="1.5" opacity="0.8"/>
+  <path d="M264 294 l-7 -1 l3 -6 z" fill="#b45309" opacity="0.8"/>
+
+  <!-- day axis -->
+  <line x1="60" y1="332" x2="680" y2="332" stroke="#eef0f6" stroke-width="1.5"/>
+  <g font-size="11" fill="#8a92a6">
+    <text x="60" y="352" text-anchor="start">Day 0</text>
+    <text x="266" y="352" text-anchor="middle">Day 30</text>
+    <text x="473" y="352" text-anchor="middle">Day 60</text>
+    <text x="680" y="352" text-anchor="end">Day 90</text>
+  </g>
+</svg>

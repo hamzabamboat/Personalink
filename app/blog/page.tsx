@@ -9,6 +9,15 @@ export const metadata: Metadata = {
 
 const ARTICLES = [
   {
+    slug: 'how-to-grow-linkedin-india-2026',
+    title: 'How to grow on LinkedIn in India in 2026 (the honest guide)',
+    excerpt:
+      'An honest, no-hype guide to LinkedIn growth in India — real data, the four post types that work, the Hinglish question, the 2026 algorithm, and a 90-day plan.',
+    tags: ['LinkedIn India', 'Growth Strategy', 'Hinglish'],
+    date: 'June 2026',
+    readTime: '14 min read',
+  },
+  {
     slug: 'how-to-grow-on-linkedin-without-posting-daily',
     title: 'How to grow on LinkedIn without posting daily',
     excerpt: "You don't need to post every day to grow on LinkedIn. Here's the smarter approach that busy founders use to build a 10,000+ following without burning out.",
