@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import { ComparisonPage } from '@/components/comparison/ComparisonPage'
-import { COMPETITORS } from '@/lib/competitor-data'
+import { getCompetitor } from '@/lib/competitor-data'
+import { getUsdInrRate } from '@/lib/fx'
 
-const c = COMPETITORS.supergrow
+export const revalidate = 604800
 
 export const metadata: Metadata = {
   title: 'Supergrow Alternative for Indian Creators | PersonaLink',
@@ -56,17 +57,19 @@ const JSON_LD = {
   },
 }
 
-const FAQ_LD = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: c.faq.map(f => ({
-    '@type': 'Question',
-    name: f.q,
-    acceptedAnswer: { '@type': 'Answer', text: f.a },
-  })),
-}
+export default async function Page() {
+  const c = getCompetitor('supergrow', await getUsdInrRate())
 
-export default function Page() {
+  const FAQ_LD = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: c.faq.map((f: { q: string; a: string }) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  }
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />

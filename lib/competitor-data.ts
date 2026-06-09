@@ -1,15 +1,14 @@
 /**
  * Single source of truth for /vs/* comparison pages.
  *
- * All competitor prices stored in USD; INR is computed at runtime against
- * USD_TO_INR so a single edit keeps every page accurate. Personalink prices
- * pull from `lib/currency.ts` so changes there propagate automatically.
+ * All competitor prices stored in USD; INR is computed at runtime by passing a
+ * live `rate` (USD→INR) to getCompetitor() / getAllCompetitors() / calcYearOne(),
+ * so every page reflects the current exchange rate. Personalink prices pull from
+ * `lib/currency.ts` so changes there propagate automatically.
  */
 
 import { CURRENCIES } from '@/lib/currency'
 import { TIER_LIMITS } from '@/lib/pricing-config'
-
-export const USD_TO_INR = 84
 
 export type Symbol = '✅' | '❌' | '⚠️'
 
@@ -95,6 +94,25 @@ export function pickCompetitorPlanFor(competitor: Competitor, postsPerMonth: num
 
 export const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 
+export type CompetitorSlug = Competitor['slug']
+export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow']
+
+/** Raw USD plans — rate-independent, the source of truth for prices. */
+export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
+  taplio: [
+    { name: 'Standard', monthlyUsd: 39, postBudget: 30, seats: 1 },
+    { name: 'Pro', monthlyUsd: 65, postBudget: 90, seats: 1 },
+    { name: 'Agency', monthlyUsd: 199, postBudget: 300, seats: 5 },
+  ],
+  kleo: [
+    { name: 'Lifetime', monthlyUsd: null, oneTimeUsd: 99, postBudget: 999, seats: 1 },
+  ],
+  supergrow: [
+    { name: 'Solo', monthlyUsd: 19, postBudget: 30, seats: 1 },
+    { name: 'Pro', monthlyUsd: 39, postBudget: 90, seats: 1 },
+  ],
+}
+
 /* ────────────────────────────────────────────────────────────────────
  * Common comparison rows (Personalink advantages that apply to every
  * competitor are defined here and merged into each page's data).
@@ -127,24 +145,21 @@ const trustRows: FeatureRow[] = [
  * TAPLIO
  * ──────────────────────────────────────────────────────────────────── */
 
-const taplio: Competitor = {
+function buildTaplio(rate: number): Competitor {
+  return {
   slug: 'taplio',
   name: 'Taplio',
   oneLiner: 'Polished feature set, but billed in USD with no Indian tax compliance.',
   pricingModel: 'recurring',
-  plans: [
-    { name: 'Standard', monthlyUsd: 39, postBudget: 30, seats: 1 },
-    { name: 'Pro', monthlyUsd: 65, postBudget: 90, seats: 1 },
-    { name: 'Agency', monthlyUsd: 199, postBudget: 300, seats: 5 },
-  ],
+  plans: COMPETITOR_PLANS.taplio,
   hero: {
     subhead: 'Same features. Pay in INR. Get GST invoices. Save up to {{save}}/year.',
-    headlineSavings: Math.round((65 * USD_TO_INR - PL_PLANS.standard.inr) * 12),
+    headlineSavings: Math.round((65 * rate - PL_PLANS.standard.inr) * 12),
   },
   features: [
-    { label: 'Entry-level monthly price', pl: inr(PL_PLANS.starter.inr), competitor: `${inr(39 * USD_TO_INR)} ($39)`, highlight: 'pl' },
-    { label: 'Mid-tier monthly price', pl: inr(PL_PLANS.standard.inr), competitor: `${inr(65 * USD_TO_INR)} ($65)`, highlight: 'pl' },
-    { label: 'Top tier monthly price', pl: 'Custom (agency form)', competitor: `${inr(199 * USD_TO_INR)} ($199)`, highlight: 'pl' },
+    { label: 'Entry-level monthly price', pl: inr(PL_PLANS.starter.inr), competitor: `${inr(39 * rate)} ($39)`, highlight: 'pl' },
+    { label: 'Mid-tier monthly price', pl: inr(PL_PLANS.standard.inr), competitor: `${inr(65 * rate)} ($65)`, highlight: 'pl' },
+    { label: 'Top tier monthly price', pl: 'Custom (agency form)', competitor: `${inr(199 * rate)} ($199)`, highlight: 'pl' },
     ...indiaRows,
     ...voiceRows,
     { label: 'Multi-account / agency mode', pl: '✅ Custom-priced', competitor: '✅ Agency tier ($199)' },
@@ -167,7 +182,7 @@ const taplio: Competitor = {
   faq: [
     {
       q: 'Is Personalink really cheaper than Taplio?',
-      a: `Yes. Taplio\'s Standard plan is $39/month (about ${inr(39 * USD_TO_INR)} at today\'s rates) plus FX fees. Personalink Standard is ${inr(PL_PLANS.standard.inr)}/month, billed in INR, GST-compliant. Annual savings on the mid-tier alone work out to roughly ${inr((65 * USD_TO_INR - PL_PLANS.standard.inr) * 12)}.`,
+      a: `Yes. Taplio\'s Standard plan is $39/month (about ${inr(39 * rate)} at today\'s rates) plus FX fees. Personalink Standard is ${inr(PL_PLANS.standard.inr)}/month, billed in INR, GST-compliant. Annual savings on the mid-tier alone work out to roughly ${inr((65 * rate - PL_PLANS.standard.inr) * 12)}.`,
     },
     {
       q: 'Can I import my Taplio scheduled posts?',
@@ -216,27 +231,27 @@ const taplio: Competitor = {
     name: '— Real testimonial coming soon',
     role: 'Founder · Bengaluru (placeholder)',
   },
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────
  * KLEO
  * ──────────────────────────────────────────────────────────────────── */
 
-const kleo: Competitor = {
+function buildKleo(rate: number): Competitor {
+  return {
   slug: 'kleo',
   name: 'Kleo',
   oneLiner: 'Lifetime deal up front. Static toolkit, no ongoing improvements.',
   pricingModel: 'lifetime',
-  plans: [
-    { name: 'Lifetime', monthlyUsd: null, oneTimeUsd: 99, postBudget: 999, seats: 1 },
-  ],
+  plans: COMPETITOR_PLANS.kleo,
   hero: {
     subhead: 'Recurring tool, lifetime value. Pay in INR. Get GST invoices. Built for India.',
     headlineSavings: 60000,
   },
   features: [
     { label: 'Pricing model', pl: 'Monthly subscription (cancel anytime)', competitor: 'One-time $99 lifetime' },
-    { label: 'Entry price', pl: inr(PL_PLANS.starter.inr) + '/mo', competitor: `${inr(99 * USD_TO_INR)} once ($99)` },
+    { label: 'Entry price', pl: inr(PL_PLANS.starter.inr) + '/mo', competitor: `${inr(99 * rate)} once ($99)` },
     { label: 'Ongoing model improvements', pl: '✅ Weekly', competitor: '❌ Static at purchase', highlight: 'pl' },
     { label: 'New features without paying again', pl: '✅', competitor: '⚠️ Add-ons priced separately', highlight: 'pl' },
     ...indiaRows,
@@ -311,28 +326,27 @@ const kleo: Competitor = {
     name: '— Real testimonial coming soon',
     role: 'Consultant · Mumbai (placeholder)',
   },
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────
  * SUPERGROW
  * ──────────────────────────────────────────────────────────────────── */
 
-const supergrow: Competitor = {
+function buildSupergrow(rate: number): Competitor {
+  return {
   slug: 'supergrow',
   name: 'Supergrow',
   oneLiner: 'Cheap and simple. Misses voice depth, India localisation, and auto-publish.',
   pricingModel: 'recurring',
-  plans: [
-    { name: 'Solo', monthlyUsd: 19, postBudget: 30, seats: 1 },
-    { name: 'Pro', monthlyUsd: 39, postBudget: 90, seats: 1 },
-  ],
+  plans: COMPETITOR_PLANS.supergrow,
   hero: {
     subhead: 'Roughly the same price. Twice the depth. Pay in INR. Get GST invoices.',
-    headlineSavings: Math.round((19 * USD_TO_INR - PL_PLANS.starter.inr) * 12),
+    headlineSavings: Math.round((19 * rate - PL_PLANS.starter.inr) * 12),
   },
   features: [
-    { label: 'Entry-level monthly price', pl: inr(PL_PLANS.starter.inr), competitor: `${inr(19 * USD_TO_INR)} ($19)`, highlight: 'pl' },
-    { label: 'Mid-tier monthly price', pl: inr(PL_PLANS.standard.inr), competitor: `${inr(39 * USD_TO_INR)} ($39)`, highlight: 'pl' },
+    { label: 'Entry-level monthly price', pl: inr(PL_PLANS.starter.inr), competitor: `${inr(19 * rate)} ($19)`, highlight: 'pl' },
+    { label: 'Mid-tier monthly price', pl: inr(PL_PLANS.standard.inr), competitor: `${inr(39 * rate)} ($39)`, highlight: 'pl' },
     ...indiaRows,
     ...voiceRows,
     { label: 'Auto-publish on schedule', pl: '✅', competitor: '✅' },
@@ -357,7 +371,7 @@ const supergrow: Competitor = {
   faq: [
     {
       q: 'Is Personalink cheaper than Supergrow?',
-      a: `On entry tier, yes — ${inr(PL_PLANS.starter.inr)}/mo vs Supergrow\'s ${inr(19 * USD_TO_INR)}/mo equivalent ($19 + FX + lack of GST credit). On Pro: ${inr(PL_PLANS.standard.inr)} vs ${inr(39 * USD_TO_INR)}. Personalink also recovers 18% GST as input tax credit for Indian businesses.`,
+      a: `On entry tier, yes — ${inr(PL_PLANS.starter.inr)}/mo vs Supergrow\'s ${inr(19 * rate)}/mo equivalent ($19 + FX + lack of GST credit). On Pro: ${inr(PL_PLANS.standard.inr)} vs ${inr(39 * rate)}. Personalink also recovers 18% GST as input tax credit for Indian businesses.`,
     },
     {
       q: 'What does Supergrow miss that Personalink has?',
@@ -406,20 +420,24 @@ const supergrow: Competitor = {
     name: '— Real testimonial coming soon',
     role: 'B2B consultant · Delhi (placeholder)',
   },
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────
  * Registry
  * ──────────────────────────────────────────────────────────────────── */
 
-export const COMPETITORS = {
-  taplio,
-  kleo,
-  supergrow,
-} as const
+export function getCompetitor(slug: CompetitorSlug, rate: number): Competitor {
+  switch (slug) {
+    case 'taplio': return buildTaplio(rate)
+    case 'kleo': return buildKleo(rate)
+    case 'supergrow': return buildSupergrow(rate)
+  }
+}
 
-export type CompetitorSlug = keyof typeof COMPETITORS
-export const COMPETITOR_SLUGS = Object.keys(COMPETITORS) as CompetitorSlug[]
+export function getAllCompetitors(rate: number): Competitor[] {
+  return COMPETITOR_SLUGS.map(s => getCompetitor(s, rate))
+}
 
 /* ────────────────────────────────────────────────────────────────────
  * Year-1 cost helpers for the savings calculator
@@ -433,15 +451,15 @@ export type YearOneBreakdown = {
   plWins: boolean
 }
 
-export function calcYearOne(competitor: Competitor, postsPerMonth: number): YearOneBreakdown {
+export function calcYearOne(competitor: Competitor, postsPerMonth: number, rate: number): YearOneBreakdown {
   const plId = pickPlPlanFor(postsPerMonth)
   const plMonthly = PL_PLANS[plId].inr
   const plYear = plMonthly * 12
 
   const cPlan = pickCompetitorPlanFor(competitor, postsPerMonth)
   const cYear = competitor.pricingModel === 'lifetime'
-    ? (cPlan.oneTimeUsd ?? 0) * USD_TO_INR
-    : (cPlan.monthlyUsd ?? 0) * USD_TO_INR * 12
+    ? (cPlan.oneTimeUsd ?? 0) * rate
+    : (cPlan.monthlyUsd ?? 0) * rate * 12
 
   return {
     pl: { planName: PL_PLANS[plId].name, monthlyInr: plMonthly, yearOneInr: plYear },

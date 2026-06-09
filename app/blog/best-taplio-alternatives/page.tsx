@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LandingShell } from '@/components/landing/LandingShell'
+import { getUsdInrRate, inrFromUsd } from '@/lib/fx'
+import { inr } from '@/lib/competitor-data'
+
+export const revalidate = 604800
 
 const URL = 'https://personalink.in/blog/best-taplio-alternatives'
 
@@ -41,16 +45,16 @@ const H2 = { fontSize: 'clamp(20px,3vw,28px)', fontWeight: 700, color: 'var(--in
 const P = { fontSize: 17, lineHeight: 1.75, color: 'var(--ink-2)', margin: '0 0 18px' } as const
 const link = { color: 'var(--pl-accent)' } as const
 
-const ALTS = [
-  ['PersonaLink', '₹999–₹4,999/mo (INR)', 'India-first: INR billing, GST invoice, UPI, Hinglish, 6-dimension voice fingerprint + auto-publish.', 'Best for India'],
-  ['Supergrow', '≈ ₹1,596/mo ($19)', 'Cheapest global option; strong content velocity and a comparison-heavy blog.', 'Best budget (global)'],
-  ['AuthoredUp', '≈ ₹1,676/mo ($19.95)', 'Editor + analytics with strong enterprise trust; not full auto-publish.', 'Best for analytics'],
-  ['Kleo', '≈ ₹8,316 once ($99)', 'One-time lifetime licence; static toolkit, no ongoing auto-publish.', 'Best for occasional posters'],
-  ['ContentIn', '≈ ₹1,260/mo ($15)', 'Affordable, simpler Taplio-style writer + scheduler.', 'Closest cheap clone'],
-  ['MagicPost', '≈ ₹1,764/mo ($21)', 'India-domain content tool, but bills in USD with no GST/UPI/Hinglish.', 'India in name only'],
-]
-
-export default function Page() {
+export default async function Page() {
+  const rate = await getUsdInrRate()
+  const ALTS = [
+    ['PersonaLink', '₹999–₹4,999/mo (INR)', 'India-first: INR billing, GST invoice, UPI, Hinglish, 6-dimension voice fingerprint + auto-publish.', 'Best for India'],
+    ['Supergrow', `≈ ${inr(inrFromUsd(19, rate))}/mo ($19)`, 'Cheapest global option; strong content velocity and a comparison-heavy blog.', 'Best budget (global)'],
+    ['AuthoredUp', `≈ ${inr(inrFromUsd(19.95, rate))}/mo ($19.95)`, 'Editor + analytics with strong enterprise trust; not full auto-publish.', 'Best for analytics'],
+    ['Kleo', `≈ ${inr(inrFromUsd(99, rate))} once ($99)`, 'One-time lifetime licence; static toolkit, no ongoing auto-publish.', 'Best for occasional posters'],
+    ['ContentIn', `≈ ${inr(inrFromUsd(15, rate))}/mo ($15)`, 'Affordable, simpler Taplio-style writer + scheduler.', 'Closest cheap clone'],
+    ['MagicPost', `≈ ${inr(inrFromUsd(21, rate))}/mo ($21)`, 'India-domain content tool, but bills in USD with no GST/UPI/Hinglish.', 'India in name only'],
+  ]
   return (
     <LandingShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -84,7 +88,7 @@ export default function Page() {
             </div>
           ))}
         </div>
-        <p style={{ ...P, fontSize: 13.5, color: 'var(--ink-4)', marginTop: 12 }}>USD prices are public list prices converted at ~₹84/USD for India context, before forex and GST.</p>
+        <p style={{ ...P, fontSize: 13.5, color: 'var(--ink-4)', marginTop: 12 }}>USD prices are public list prices converted at the current rate, refreshed weekly, for India context, before forex and GST.</p>
 
         <h2 style={H2}>Best for India: PersonaLink</h2>
         <p style={P}>

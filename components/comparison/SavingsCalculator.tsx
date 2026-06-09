@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   type Competitor,
@@ -10,6 +10,7 @@ import {
   pickPlPlanFor,
   pickCompetitorPlanFor,
 } from '@/lib/competitor-data'
+import { FX_FALLBACK_USD_INR } from '@/lib/fx'
 
 type Props = {
   competitor: Competitor
@@ -18,17 +19,21 @@ type Props = {
 export function SavingsCalculator({ competitor }: Props) {
   const [posts, setPosts] = useState(20)
   const [clients, setClients] = useState(1)
+  const [usdInr, setUsdInr] = useState(FX_FALLBACK_USD_INR)
+  useEffect(() => {
+    fetch('/api/fx-rate').then(r => r.json()).then(d => { if (typeof d?.usdInr === 'number') setUsdInr(d.usdInr) }).catch(() => {})
+  }, [])
   const isAgency = clients > 1
 
-  const breakdown = useMemo(() => calcYearOne(competitor, posts), [competitor, posts])
+  const breakdown = useMemo(() => calcYearOne(competitor, posts, usdInr), [competitor, posts, usdInr])
   const plPlanId = pickPlPlanFor(posts)
   const cPlan = pickCompetitorPlanFor(competitor, posts)
 
   // Agency mode: estimate competitor cost = per-seat × seats; PL is custom-quoted.
   const agencyCompYear = isAgency
     ? competitor.pricingModel === 'lifetime'
-      ? (cPlan.oneTimeUsd ?? 0) * 84 * clients
-      : (cPlan.monthlyUsd ?? 0) * 84 * 12 * clients
+      ? (cPlan.oneTimeUsd ?? 0) * usdInr * clients
+      : (cPlan.monthlyUsd ?? 0) * usdInr * 12 * clients
     : 0
 
   return (
@@ -128,7 +133,7 @@ export function SavingsCalculator({ competitor }: Props) {
           fontFamily: 'var(--f-mono)',
         }}
       >
-        // exchange rate: ₹84/USD · {competitor.name} prices public as of 2026 ·
+        // exchange rate: current rate, refreshed weekly · {competitor.name} prices public as of 2026 ·
         excludes FX conversion fees (typically +2–4% on Indian cards)
       </p>
     </div>

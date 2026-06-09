@@ -14,12 +14,13 @@ import {
   type BillingPeriod,
   type TierID,
 } from '@/lib/pricing-config'
-import { COMPETITORS } from '@/lib/competitor-data'
+import { COMPETITOR_PLANS } from '@/lib/competitor-data'
+import { FX_FALLBACK_USD_INR } from '@/lib/fx'
 import { Check } from 'lucide-react'
 import { WordMark } from '@/components/word-mark'
 
-const TAPLIO_PRO_USD = COMPETITORS.taplio.plans.find(p => p.name === 'Pro')?.monthlyUsd ?? 65
-const KLEO_LIFETIME_USD = COMPETITORS.kleo.plans[0].oneTimeUsd ?? 99
+const TAPLIO_PRO_USD = COMPETITOR_PLANS.taplio.find(p => p.name === 'Pro')?.monthlyUsd ?? 65
+const KLEO_LIFETIME_USD = COMPETITOR_PLANS.kleo[0].oneTimeUsd ?? 99
 
 const CURRENCY_STORAGE_KEY = 'personalink_currency'
 const BILLING_STORAGE_KEY = 'personalink_billing_period'
@@ -56,9 +57,9 @@ function formatNum(currency: Currency, n: number): string {
   return n.toLocaleString(currency === 'INR' ? 'en-IN' : 'en-US')
 }
 
-function convertUsdTo(currency: Currency, usd: number): number {
+function convertUsdTo(currency: Currency, usd: number, usdInr: number): number {
   if (currency === 'USD') return usd
-  const inr = usd * CURRENCY_TO_INR.USD
+  const inr = usd * usdInr
   return Math.round(inr / CURRENCY_TO_INR[currency])
 }
 
@@ -73,8 +74,8 @@ function pickPlTierForPosts(posts: number): Exclude<TierID, 'free' | 'agency'> {
 }
 
 function pickTaplioMonthlyUsdForPosts(posts: number): number {
-  const fit = COMPETITORS.taplio.plans.find(p => posts <= p.postBudget)
-  const plan = fit ?? COMPETITORS.taplio.plans[COMPETITORS.taplio.plans.length - 1]
+  const fit = COMPETITOR_PLANS.taplio.find(p => posts <= p.postBudget)
+  const plan = fit ?? COMPETITOR_PLANS.taplio[COMPETITOR_PLANS.taplio.length - 1]
   return plan.monthlyUsd ?? 0
 }
 
@@ -86,11 +87,16 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>('monthly')
   const [posts, setPosts] = useState(22)
   const [mounted, setMounted] = useState(false)
+  const [usdInr, setUsdInr] = useState(FX_FALLBACK_USD_INR)
 
   useEffect(() => {
     setMounted(true)
     setCurrency(readInitialCurrency())
     setBilling(readInitialBilling())
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/fx-rate').then(r => r.json()).then(d => { if (typeof d?.usdInr === 'number') setUsdInr(d.usdInr) }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -305,33 +311,33 @@ export default function PricingPage() {
 
               <div className="px-4 py-3.5 font-bold border-t flex items-center gap-2" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--pl-accent)' }} />
-                Personalink Pro
+                Personalink Standard
               </div>
               <div className="px-4 py-3.5 border-t text-right font-bold" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
-                {fmt(currency, TIER_PRICING.pro[currency].monthly)}
+                {fmt(currency, TIER_PRICING.standard[currency].monthly)}
               </div>
               <div className="px-4 py-3.5 border-t text-right font-bold" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
-                {fmt(currency, TIER_PRICING.pro[currency].monthly * 12)}
+                {fmt(currency, TIER_PRICING.standard[currency].monthly * 12)}
               </div>
 
               <div className="px-4 py-3.5 border-t" style={{ borderColor: 'var(--line)', color: 'var(--ink-3)' }}>
                 Taplio Pro
               </div>
               <div className="px-4 py-3.5 border-t text-right" style={{ borderColor: 'var(--line)', color: 'var(--ink-3)' }}>
-                {fmt(currency, convertUsdTo(currency, TAPLIO_PRO_USD))}
+                {fmt(currency, convertUsdTo(currency, TAPLIO_PRO_USD, usdInr))}
               </div>
               <div className="px-4 py-3.5 border-t text-right" style={{ borderColor: 'var(--line)', color: 'var(--ink-3)' }}>
-                {fmt(currency, convertUsdTo(currency, TAPLIO_PRO_USD * 12))}
+                {fmt(currency, convertUsdTo(currency, TAPLIO_PRO_USD * 12, usdInr))}
               </div>
 
               <div className="px-4 py-3.5 border-t" style={{ borderColor: 'var(--line)', color: 'var(--ink-3)' }}>
                 Kleo Lifetime
               </div>
               <div className="px-4 py-3.5 border-t text-right" style={{ borderColor: 'var(--line)', color: 'var(--ink-3)' }}>
-                {fmt(currency, convertUsdTo(currency, KLEO_LIFETIME_USD))} once
+                {fmt(currency, convertUsdTo(currency, KLEO_LIFETIME_USD, usdInr))} once
               </div>
               <div className="px-4 py-3.5 border-t text-right" style={{ borderColor: 'var(--line)', color: 'var(--ink-3)' }}>
-                {fmt(currency, convertUsdTo(currency, KLEO_LIFETIME_USD))}
+                {fmt(currency, convertUsdTo(currency, KLEO_LIFETIME_USD, usdInr))}
               </div>
             </div>
           </div>
@@ -346,8 +352,8 @@ export default function PricingPage() {
               ? TIER_PRICING[plTier][currency].annual
               : TIER_PRICING[plTier][currency].monthly * 12
             const taplioMonthlyUsd = pickTaplioMonthlyUsdForPosts(posts)
-            const taplioYearly = convertUsdTo(currency, taplioMonthlyUsd * 12)
-            const kleoYearly = convertUsdTo(currency, KLEO_LIFETIME_USD)
+            const taplioYearly = convertUsdTo(currency, taplioMonthlyUsd * 12, usdInr)
+            const kleoYearly = convertUsdTo(currency, KLEO_LIFETIME_USD, usdInr)
             const savedVsTaplio = taplioYearly - plYearly
             const savedVsKleo = kleoYearly - plYearly
             return (
@@ -392,7 +398,7 @@ export default function PricingPage() {
                       </div>
                     ) : (
                       <div className="text-[13px]" style={{ color: 'var(--ink-3)' }}>
-                        Kleo&apos;s one-time {fmt(currency, kleoYearly)} beats us in Year 1 — but stops improving after purchase.
+                        Kleo&apos;s one-time {fmt(currency, kleoYearly)} is cheaper than Standard&apos;s {fmt(currency, TIER_PRICING.standard[currency].monthly * 12)} in Year 1 — but it&apos;s a static toolkit that stops improving after purchase.
                       </div>
                     )}
                   </div>

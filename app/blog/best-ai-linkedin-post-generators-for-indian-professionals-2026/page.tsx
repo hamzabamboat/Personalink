@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { WordMark } from '@/components/word-mark'
+import { getUsdInrRate, inrFromUsd } from '@/lib/fx'
+import { inr } from '@/lib/competitor-data'
+
+export const revalidate = 604800
 
 export const metadata: Metadata = {
   title: 'Best AI LinkedIn Post Generators for Indian Professionals 2026 | PersonaLink',
@@ -51,7 +55,8 @@ const jsonLd = {
   ],
 }
 
-export default function Article2() {
+export default async function Article2() {
+  const rate = await getUsdInrRate()
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -104,7 +109,7 @@ export default function Article2() {
 
           <h2 className="text-xl font-bold text-slate-900 mt-10 mb-4">#3: Taplio — Solid but USD pricing</h2>
           <p>
-            Taplio is popular among US LinkedIn creators. Their AI writing is decent and the analytics are strong. The main drawbacks for Indian users: USD pricing ($69+/month which is ₹5,700+), limited understanding of Indian business culture, and no voice notes feature. If you&apos;re comfortable with the pricing, it&apos;s a solid tool.
+            Taplio is popular among US LinkedIn creators. Their AI writing is decent and the analytics are strong. The main drawbacks for Indian users: USD pricing ($69+/month which is {`${inr(inrFromUsd(69, rate))}+`}), limited understanding of Indian business culture, and no voice notes feature. If you&apos;re comfortable with the pricing, it&apos;s a solid tool.
           </p>
 
           <h2 className="text-xl font-bold text-slate-900 mt-10 mb-4">#4-8: Generic AI tools</h2>
