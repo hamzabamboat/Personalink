@@ -26,7 +26,7 @@ the admin dashboard (MRR/affiliate).
 ### `lib/fx.ts` — single source of truth (new)
 
 ```
-FX_FALLBACK_USD_INR = 84            // used if the live fetch fails or is out of band
+FX_FALLBACK_USD_INR = 94            // used if the live fetch fails or is out of band
 FX_API_URL = 'https://open.er-api.com/v6/latest/USD'
 FX_MIN = 60, FX_MAX = 120           // sane-band validation
 
@@ -103,8 +103,8 @@ Computed sites that update automatically once `competitor-data.ts` is rate-param
 
 - Fetch wrapped; non-200 / timeout / malformed JSON / `rates.INR` missing or outside
   60–120 → `FX_FALLBACK_USD_INR`. Log once server-side.
-- The fallback equals today's value (84), so worst case is current behavior — never a broken
-  page or absurd price.
+- The fallback (94) is a recent, realistic rate, so worst case is a slightly-stale-but-sane
+  price — never a broken page or an absurd value.
 
 ## Testing
 
