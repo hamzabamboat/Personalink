@@ -281,7 +281,7 @@ export default function AnalyticsPage() {
   const medalColors = ['#f59e0b', '#94a3b8', '#d97706']
 
   return (
-    <div className="p-4 sm:p-5 md:p-7 max-w-4xl">
+    <div className="p-4 sm:p-5 md:p-7 max-w-4xl" data-tour="analytics">
 
       {/* Header: title left, refresh right — stacks on mobile */}
       <div className="mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">

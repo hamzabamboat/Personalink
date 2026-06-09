@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       voice_locale: 'english',
       plan: 'free',
       onboarding_completed_at: null,
+      tour_completed_at: null,
       posts_used_this_month: 0,
       posts_limit: 0,
       preferred_days: null,
