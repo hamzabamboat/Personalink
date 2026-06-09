@@ -49,59 +49,6 @@ const PLANS = [
   { name: 'Agency', price: 'Custom', detail: 'Multi-client, white-label', highlight: false },
 ]
 
-const FAQS = [
-  {
-    q: 'Is there an AI LinkedIn tool under ₹1,000 a month?',
-    a: 'Yes. PersonaLink Starter is ₹999/month, billed in INR with a GST invoice. It is the only major India-built LinkedIn AI tool priced under ₹1,000 — most alternatives bill in USD, which works out above ₹1,250 once you add forex and lost GST credit.',
-  },
-  {
-    q: 'Is there a free AI LinkedIn tool for India?',
-    a: 'Yes — PersonaLink has a free tier: 3 posts a month, one voice fingerprint, no card required. You can also analyse your writing voice for free at the voice analyzer with no signup.',
-  },
-  {
-    q: 'Why are USD-billed LinkedIn tools more expensive for Indians?',
-    a: 'Three hidden costs: Indian cards typically lose 2–4% on international (forex) transactions, USD tools cannot give you a GST invoice so you lose the 18% input tax credit your business could otherwise claim, and international cards more often trip 2FA failures. A $39 tool is closer to ₹3,400 effective — not ₹3,276.',
-  },
-  {
-    q: 'Do I get a GST invoice?',
-    a: 'Every PersonaLink invoice carries our GSTIN and your registered business name, so you can claim it as a deductible business expense and recover 18% as input tax credit.',
-  },
-  {
-    q: 'Can I pay with UPI?',
-    a: 'Yes. Payments run through Razorpay with UPI and cards supported — no international card required.',
-  },
-  {
-    q: 'Does the cheap plan still write in my voice?',
-    a: 'Yes. Even on the ₹999 Starter plan you get the full 6-dimension voice fingerprint, the Anti-AI humanizer, auto-publishing, and Hinglish support. Cheaper here does not mean a stripped-down product.',
-  },
-]
-
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'Product',
-      name: 'PersonaLink — AI LinkedIn Tool for India',
-      description:
-        'Affordable AI LinkedIn tool for India. Free tier plus paid plans from ₹999/month, billed in INR with GST invoices and UPI support.',
-      brand: { '@type': 'Brand', name: 'PersonaLink' },
-      url: URL,
-      offers: { '@type': 'AggregateOffer', lowPrice: '999', highPrice: '4999', priceCurrency: 'INR', offerCount: 3, availability: 'https://schema.org/InStock' },
-    },
-    {
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://personalink.in' },
-        { '@type': 'ListItem', position: 2, name: 'Cheap AI LinkedIn Tool India', item: URL },
-      ],
-    },
-    {
-      '@type': 'FAQPage',
-      mainEntity: FAQS.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
-    },
-  ],
-}
-
 const wrap = { maxWidth: 880, margin: '0 auto', padding: '0 clamp(16px,4vw,32px)' } as const
 const eyebrow = { fontFamily: 'var(--f-mono)', fontSize: 12, letterSpacing: '0.06em', color: 'var(--pl-accent)', textTransform: 'uppercase' as const, marginBottom: 14 }
 const h2 = { fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(22px,3.2vw,32px)', letterSpacing: '-0.03em', color: 'var(--ink)', margin: '0 0 14px' }
@@ -116,6 +63,57 @@ export default async function CheapLinkedinAiToolIndiaPage() {
     [`Taplio (Standard, $39)`, `≈ ${inr(inrFromUsd(39, rate))} / mo`, 'USD · + forex · no GST credit'],
     [`Kleo (lifetime, $99)`, `≈ ${inr(inrFromUsd(99, rate))} once`, 'USD · static, no auto-publish'],
   ]
+  const FAQS = [
+    {
+      q: 'Is there an AI LinkedIn tool under ₹1,000 a month?',
+      a: 'Yes. PersonaLink Starter is ₹999/month, billed in INR with a GST invoice. It is the only major India-built LinkedIn AI tool priced under ₹1,000 — most alternatives bill in USD, which works out above ₹1,250 once you add forex and lost GST credit.',
+    },
+    {
+      q: 'Is there a free AI LinkedIn tool for India?',
+      a: 'Yes — PersonaLink has a free tier: 3 posts a month, one voice fingerprint, no card required. You can also analyse your writing voice for free at the voice analyzer with no signup.',
+    },
+    {
+      q: 'Why are USD-billed LinkedIn tools more expensive for Indians?',
+      a: `Three hidden costs: Indian cards typically lose 2–4% on international (forex) transactions, USD tools cannot give you a GST invoice so you lose the 18% input tax credit your business could otherwise claim, and international cards more often trip 2FA failures. A $39 tool is closer to ${inr(Math.round(inrFromUsd(39, rate) * 1.04))} effective — not ${inr(inrFromUsd(39, rate))}.`,
+    },
+    {
+      q: 'Do I get a GST invoice?',
+      a: 'Every PersonaLink invoice carries our GSTIN and your registered business name, so you can claim it as a deductible business expense and recover 18% as input tax credit.',
+    },
+    {
+      q: 'Can I pay with UPI?',
+      a: 'Yes. Payments run through Razorpay with UPI and cards supported — no international card required.',
+    },
+    {
+      q: 'Does the cheap plan still write in my voice?',
+      a: 'Yes. Even on the ₹999 Starter plan you get the full 6-dimension voice fingerprint, the Anti-AI humanizer, auto-publishing, and Hinglish support. Cheaper here does not mean a stripped-down product.',
+    },
+  ]
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Product',
+        name: 'PersonaLink — AI LinkedIn Tool for India',
+        description:
+          'Affordable AI LinkedIn tool for India. Free tier plus paid plans from ₹999/month, billed in INR with GST invoices and UPI support.',
+        brand: { '@type': 'Brand', name: 'PersonaLink' },
+        url: URL,
+        offers: { '@type': 'AggregateOffer', lowPrice: '999', highPrice: '4999', priceCurrency: 'INR', offerCount: 3, availability: 'https://schema.org/InStock' },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://personalink.in' },
+          { '@type': 'ListItem', position: 2, name: 'Cheap AI LinkedIn Tool India', item: URL },
+        ],
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: FAQS.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+      },
+    ],
+  }
   return (
     <LandingShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
