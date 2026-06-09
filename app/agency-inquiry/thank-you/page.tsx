@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { WordMark } from '@/components/word-mark'
-import { CalEmbed } from './_components/CalEmbed'
 import { ThankYouTracker } from './_components/ThankYouTracker'
 
 export const metadata: Metadata = {
@@ -17,7 +16,6 @@ export default async function AgencyInquiryThankYou({
   const { name, agency } = await searchParams
   const firstName = (name ?? '').trim().slice(0, 40)
   const agencyName = (agency ?? '').trim().slice(0, 80)
-  const calUrl = process.env.NEXT_PUBLIC_CAL_COM_URL
 
   return (
     <div
@@ -87,7 +85,7 @@ export default async function AgencyInquiryThankYou({
               maxWidth: 520,
             }}
           >
-            I will reply within 24 hours with a Loom demo tailored to {agencyName ? agencyName : 'your setup'}.
+            I will reply within 24 hours with next steps tailored to {agencyName ? agencyName : 'your setup'}.
           </p>
           <p
             style={{
@@ -103,25 +101,6 @@ export default async function AgencyInquiryThankYou({
             </a>
             .
           </p>
-
-          {calUrl ? (
-            <>
-              <h2
-                style={{
-                  fontSize: 16,
-                  fontFamily: 'var(--f-mono)',
-                  fontWeight: 500,
-                  color: 'var(--ink-3)',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  margin: '40px 0 8px',
-                }}
-              >
-                Or pick a slot now
-              </h2>
-              <CalEmbed url={calUrl} />
-            </>
-          ) : null}
 
           <p style={{ marginTop: 40, fontSize: 14, color: 'var(--ink-3)' }}>— Hamza, PersonaLink</p>
         </div>

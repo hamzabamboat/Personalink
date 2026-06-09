@@ -10,6 +10,11 @@ const resend = () => {
 const FROM_EMAIL = 'PersonaLink <noreply@personalink.in>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
+// Inbound human contact — support escalations and form leads — lands here.
+// Deliberately separate from the ops/personal inbox (ADMIN_EMAIL, used by system
+// alerts) so customer-facing mail can never fall back to a personal Gmail.
+const CONTACT_INBOX = 'hello@personalink.in'
+
 function inrAmountFor(plan: string): string {
   if (plan === 'starter' || plan === 'standard' || plan === 'pro') {
     return formatPrice('INR', TIER_PRICING[plan].INR.monthly)
@@ -514,12 +519,11 @@ export async function sendEscalationEmail({
   confidence: number
   ticketNumber: string
 }) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'hamzabamboat@gmail.com'
   const confidencePct = Math.round(confidence * 100)
 
   return resend().emails.send({
     from: 'PersonaLink Support <support@personalink.in>',
-    to: adminEmail,
+    to: CONTACT_INBOX,
     replyTo: originalFrom,
     subject: `[SUPPORT] ${ticketNumber} — ${subject}`,
     html: `
@@ -741,9 +745,7 @@ function escapeAgencyHtml(s: string): string {
 
 export async function sendAgencyInquiryAdminAlert(record: AgencyInquiryRecord) {
   const adminEmail =
-    process.env.AGENCY_INQUIRY_ADMIN_EMAIL ||
-    process.env.ADMIN_EMAIL ||
-    'hello@personalink.in'
+    process.env.AGENCY_INQUIRY_ADMIN_EMAIL || CONTACT_INBOX
 
   const row = (label: string, value: string | null | undefined) =>
     value
@@ -839,9 +841,7 @@ export type AffiliateApplicationRecord = {
 
 export async function sendAffiliateApplicationAdminAlert(record: AffiliateApplicationRecord) {
   const adminEmail =
-    process.env.AFFILIATE_ADMIN_EMAIL ||
-    process.env.ADMIN_EMAIL ||
-    'hello@personalink.in'
+    process.env.AFFILIATE_ADMIN_EMAIL || CONTACT_INBOX
 
   const row = (label: string, value: string | null | undefined) =>
     value
@@ -1081,13 +1081,6 @@ export async function sendAgencyInquiryAutoReply(params: {
   clientCount: string
 }) {
   const { to, firstName, agencyName, clientCount } = params
-  const calUrl = process.env.NEXT_PUBLIC_CAL_COM_URL
-
-  const calLine = calUrl
-    ? `If you want to skip the wait, you can pick a slot here: <a href="${escapeAgencyHtml(calUrl)}" style="color:#0f766e;">${escapeAgencyHtml(calUrl)}</a>`
-    : ''
-
-  const calLineText = calUrl ? `If you want to skip the wait, you can pick a slot here: ${calUrl}\n\n` : ''
 
   return resend().emails.send({
     from: FROM_EMAIL,
@@ -1101,9 +1094,8 @@ export async function sendAgencyInquiryAutoReply(params: {
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e7e5df;">
     <p style="margin:0 0 16px;font-size:15px;">Hi ${escapeAgencyHtml(firstName)},</p>
     <p style="margin:0 0 16px;font-size:15px;">
-      Thanks for the note about ${escapeAgencyHtml(agencyName)}. I will review your details and reply within 24 hours with a Loom demo tailored to your setup (${escapeAgencyHtml(clientCount)} clients).
+      Thanks for the note about ${escapeAgencyHtml(agencyName)}. I will review your details and reply within 24 hours with next steps tailored to your setup (${escapeAgencyHtml(clientCount)} clients).
     </p>
-    ${calLine ? `<p style="margin:0 0 16px;font-size:15px;">${calLine}</p>` : ''}
     <p style="margin:24px 0 0;font-size:15px;color:#475569;">— Hamza, PersonaLink</p>
   </div>
   <p style="max-width:520px;margin:16px auto 0;font-size:11px;color:#94a3b8;text-align:center;">
@@ -1114,9 +1106,8 @@ export async function sendAgencyInquiryAutoReply(params: {
     text: [
       `Hi ${firstName},`,
       '',
-      `Thanks for the note about ${agencyName}. I will review your details and reply within 24 hours with a Loom demo tailored to your setup (${clientCount} clients).`,
+      `Thanks for the note about ${agencyName}. I will review your details and reply within 24 hours with next steps tailored to your setup (${clientCount} clients).`,
       '',
-      calLineText,
       '— Hamza, PersonaLink',
     ].join('\n'),
   })
