@@ -1,15 +1,20 @@
 'use client'
 
-import { useState } from 'react'
-import { COMPETITORS, COMPETITOR_SLUGS, calcYearOne, inr, type CompetitorSlug } from '@/lib/competitor-data'
+import { useEffect, useState } from 'react'
+import { getCompetitor, COMPETITOR_SLUGS, calcYearOne, inr, type CompetitorSlug } from '@/lib/competitor-data'
+import { FX_FALLBACK_USD_INR } from '@/lib/fx'
 
 // Interactive INR-vs-USD "true cost" calculator. Reuses calcYearOne() from
 // lib/competitor-data so the numbers stay in sync with the /vs pages.
 export function CostCalculator() {
   const [slug, setSlug] = useState<CompetitorSlug>('taplio')
   const [posts, setPosts] = useState(22)
-  const c = COMPETITORS[slug]
-  const r = calcYearOne(c, posts)
+  const [usdInr, setUsdInr] = useState(FX_FALLBACK_USD_INR)
+  useEffect(() => {
+    fetch('/api/fx-rate').then(r => r.json()).then(d => { if (typeof d?.usdInr === 'number') setUsdInr(d.usdInr) }).catch(() => {})
+  }, [])
+  const c = getCompetitor(slug, usdInr)
+  const r = calcYearOne(c, posts, usdInr)
 
   const card = { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 20 } as const
 
@@ -26,7 +31,7 @@ export function CostCalculator() {
                 border: `1px solid ${slug === s ? 'var(--pl-accent)' : 'var(--line)'}`,
                 background: slug === s ? 'var(--pl-accent-soft)' : 'var(--surface)',
                 color: slug === s ? 'var(--pl-accent)' : 'var(--ink-3)',
-              }}>{COMPETITORS[s].name}</button>
+              }}>{getCompetitor(s, usdInr).name}</button>
             ))}
           </div>
         </div>
@@ -55,7 +60,7 @@ export function CostCalculator() {
         </div>
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 14, lineHeight: 1.6 }}>
-        Estimates use public USD list prices (≈₹84/USD) and exclude the ~2–4% forex fee on Indian cards and the 18% GST input-tax credit you lose with USD-billed tools — so the real gap is usually larger.
+        Estimates use public USD list prices (at the current rate, refreshed weekly) and exclude the ~2–4% forex fee on Indian cards and the 18% GST input-tax credit you lose with USD-billed tools — so the real gap is usually larger.
       </p>
     </div>
   )
