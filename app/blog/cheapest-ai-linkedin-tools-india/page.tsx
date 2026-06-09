@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { WordMark } from '@/components/word-mark'
+import { getUsdInrRate, inrFromUsd } from '@/lib/fx'
+import { inr } from '@/lib/competitor-data'
+
+export const revalidate = 604800
 
 export const metadata: Metadata = {
   title: 'Cheapest AI LinkedIn Tools in India 2026 (Under ₹1,000)',
@@ -39,15 +43,6 @@ const UL = 'list-disc pl-6 mb-6 space-y-2 marker:text-slate-400'
 const STRONG = 'font-semibold text-slate-900'
 
 type Row = { tool: string; price: string; billing: string; gst: string; hinglish: string; voice: string; publish: string; free: string }
-const TABLE: Row[] = [
-  { tool: 'PersonaLink', price: '₹999 (free tier ₹0)', billing: 'INR', gst: '✓', hinglish: '✓', voice: '✓', publish: '✓', free: '✓' },
-  { tool: 'Dux-Soup', price: '~₹1,259 ($14.99)', billing: 'USD', gst: '✕', hinglish: '✕', voice: 'n/a', publish: 'n/a', free: 'trial' },
-  { tool: 'Shield', price: '~₹1,260 ($15)', billing: 'USD', gst: '✕', hinglish: '✕', voice: 'n/a', publish: '✕', free: 'trial' },
-  { tool: 'Supergrow', price: '~₹1,596 ($19)', billing: 'USD', gst: '✕', hinglish: '✕', voice: '~', publish: '✕', free: 'trial' },
-  { tool: 'Taplio', price: '~₹3,276 ($39)', billing: 'USD', gst: '✕', hinglish: '✕', voice: '~', publish: '✓', free: 'trial' },
-  { tool: 'Kleo', price: '~₹8,316 ($99 once)', billing: 'USD', gst: '✕', hinglish: '✕', voice: '✕', publish: '✕', free: '✕' },
-  { tool: 'Teal', price: 'Free tier', billing: 'USD', gst: '✕', hinglish: '✕', voice: 'n/a', publish: '✕', free: '✓' },
-]
 
 const FAQS: { q: string; a: string }[] = [
   {
@@ -64,7 +59,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Why are most LinkedIn AI tools more expensive in India?',
-    a: 'Most are priced in US dollars. At about ₹84 to the dollar you pay the converted price, plus a card forex markup of roughly 3%, and you cannot claim GST input credit because there is no Indian tax invoice. A ₹999 INR plan with a GST invoice is genuinely cheaper than a $15 plan.',
+    a: 'Most are priced in US dollars. At the current rate (refreshed weekly) you pay the converted price, plus a card forex markup of roughly 3%, and you cannot claim GST input credit because there is no Indian tax invoice. A ₹999 INR plan with a GST invoice is genuinely cheaper than a $15 plan.',
   },
   {
     q: 'Do these tools give a GST invoice?',
@@ -114,7 +109,17 @@ const jsonLd = {
   ],
 }
 
-export default function Article() {
+export default async function Article() {
+  const rate = await getUsdInrRate()
+  const TABLE: Row[] = [
+    { tool: 'PersonaLink', price: '₹999 (free tier ₹0)', billing: 'INR', gst: '✓', hinglish: '✓', voice: '✓', publish: '✓', free: '✓' },
+    { tool: 'Dux-Soup', price: `~${inr(inrFromUsd(14.99, rate))} ($14.99)`, billing: 'USD', gst: '✕', hinglish: '✕', voice: 'n/a', publish: 'n/a', free: 'trial' },
+    { tool: 'Shield', price: `~${inr(inrFromUsd(15, rate))} ($15)`, billing: 'USD', gst: '✕', hinglish: '✕', voice: 'n/a', publish: '✕', free: 'trial' },
+    { tool: 'Supergrow', price: `~${inr(inrFromUsd(19, rate))} ($19)`, billing: 'USD', gst: '✕', hinglish: '✕', voice: '~', publish: '✕', free: 'trial' },
+    { tool: 'Taplio', price: `~${inr(inrFromUsd(39, rate))} ($39)`, billing: 'USD', gst: '✕', hinglish: '✕', voice: '~', publish: '✓', free: 'trial' },
+    { tool: 'Kleo', price: `~${inr(inrFromUsd(99, rate))} ($99 once)`, billing: 'USD', gst: '✕', hinglish: '✕', voice: '✕', publish: '✕', free: '✕' },
+    { tool: 'Teal', price: 'Free tier', billing: 'USD', gst: '✕', hinglish: '✕', voice: 'n/a', publish: '✕', free: '✓' },
+  ]
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', fontFamily: 'var(--f-sans)' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -202,8 +207,8 @@ export default function Article() {
 
           <h2 className={H2}>The comparison, in rupees</h2>
           <p className={P}>
-            Prices are entry-tier monthly, converted at about ₹84 to the dollar (so the rupee figure for US-billed tools
-            moves with the exchange rate, and your card adds roughly 3% forex on top). Accurate at the time of writing —
+            Prices are entry-tier monthly, converted at the current rate (refreshed weekly), so the rupee figure for US-billed tools
+            moves with the exchange rate, and your card adds roughly 3% forex on top. Accurate at the time of writing —
             SaaS prices change, so check the source before you buy.
           </p>
 
@@ -281,14 +286,14 @@ export default function Article() {
 
           <h3 className={H3}>Supergrow — cheap and simple</h3>
           <p className={P}>
-            From about $19 (₹1,596). A clean, low-cost writer. It misses voice depth, India localisation, and
+            From about $19 ({inr(inrFromUsd(19, rate))}). A clean, low-cost writer. It misses voice depth, India localisation, and
             auto-publish, and it bills in dollars with no GST invoice. A reasonable pick if you want the cheapest
             US-built writer and do not care about Hinglish or tax invoices.
           </p>
 
           <h3 className={H3}>Taplio — the polished US option</h3>
           <p className={P}>
-            From about $39 (₹3,276). The most feature-complete of the lot — strong scheduling, analytics, and a large
+            From about $39 ({inr(inrFromUsd(39, rate))}). The most feature-complete of the lot — strong scheduling, analytics, and a large
             template library. You pay roughly three times the PersonaLink entry price, in dollars, with no GST and no
             native Hinglish. Best if budget is no concern and you want the established US toolset.
           </p>
@@ -304,7 +309,7 @@ export default function Article() {
           <h3 className={H3}>Teal and Kleo — edge cases</h3>
           <p className={P}>
             Teal has a free tier for LinkedIn profile and resume optimisation — good for job seekers, not for posting.
-            Kleo is a one-time lifetime deal (~$99) with a static toolkit and no ongoing improvements; cheap over years,
+            Kleo is a one-time lifetime deal (~{inr(inrFromUsd(99, rate))} / $99) with a static toolkit and no ongoing improvements; cheap over years,
             but you are buying yesterday&apos;s product. See the{' '}
             <Link href="/vs/kleo" style={linkSx}>
               PersonaLink vs Kleo
@@ -314,7 +319,7 @@ export default function Article() {
 
           <h2 className={H2}>The hidden cost of dollar-billed tools</h2>
           <p className={P}>
-            A $15 sticker price is not ₹1,260 in practice. Three things inflate it for an Indian buyer:
+            A $15 sticker price is not {inr(inrFromUsd(15, rate))} in practice. Three things inflate it for an Indian buyer:
           </p>
           <ul className={UL}>
             <li>
