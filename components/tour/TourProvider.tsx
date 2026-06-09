@@ -54,16 +54,14 @@ export function TourProvider({
   }, [persist, close])
 
   const next = useCallback(() => {
-    setStepIndex(i => {
-      if (i === null) return i
-      if (i >= TOUR_STEPS.length - 1) {
-        persist()
-        return null
-      }
-      return i + 1
-    })
+    if (stepIndex !== null && stepIndex >= TOUR_STEPS.length - 1) {
+      persist()
+      setStepIndex(null)
+    } else {
+      setStepIndex(i => (i === null ? i : i + 1))
+    }
     setTargetRect(null)
-  }, [persist])
+  }, [stepIndex, persist])
 
   const back = useCallback(() => {
     setStepIndex(i => (i === null ? i : Math.max(0, i - 1)))
