@@ -305,13 +305,13 @@ export default function PricingPage() {
 
               <div className="px-4 py-3.5 font-bold border-t flex items-center gap-2" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--pl-accent)' }} />
-                Personalink Pro
+                Personalink Standard
               </div>
               <div className="px-4 py-3.5 border-t text-right font-bold" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
-                {fmt(currency, TIER_PRICING.pro[currency].monthly)}
+                {fmt(currency, TIER_PRICING.standard[currency].monthly)}
               </div>
               <div className="px-4 py-3.5 border-t text-right font-bold" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
-                {fmt(currency, TIER_PRICING.pro[currency].monthly * 12)}
+                {fmt(currency, TIER_PRICING.standard[currency].monthly * 12)}
               </div>
 
               <div className="px-4 py-3.5 border-t" style={{ borderColor: 'var(--line)', color: 'var(--ink-3)' }}>
@@ -392,7 +392,7 @@ export default function PricingPage() {
                       </div>
                     ) : (
                       <div className="text-[13px]" style={{ color: 'var(--ink-3)' }}>
-                        Kleo&apos;s one-time {fmt(currency, kleoYearly)} beats us in Year 1 — but stops improving after purchase.
+                        Kleo&apos;s one-time {fmt(currency, kleoYearly)} is cheaper than Standard&apos;s {fmt(currency, TIER_PRICING.standard[currency].monthly * 12)} in Year 1 — but it&apos;s a static toolkit that stops improving after purchase.
                       </div>
                     )}
                   </div>
