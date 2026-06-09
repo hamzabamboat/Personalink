@@ -38,6 +38,7 @@ import {
   Upload,
   Plus,
   Wand2,
+  Compass,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppearanceTrigger } from '@/components/appearance-trigger'
@@ -45,6 +46,9 @@ import { WordMark } from '@/components/word-mark'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PWAInstallSidebarButton } from '@/components/pwa-install-prompt'
 import { tierRank, getNextTier, TIER_LABEL, TIER_LIMITS, type TierID } from '@/lib/pricing-config'
+import { TourProvider } from '@/components/tour/TourProvider'
+import { TourOverlay } from '@/components/tour/TourOverlay'
+import { useTour } from '@/components/tour/tour-context'
 
 type NavItem = {
   href: string
@@ -275,6 +279,21 @@ function NotificationsBell() {
   )
 }
 
+/* ── Replay tour (Help menu) ─────────────────────────────── */
+function ReplayTourButton({ onNavigate }: { onNavigate: () => void }) {
+  const tour = useTour()
+  return (
+    <button
+      onClick={() => { onNavigate(); tour.start() }}
+      className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors hover:bg-surface-3"
+      style={{ color: 'var(--ink-2)' }}
+    >
+      <Compass size={14} style={{ color: 'var(--ink-4)' }} className="shrink-0" />
+      Replay tour
+    </button>
+  )
+}
+
 /* ── Workspace Switcher ──────────────────────────────────── */
 function WorkspaceSwitcher({ user, profile, plan }: { user: User | null; profile: UserProfile | null; plan: string }) {
   const [open, setOpen] = useState(false)
@@ -349,6 +368,7 @@ function WorkspaceSwitcher({ user, profile, plan }: { user: User | null; profile
               <HelpCircle size={14} style={{ color: 'var(--ink-4)' }} className="shrink-0" />
               Help &amp; FAQ
             </Link>
+            <ReplayTourButton onNavigate={() => setOpen(false)} />
           </div>
           <div style={{ borderTop: '1px solid var(--line)' }} className="py-1">
             <button onClick={logout}
@@ -707,7 +727,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const plan = profile?.plan || 'starter'
   const sidebarProps = { user, profile, plan, pathname }
 
+  // Auto-start the first-run tour: onboarding finished, tour never seen, not in agency mode.
+  const tourAutoStart =
+    !!profile && !profile.tour_completed_at && !!profile.onboarding_completed_at && !agencyMode
+
   return (
+    <TourProvider plan={plan} autoStart={tourAutoStart}>
     <div className="flex min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* Desktop sidebar */}
       <aside
@@ -852,6 +877,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </SheetContent>
       </Sheet>
+
+      <TourOverlay />
     </div>
+    </TourProvider>
   )
 }
