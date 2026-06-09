@@ -133,7 +133,7 @@ export default function SuggestionsPage() {
   const currentSuggestions = tab === 'trending' ? bySource.trending : bySource.history
 
   return (
-    <div className="p-3 sm:p-4 md:p-7 w-full">
+    <div className="p-3 sm:p-4 md:p-7 w-full" data-tour="suggestions">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6">
         <div>

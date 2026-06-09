@@ -840,7 +840,7 @@ function GenerateContent() {
               <div className="db-field">
                 <label className="db-label" htmlFor="topic">What do you want to post about?</label>
                 <textarea
-                  id="topic" value={topic} onChange={e => setTopic(e.target.value)}
+                  id="topic" data-tour="generate-input" value={topic} onChange={e => setTopic(e.target.value)}
                   placeholder="e.g. Why most startup advice is wrong, and what I learned building my first company..."
                   className="g-textarea"
                 />

@@ -196,7 +196,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Voice dimensions ── */}
-        <div className="prof-lg" style={{
+        <div className="prof-lg" data-tour="voice" style={{
           gridColumn: 'span 2',
           background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)',
           padding: '20px', display: 'flex', flexDirection: 'column', gap: 16,

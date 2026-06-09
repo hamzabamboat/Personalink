@@ -234,7 +234,7 @@ function PostsContent() {
   }
 
   return (
-    <div className="db-screen">
+    <div className="db-screen" data-tour="posts-panel">
       {/* Edit post dialog — preserved exactly */}
       <ImageSelector
         open={imageSelectorOpen}
