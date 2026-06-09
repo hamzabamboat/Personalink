@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { CURRENCY_TO_INR } from '@/lib/currency'
+import { getUsdInrRate } from '@/lib/fx'
 
 function adminAuth(request: NextRequest) {
   const cookie = request.cookies.get('admin_session')?.value
@@ -33,6 +34,8 @@ function buildPlanIdMap(): Record<string, string> {
 
 export async function GET(request: NextRequest) {
   if (!adminAuth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const usdInr = await getUsdInrRate()
 
   const [usersRes, profilesRes, postsRes, subscriptionsRes] = await Promise.all([
     supabaseAdmin
@@ -109,7 +112,7 @@ export async function GET(request: NextRequest) {
     .reduce((sum, r) => {
       if (r.payment_processor === 'dodo') {
         const localPrice = DODO_PLAN_PRICE[r.plan]?.[r.currency] ?? 0
-        const rate = CURRENCY_TO_INR[r.currency] ?? 84
+        const rate = r.currency === 'USD' ? usdInr : (CURRENCY_TO_INR[r.currency] ?? usdInr)
         return sum + Math.round(localPrice * rate)
       }
       return sum + (PLAN_PRICE_INR[r.plan] || 0)
