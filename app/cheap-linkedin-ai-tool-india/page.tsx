@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LandingShell } from '@/components/landing/LandingShell'
+import { getUsdInrRate, inrFromUsd } from '@/lib/fx'
+import { inr } from '@/lib/competitor-data'
+
+export const revalidate = 604800
 
 const URL = 'https://personalink.in/cheap-linkedin-ai-tool-india'
 
@@ -36,20 +40,13 @@ export const metadata: Metadata = {
 }
 
 // PersonaLink plans (real pricing). Competitor USD figures are public list prices,
-// converted at ~₹84/USD for an illustrative "what you'd actually pay" comparison.
+// converted at the current rate (refreshed weekly) for an illustrative "what you'd actually pay" comparison.
 const PLANS = [
   { name: 'Free', price: '₹0', detail: '3 posts / month · no card', highlight: false },
   { name: 'Starter', price: '₹999', detail: '12 posts / month', highlight: true },
   { name: 'Standard', price: '₹2,499', detail: '22 posts / month', highlight: false },
   { name: 'Pro', price: '₹4,999', detail: '50 posts / month', highlight: false },
   { name: 'Agency', price: 'Custom', detail: 'Multi-client, white-label', highlight: false },
-]
-
-const RIVALS = [
-  ['PersonaLink Starter', '₹999 / mo', 'INR · GST invoice · UPI'],
-  ['Supergrow (Solo, $19)', '≈ ₹1,596 / mo', 'USD · + forex · no GST credit'],
-  ['Taplio (Standard, $39)', '≈ ₹3,276 / mo', 'USD · + forex · no GST credit'],
-  ['Kleo (lifetime, $99)', '≈ ₹8,316 once', 'USD · static, no auto-publish'],
 ]
 
 const FAQS = [
@@ -111,7 +108,14 @@ const h2 = { fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(22px
 const p = { fontSize: 16, lineHeight: 1.7, color: 'var(--ink-3)', margin: '0 0 16px' }
 const section = { padding: 'clamp(36px,6vw,56px) 0', borderTop: '1px solid var(--line)' }
 
-export default function CheapLinkedinAiToolIndiaPage() {
+export default async function CheapLinkedinAiToolIndiaPage() {
+  const rate = await getUsdInrRate()
+  const RIVALS = [
+    ['PersonaLink Starter', '₹999 / mo', 'INR · GST invoice · UPI'],
+    [`Supergrow (Solo, $19)`, `≈ ${inr(inrFromUsd(19, rate))} / mo`, 'USD · + forex · no GST credit'],
+    [`Taplio (Standard, $39)`, `≈ ${inr(inrFromUsd(39, rate))} / mo`, 'USD · + forex · no GST credit'],
+    [`Kleo (lifetime, $99)`, `≈ ${inr(inrFromUsd(99, rate))} once`, 'USD · static, no auto-publish'],
+  ]
   return (
     <LandingShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -177,7 +181,7 @@ export default function CheapLinkedinAiToolIndiaPage() {
             ))}
           </div>
           <p style={{ ...p, marginTop: 14, fontSize: 13.5, color: 'var(--ink-4)' }}>
-            Competitor figures are public USD list prices converted at ~₹84/USD, before forex and GST. For the full breakdown, read{' '}
+            Competitor figures are public USD list prices converted at the current rate, refreshed weekly, before forex and GST. For the full breakdown, read{' '}
             <Link href="/blog/cheapest-ai-linkedin-tools-india" style={{ color: 'var(--pl-accent)' }}>the cheapest AI LinkedIn tools in India compared</Link>.
           </p>
         </div>
