@@ -41,6 +41,9 @@ yarn-error.log*
 next-env.d.ts
 .env*.local
 
+# brainstorming visual companion
+.superpowers/
+
 # PWA generated service worker files
 public/sw.js
 public/sw.js.map
