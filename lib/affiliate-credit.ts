@@ -18,9 +18,10 @@ import {
   AFFILIATE_COMMISSION_DURATION_MONTHS,
   commissionAmountInr,
   commissionExpiryFrom,
-  convertToInr,
+  paymentToInr,
   withinCommissionWindow,
 } from './affiliate'
+import { getUsdInrRate, FX_FALLBACK_USD_INR } from './fx'
 import type { Currency } from './pricing-config'
 
 export type CreditArgs = {
@@ -99,8 +100,10 @@ export async function creditAffiliateCommission(args: CreditArgs): Promise<Credi
       }
     }
 
-    // 4. Compute INR-equivalent payment + commission.
-    const paymentInr = convertToInr(args.paymentCurrency, args.paymentAmount)
+    // 4. Compute INR-equivalent payment + commission. USD converts at the live
+    //    weekly rate (getUsdInrRate); GBP/EUR/INR stay on the static map.
+    const usdInr = args.paymentCurrency === 'USD' ? await getUsdInrRate() : FX_FALLBACK_USD_INR
+    const paymentInr = paymentToInr(args.paymentCurrency, args.paymentAmount, usdInr)
     const commissionInr = commissionAmountInr(paymentInr, rate)
 
     // 5. Insert commission row. Unique constraint on
