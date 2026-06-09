@@ -61,6 +61,7 @@ export type UserProfile = {
   voice_locale: LocaleId
   plan: Plan | null
   onboarding_completed_at: string | null
+  tour_completed_at: string | null
   posts_used_this_month: number
   posts_limit: number
   // Schedule preferences
