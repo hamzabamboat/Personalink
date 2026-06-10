@@ -39,7 +39,7 @@ export type Honest = { title: string; body: string }
 export type MigrationStep = { title: string; body: string }
 
 export type Competitor = {
-  slug: 'taplio' | 'kleo' | 'supergrow' | 'authoredup' | 'easygen' | 'contentin'
+  slug: 'taplio' | 'kleo' | 'supergrow' | 'authoredup' | 'easygen' | 'contentin' | 'magicpost'
   /** Brand name as printed publicly. */
   name: string
   /** One-line positioning of the competitor (used in hero subhead). */
@@ -95,7 +95,7 @@ export function pickCompetitorPlanFor(competitor: Competitor, postsPerMonth: num
 export const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 
 export type CompetitorSlug = Competitor['slug']
-export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow', 'authoredup', 'easygen', 'contentin']
+export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow', 'authoredup', 'easygen', 'contentin', 'magicpost']
 
 /** Raw USD plans — rate-independent, the source of truth for prices. */
 export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
@@ -122,6 +122,10 @@ export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
     { name: 'Essentials', monthlyUsd: 15, postBudget: 0, seats: 1 },
     { name: 'Growth', monthlyUsd: 31, postBudget: 12, seats: 1 },
     { name: 'Pro', monthlyUsd: 48, postBudget: 999, seats: 1 },
+  ],
+  magicpost: [
+    { name: 'Analytics', monthlyUsd: 21, postBudget: 0, seats: 1 },
+    { name: 'Creator', monthlyUsd: 39, postBudget: 90, seats: 1 },
   ],
 }
 
@@ -632,6 +636,71 @@ function buildContentin(rate: number): Competitor {
 }
 
 /* ────────────────────────────────────────────────────────────────────
+ * MAGICPOST
+ * ──────────────────────────────────────────────────────────────────── */
+
+function buildMagicpost(rate: number): Competitor {
+  return {
+  slug: 'magicpost',
+  name: 'MagicPost',
+  oneLiner: 'India-domiciled, yet still billed in USD with no GST, UPI or Hinglish — and AI writing only from its $39 plan.',
+  pricingModel: 'recurring',
+  plans: COMPETITOR_PLANS.magicpost,
+  hero: {
+    subhead: 'An India-built LinkedIn tool that still bills in dollars. PersonaLink writes in your voice — in INR, with GST invoices, in Hinglish.',
+    headlineSavings: Math.round((39 * rate - PL_PLANS.standard.inr) * 12),
+  },
+  features: [
+    { label: 'Entry price for AI post generation', pl: `${inr(PL_PLANS.starter.inr)} (Starter)`, competitor: `${inr(39 * rate)} ($39 Creator)`, highlight: 'pl', note: 'MagicPost’s $21 Analytics plan covers LinkedIn metrics + manual scheduling only — AI post generation starts on the $39 Creator plan.' },
+    { label: 'Cheapest paid plan', pl: inr(PL_PLANS.starter.inr), competitor: `${inr(21 * rate)} ($21, analytics only)` },
+    { label: 'Permanent free tier', pl: '✅ 3 posts/month free', competitor: '⚠️ Free trial only (no card)', highlight: 'pl' },
+    { label: 'AI writing in your voice', pl: `✅ On every paid plan (from ${inr(PL_PLANS.starter.inr)})`, competitor: '✅ From the $39 Creator plan' },
+    { label: 'Voice notes → post', pl: '✅', competitor: '❌', highlight: 'pl' },
+    ...indiaRows,
+    { label: 'Auto-publish & scheduling', pl: '✅', competitor: '✅' },
+    { label: 'LinkedIn analytics depth', pl: '✅ What resonates', competitor: '✅ Advanced (a core strength)', highlight: 'competitor' },
+    { label: 'Free tools & post-idea library', pl: '⚠️ Built into the app', competitor: '✅ Large free-tools + idea library', highlight: 'competitor' },
+    { label: 'Comment scheduling', pl: '❌', competitor: '✅', highlight: 'competitor' },
+    { label: 'Repurpose engine (1 post → 5 formats)', pl: '✅', competitor: '⚠️', highlight: 'pl' },
+    { label: 'Story bank (reusable lived experiences)', pl: '✅', competitor: '❌', highlight: 'pl' },
+    { label: 'Official LinkedIn OAuth (posting-only)', pl: '✅', competitor: '✅' },
+    { label: 'Cancel in one click', pl: '✅', competitor: '⚠️ Account settings' },
+  ],
+  honest: [
+    {
+      title: 'When MagicPost might be a better fit',
+      body: 'MagicPost is genuinely strong on the analytics side — advanced LinkedIn metrics, comment scheduling, and a large library of free tools and post ideas. If your priority is measurement and inspiration rather than voice-matched writing, and INR, GST and Hinglish do not matter to you, it is a capable choice.',
+    },
+    {
+      title: 'The irony: a .in tool that bills in USD',
+      body: `MagicPost runs on a .in domain but still prices in US dollars ($21–$39/mo), with no GST invoice, no UPI, and no Hinglish. PersonaLink is the actually-India-native option — INR billing from ${inr(PL_PLANS.starter.inr)}, a GSTIN on every invoice, UPI/Razorpay, and native code-mixed Hinglish.`,
+    },
+  ],
+  faq: [
+    { q: 'Is PersonaLink cheaper than MagicPost?', a: `For AI writing, yes. MagicPost’s post generator starts on its $39/month Creator plan (about ${inr(39 * rate)} with FX); the $21 Analytics plan only does metrics and manual scheduling. PersonaLink includes the voice fingerprint from its ${inr(PL_PLANS.starter.inr)} Starter plan, billed in INR with a GST invoice, and has a free tier.` },
+    { q: 'MagicPost uses a .in domain — does it bill in INR or give GST invoices?', a: 'No. Despite the .in domain, MagicPost prices in US dollars and does not offer INR billing, UPI, or an India GST invoice. PersonaLink bills in INR via Razorpay (UPI + cards) and puts a GSTIN on every invoice so you can claim 18% input tax credit.' },
+    { q: 'Does MagicPost write Hinglish posts?', a: 'No — MagicPost writes in English. PersonaLink natively writes code-mixed Hinglish without forcing translation into pure English or Hindi.' },
+    { q: 'Does MagicPost turn voice notes into posts?', a: 'No. PersonaLink lets you record a voice note and returns a polished, structured LinkedIn post in your voice — MagicPost has no voice-note workflow.' },
+    { q: 'What does MagicPost do better than PersonaLink?', a: 'Honestly, a couple of things: its advanced LinkedIn analytics, comment scheduling, and its large library of free tools and post ideas are real strengths. If deep metrics and an idea library matter more to you than India fit and voice depth, MagicPost is a fair pick.' },
+    { q: 'Does the AI write in my own voice?', a: 'PersonaLink constrains every draft to a 6-dimension fingerprint of your past posts (rhythm, vocabulary, openings, pet phrases, warmth, punctuation), so it reads like you. MagicPost’s generator is style and template based, and starts on its Creator plan.' },
+    { q: 'Do both publish through official LinkedIn access?', a: 'Yes — both schedule and auto-publish, and PersonaLink connects through official LinkedIn OAuth with posting-only permission: it never reads your DMs, never scrapes your network, and never stores your password.' },
+    { q: 'Is there a free way to try each?', a: 'MagicPost offers a free trial (no card) to generate a few posts. PersonaLink has a permanent free tier — 3 posts a month, one voice fingerprint, no card — so you can keep using it without paying.' },
+    { q: 'Can I cancel anytime?', a: 'PersonaLink cancels in one click in Settings and you keep access to the end of the billing period. MagicPost subscriptions are cancellable from account settings.' },
+  ],
+  migration: [
+    { title: 'Keep your MagicPost analytics if you use them', body: 'MagicPost and PersonaLink solve different jobs — keep MagicPost for metrics if you like it, and use PersonaLink for voice-matched writing and publishing.' },
+    { title: 'Sign up to PersonaLink', body: 'Connect with official LinkedIn OAuth and start on the free tier or a 7-day trial — no card required.' },
+    { title: 'Paste 3 sample posts', body: 'We build your 6-dimension voice fingerprint in about 30 seconds, then you can draft in your voice and auto-publish.' },
+  ],
+  quote: {
+    body: 'I tried MagicPost because it looked Indian, but everything was priced in dollars with no GST invoice or Hinglish. PersonaLink actually fits how I pay and how I write.',
+    name: '— Real testimonial coming soon',
+    role: 'Founder · India (placeholder)',
+  },
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
  * Registry
  * ──────────────────────────────────────────────────────────────────── */
 
@@ -643,6 +712,7 @@ export function getCompetitor(slug: CompetitorSlug, rate: number): Competitor {
     case 'authoredup': return buildAuthoredup(rate)
     case 'easygen': return buildEasygen(rate)
     case 'contentin': return buildContentin(rate)
+    case 'magicpost': return buildMagicpost(rate)
   }
 }
 
