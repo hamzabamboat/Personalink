@@ -97,6 +97,17 @@ export const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 export type CompetitorSlug = Competitor['slug']
 export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow', 'authoredup', 'easygen', 'contentin', 'magicpost']
 
+/** Public display names per slug — used to cross-link the /vs/* pages to each other. */
+export const COMPETITOR_NAMES: Record<CompetitorSlug, string> = {
+  taplio: 'Taplio',
+  kleo: 'Kleo',
+  supergrow: 'Supergrow',
+  authoredup: 'AuthoredUp',
+  easygen: 'EasyGen',
+  contentin: 'ContentIn',
+  magicpost: 'MagicPost',
+}
+
 /** Raw USD plans — rate-independent, the source of truth for prices. */
 export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
   taplio: [
