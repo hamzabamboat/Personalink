@@ -270,7 +270,7 @@ export function Hero({ onConnect }: { onConnect?: () => void }) {
               maxWidth: 540,
             }}
           >
-            6-dimensional voice mapping plus an Anti-AI humanizer. Generate LinkedIn posts in your exact tone. Pay in INR. Get GST invoices.
+            PersonaLink is an AI LinkedIn tool built for India: 6-dimensional voice mapping plus an Anti-AI humanizer generate posts in your exact tone. Pay in INR, get GST invoices — from ₹999/month.
           </motion.p>
 
           <motion.div

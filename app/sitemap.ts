@@ -28,6 +28,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/ai-linkedin-automation-tool`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${BASE}/cheap-linkedin-ai-tool-india`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${BASE}/faq`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/hinglish-linkedin-post-generator`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE}/features/anti-ai-humanizer`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE}/features`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },

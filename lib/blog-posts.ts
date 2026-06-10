@@ -87,7 +87,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'best-ai-linkedin-post-generators-for-indian-professionals-2026',
     title: 'Best AI LinkedIn post generators for Indian professionals 2026',
     excerpt:
-      "We tested 8 AI LinkedIn tools available in India. Here's which ones actually write in your voice, support INR pricing, and handle Indian audiences.",
+      "A comparison of the main AI LinkedIn tools available in India — which actually write in your voice, support INR pricing, and handle Indian audiences.",
     tags: ['AI LinkedIn Manager India', 'LinkedIn Tools', 'Product Review'],
     date: 'April 2026',
     readTime: '7 min read',

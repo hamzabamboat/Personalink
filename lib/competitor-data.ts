@@ -39,7 +39,7 @@ export type Honest = { title: string; body: string }
 export type MigrationStep = { title: string; body: string }
 
 export type Competitor = {
-  slug: 'taplio' | 'kleo' | 'supergrow'
+  slug: 'taplio' | 'kleo' | 'supergrow' | 'authoredup'
   /** Brand name as printed publicly. */
   name: string
   /** One-line positioning of the competitor (used in hero subhead). */
@@ -95,7 +95,7 @@ export function pickCompetitorPlanFor(competitor: Competitor, postsPerMonth: num
 export const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 
 export type CompetitorSlug = Competitor['slug']
-export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow']
+export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow', 'authoredup']
 
 /** Raw USD plans — rate-independent, the source of truth for prices. */
 export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
@@ -110,6 +110,10 @@ export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
   supergrow: [
     { name: 'Solo', monthlyUsd: 19, postBudget: 30, seats: 1 },
     { name: 'Pro', monthlyUsd: 39, postBudget: 90, seats: 1 },
+  ],
+  authoredup: [
+    { name: 'Individual', monthlyUsd: 19.95, postBudget: 999, seats: 1 },
+    { name: 'Business', monthlyUsd: 14.95, postBudget: 999, seats: 3 },
   ],
 }
 
@@ -424,6 +428,74 @@ function buildSupergrow(rate: number): Competitor {
 }
 
 /* ────────────────────────────────────────────────────────────────────
+ * AUTHOREDUP
+ * ──────────────────────────────────────────────────────────────────── */
+
+function buildAuthoredup(rate: number): Competitor {
+  return {
+  slug: 'authoredup',
+  name: 'AuthoredUp',
+  oneLiner: 'Best-in-class LinkedIn formatting, previews and analytics — but no AI writing, and billed in USD.',
+  pricingModel: 'recurring',
+  plans: COMPETITOR_PLANS.authoredup,
+  hero: {
+    subhead: 'AuthoredUp formats your posts. PersonaLink writes them — in your voice, in INR, with GST invoices.',
+    headlineSavings: Math.round((19.95 * rate - PL_PLANS.starter.inr) * 12),
+  },
+  features: [
+    { label: 'Entry-level monthly price', pl: inr(PL_PLANS.starter.inr), competitor: `${inr(19.95 * rate)} ($19.95)`, highlight: 'pl' },
+    { label: 'Annual effective monthly price', pl: inr(Math.round(PL_PLANS.starter.inr * 0.75)), competitor: `${inr(16.63 * rate)} ($16.63)`, highlight: 'pl' },
+    { label: 'Permanent free tier', pl: '✅ 3 posts/month free', competitor: '❌ 14-day trial only', highlight: 'pl' },
+    { label: 'AI writing in your voice', pl: '✅ 6-dimension voice fingerprint', competitor: '❌ No AI — you write every post', highlight: 'pl', note: 'AuthoredUp deliberately excludes AI content generation; it is a formatting & analytics layer, not a writer.' },
+    { label: 'Voice notes → post', pl: '✅', competitor: '❌', highlight: 'pl' },
+    { label: 'Repurpose engine (1 post → 5 formats)', pl: '✅', competitor: '❌', highlight: 'pl' },
+    { label: 'Anti-AI humanizer', pl: '✅', competitor: '— (no AI output to humanize)', highlight: 'pl' },
+    ...indiaRows,
+    { label: 'Auto-publish on schedule', pl: '✅', competitor: '✅' },
+    { label: 'Rich-text post formatter (bold, italics, lists)', pl: '⚠️ Basic', competitor: '✅ Best-in-class', highlight: 'competitor' },
+    { label: 'Inline post preview (desktop & mobile)', pl: '⚠️', competitor: '✅ Mature', highlight: 'competitor' },
+    { label: 'Hook & template library', pl: '⚠️ Built into drafts', competitor: '✅ 300+ hooks', highlight: 'competitor' },
+    { label: 'Analytics on your post history', pl: '✅ What resonates', competitor: '✅ Deeper, in-feed' },
+    { label: 'Works without a browser extension', pl: '✅ Web app + LinkedIn OAuth', competitor: '⚠️ Chrome/Edge extension required', highlight: 'pl' },
+    { label: 'Free trial', pl: '✅ 7-day, no card', competitor: '✅ 14-day, no card' },
+    { label: 'Cancel in one click', pl: '✅', competitor: '⚠️ Account settings' },
+  ],
+  honest: [
+    {
+      title: 'When AuthoredUp might be a better fit',
+      body: 'If you prefer to write every post yourself and just want the best in-editor formatting, device previews, a big hook library, and detailed analytics on your own posts, AuthoredUp is genuinely excellent. It is a writing-enhancement layer, not an AI writer — so if you do not want AI drafting, PersonaLink is not what you need.',
+    },
+    {
+      title: 'You can use both',
+      body: 'They solve different problems: PersonaLink drafts in your voice and auto-publishes; AuthoredUp polishes formatting and shows analytics. Plenty of creators run both. But if you are choosing one tool and want the AI to do the writing — in INR, with a GST invoice — PersonaLink is the pick.',
+    },
+  ],
+  faq: [
+    { q: 'Does AuthoredUp write LinkedIn posts for you?', a: 'No. AuthoredUp deliberately has no AI content generation — it is a formatting, preview and analytics tool, so you write every post yourself. PersonaLink drafts posts in your own voice using a 6-dimension voice fingerprint, then lets you approve or auto-publish.' },
+    { q: 'Is PersonaLink cheaper than AuthoredUp?', a: `AuthoredUp Individual is $19.95/month (about ${inr(19.95 * rate)} at today's rate) plus FX fees, with no GST invoice. PersonaLink Starter is ${inr(PL_PLANS.starter.inr)}/month, billed in INR with a GST invoice — and there is a permanent free tier. For Indian businesses the 18% GST input credit widens the gap further.` },
+    { q: 'Does AuthoredUp support INR billing or GST invoices?', a: 'No — AuthoredUp bills in USD and cannot issue an India GST invoice. PersonaLink bills in INR via Razorpay (UPI + cards) and puts a GSTIN on every invoice so you can claim input tax credit.' },
+    { q: 'Can I use AuthoredUp and PersonaLink together?', a: 'Yes — they are complementary. Use PersonaLink to draft in your voice and publish, and AuthoredUp to fine-tune formatting and study analytics. If you only want one, pick based on whether you want the AI to write (PersonaLink) or to write yourself with better tooling (AuthoredUp).' },
+    { q: 'Does AuthoredUp do Hinglish posts?', a: 'No. AuthoredUp is a formatting tool with an English interface and no Indian localisation. PersonaLink natively writes code-mixed Hinglish without forcing translation into pure English or Hindi.' },
+    { q: "Does PersonaLink have AuthoredUp's formatting and analytics?", a: "Honest answer: AuthoredUp's in-feed formatter, device previews and post analytics are more mature today. PersonaLink focuses on drafting in your voice and surfacing what resonates. If best-in-class formatting is your priority and you write your own posts, AuthoredUp leads there." },
+    { q: 'Does AuthoredUp need a browser extension?', a: 'Yes — AuthoredUp is primarily a Chrome/Edge extension that works inside your logged-in LinkedIn session. PersonaLink is a web app that connects through official LinkedIn OAuth with posting-only permission (no DM reading, no scraping, no password sharing).' },
+    { q: 'Which has the better free trial?', a: 'AuthoredUp offers a 14-day trial with no card required. PersonaLink offers a 7-day trial with no card, plus a permanent free tier (3 posts/month) so you can keep using it without paying.' },
+    { q: 'Will the posts actually sound like me?', a: 'With PersonaLink, yes — every draft is constrained to a 6-dimension fingerprint of your past posts (rhythm, vocabulary, openings, pet phrases, warmth, punctuation). AuthoredUp does not generate content, so the voice is entirely up to you.' },
+    { q: 'Can I cancel anytime?', a: 'PersonaLink cancels in one click in Settings and you keep access to the end of the billing period. AuthoredUp subscriptions are cancellable from account settings.' },
+  ],
+  migration: [
+    { title: 'Keep AuthoredUp if you like its formatter', body: 'You do not have to remove it — AuthoredUp and PersonaLink solve different problems and can run side by side.' },
+    { title: 'Sign up to PersonaLink', body: 'Connect with official LinkedIn OAuth and start on the free tier or a 7-day trial — no card required.' },
+    { title: 'Paste 3 sample posts', body: 'We build your 6-dimension voice fingerprint in about 30 seconds, then you can draft in your voice and auto-publish.' },
+  ],
+  quote: {
+    body: 'I used AuthoredUp to format posts I still had to write myself. PersonaLink writes the first draft in my voice — then I polish. Different jobs, but the writing was the part I needed help with.',
+    name: '— Real testimonial coming soon',
+    role: 'Founder · India (placeholder)',
+  },
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
  * Registry
  * ──────────────────────────────────────────────────────────────────── */
 
@@ -432,6 +504,7 @@ export function getCompetitor(slug: CompetitorSlug, rate: number): Competitor {
     case 'taplio': return buildTaplio(rate)
     case 'kleo': return buildKleo(rate)
     case 'supergrow': return buildSupergrow(rate)
+    case 'authoredup': return buildAuthoredup(rate)
   }
 }
 

@@ -64,10 +64,12 @@ export function generateRefCode(name: string): string {
   return `${slug}${suffix}`
 }
 
-/** Convert a payment in any supported currency to INR using the static rate map.
- *  Mirrors the conversion used by the savings calculator on /pricing. */
-export function convertToInr(currency: Currency, amount: number): number {
-  return Math.round(amount * CURRENCY_TO_INR[currency])
+/** Convert a payment to INR. USD uses the live weekly rate (`usdInrRate`, from
+ *  `getUsdInrRate()` in lib/fx.ts); GBP/EUR/INR stay on the static `CURRENCY_TO_INR`
+ *  map. Callers in async server contexts (webhooks) pass the awaited live rate. */
+export function paymentToInr(currency: Currency, amount: number, usdInrRate: number): number {
+  const rate = currency === 'USD' ? usdInrRate : CURRENCY_TO_INR[currency]
+  return Math.round(amount * rate)
 }
 
 /** Apply the 27.5% commission rate to an INR-denominated payment. */

@@ -79,6 +79,35 @@ function pickTaplioMonthlyUsdForPosts(posts: number): number {
   return plan.monthlyUsd ?? 0
 }
 
+// Static India pricing as machine-readable Offers so AI answers and rich results can
+// extract the ₹999 entry price for "under ₹1000 / India" queries. Sourced from
+// TIER_PRICING (the single source of truth) so the numbers can never drift from the UI.
+const PRICING_JSONLD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Product',
+      name: 'PersonaLink',
+      description:
+        'AI LinkedIn tool for India — writes posts in your voice, auto-publishes on schedule, billed in INR with GST invoices. Free tier plus paid plans from ₹999/month.',
+      brand: { '@type': 'Brand', name: 'PersonaLink' },
+      url: 'https://personalink.in/pricing',
+      offers: [
+        { '@type': 'Offer', name: 'Starter', price: String(TIER_PRICING.starter.INR.monthly), priceCurrency: 'INR', availability: 'https://schema.org/InStock', url: 'https://personalink.in/pricing' },
+        { '@type': 'Offer', name: 'Standard', price: String(TIER_PRICING.standard.INR.monthly), priceCurrency: 'INR', availability: 'https://schema.org/InStock', url: 'https://personalink.in/pricing' },
+        { '@type': 'Offer', name: 'Pro', price: String(TIER_PRICING.pro.INR.monthly), priceCurrency: 'INR', availability: 'https://schema.org/InStock', url: 'https://personalink.in/pricing' },
+      ],
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://personalink.in' },
+        { '@type': 'ListItem', position: 2, name: 'Pricing', item: 'https://personalink.in/pricing' },
+      ],
+    },
+  ],
+}
+
 export default function PricingPage() {
   // Default SSR currency to INR (India-first): ensures ₹999 is in the crawlable
   // HTML for "under ₹1000 / India" queries. Client useEffect corrects to the
@@ -132,6 +161,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(PRICING_JSONLD) }} />
       <header className="px-4 sm:px-6 border-b" style={{ background: 'var(--surface)', borderColor: 'var(--line)' }}>
         <div className="max-w-[1200px] mx-auto h-16 flex items-center justify-between">
           <Link href="/"><WordMark icon wordmark iconSize={28} /></Link>
