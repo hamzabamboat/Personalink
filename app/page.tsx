@@ -1047,11 +1047,15 @@ const JSON_LD = {
       '@type': 'Organization',
       '@id': 'https://personalink.in/#organization',
       name: 'PersonaLink',
+      alternateName: ['Personalink', 'PersonaLink India'],
       url: 'https://personalink.in',
       logo: 'https://personalink.in/logo-full.png',
-      description: 'AI LinkedIn manager (India) that writes posts in your voice, auto-publishes on schedule, and shows what resonates. INR billing with GST invoices.',
-      // TODO: add real social profile URLs to `sameAs` (LinkedIn, X, Crunchbase) —
-      // strongest signal to disambiguate PersonaLink from personalink.me (exec-search firm).
+      description: 'PersonaLink is an AI LinkedIn tool for India that writes posts in your voice, auto-publishes on schedule, and shows what resonates — billed in INR with GST invoices. It is a software product and is not affiliated with the executive-search firm at personalink.me.',
+      address: { '@type': 'PostalAddress', addressCountry: 'IN' },
+      contactPoint: { '@type': 'ContactPoint', email: 'hello@personalink.in', contactType: 'customer support', areaServed: 'IN', availableLanguage: ['en', 'hi'] },
+      // sameAs: paste your REAL profile URLs here once they exist — the single strongest
+      // signal to disambiguate PersonaLink from personalink.me (exec-search firm). Example:
+      // sameAs: ['https://www.linkedin.com/company/<handle>', 'https://x.com/<handle>', 'https://www.crunchbase.com/organization/<handle>', 'https://www.producthunt.com/products/<handle>'],
     },
     {
       '@type': 'WebSite',

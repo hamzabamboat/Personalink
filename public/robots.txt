@@ -1,7 +1,30 @@
+# PersonaLink — https://personalink.in
 User-agent: *
 Allow: /
 Disallow: /dashboard/
 Disallow: /admin/
 Disallow: /api/
 Disallow: /agency-inquiry/thank-you
+
+# Explicitly welcome AI assistants & answer engines to read and cite the site.
+# (They already match the * group above; this makes the intent unambiguous and
+#  keeps the same private-path Disallows so /admin, /api, /dashboard stay hidden.)
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: Claude-Web
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+User-agent: meta-externalagent
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /agency-inquiry/thank-you
+
 Sitemap: https://personalink.in/sitemap.xml

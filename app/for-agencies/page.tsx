@@ -86,7 +86,8 @@ export default function ForAgenciesPage() {
     operatingSystem: 'Web',
     description:
       'LinkedIn content platform for agencies. Per-client voice fingerprints, white-label dashboard, GST-compliant INR billing.',
-    offers: { '@type': 'Offer', priceCurrency: 'INR', price: 'Custom' },
+    // No `offers` node: agency pricing is custom/negotiated. Schema.org `price`
+    // must be a number, so a literal "Custom" is invalid and was dropped.
   }
   const jsonLdService = {
     '@context': 'https://schema.org',
