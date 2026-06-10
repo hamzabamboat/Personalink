@@ -14,8 +14,8 @@ const NAV: ReadonlyArray<readonly [string, string]> = [
 
 const FOOTER: ReadonlyArray<{ heading: string; links: ReadonlyArray<readonly [string, string]> }> = [
   { heading: 'Product', links: [['/ai-linkedin-automation-tool', 'AI automation tool'], ['/features', 'All features'], ['/ai-linkedin-ghostwriter', 'AI ghostwriter'], ['/pricing', 'Pricing'], ['/voice-analyzer', 'Free voice analyzer']] },
-  { heading: 'For India', links: [['/cheap-linkedin-ai-tool-india', 'Under ₹1,000'], ['/hinglish-linkedin-post-generator', 'Hinglish generator'], ['/tools/linkedin-cost-calculator', 'Cost calculator'], ['/faq', 'GST, UPI & Hinglish']] },
-  { heading: 'Compare', links: [['/vs', 'All comparisons'], ['/vs/taplio', 'vs Taplio'], ['/vs/supergrow', 'vs Supergrow'], ['/vs/kleo', 'vs Kleo']] },
+  { heading: 'For India', links: [['/ai-linkedin-post-generator-india', 'Post generator India'], ['/cheap-linkedin-ai-tool-india', 'Under ₹1,000'], ['/hinglish-linkedin-post-generator', 'Hinglish generator'], ['/tools/linkedin-cost-calculator', 'Cost calculator'], ['/faq', 'GST, UPI & Hinglish']] },
+  { heading: 'Compare', links: [['/vs', 'All comparisons'], ['/vs/taplio', 'vs Taplio'], ['/vs/supergrow', 'vs Supergrow'], ['/vs/magicpost', 'vs MagicPost'], ['/vs/kleo', 'vs Kleo']] },
   { heading: 'More', links: [['/about', 'About'], ['/blog', 'Blog'], ['/for-agencies', 'For agencies'], ['/privacy', 'Privacy'], ['/terms', 'Terms']] },
 ]
 
