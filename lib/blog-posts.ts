@@ -12,6 +12,15 @@ export type BlogPost = {
 // always advertised to crawlers. Newest first.
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'linkedin-algorithm-2026',
+    title: 'The LinkedIn algorithm in 2026: how reach actually works',
+    excerpt:
+      'What the 2026 LinkedIn feed rewards — dwell time, meaningful comments and genuine expertise — why engagement-bait is dead, and how to work with it (India view).',
+    tags: ['LinkedIn Algorithm', 'LinkedIn India', 'Growth Strategy'],
+    date: 'June 2026',
+    readTime: '7 min read',
+  },
+  {
     slug: 'linkedin-content-ideas-india',
     title: 'LinkedIn content ideas for Indian professionals (2026)',
     excerpt:
