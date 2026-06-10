@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { WordMark } from '@/components/word-mark'
 import { FeatureTable } from './FeatureTable'
 import { SavingsCalculator } from './SavingsCalculator'
-import { type Competitor, inr } from '@/lib/competitor-data'
+import { type Competitor, type CompetitorSlug, inr, COMPETITOR_SLUGS, COMPETITOR_NAMES } from '@/lib/competitor-data'
 
 type Props = { competitor: Competitor }
 
@@ -474,7 +474,52 @@ export function ComparisonPage({ competitor }: Props) {
         </div>
       </section>
 
-      <Footer />
+      {/* Compare other tools */}
+      <Section eyebrow="// 07 — Other comparisons" id="compare">
+        <Header
+          title={<>Compare PersonaLink to <span style={SERIF}>every tool.</span></>}
+          sub={`Weighing up more than just ${c.name}? See how PersonaLink compares to the other LinkedIn tools Indian creators shortlist.`}
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          {COMPETITOR_SLUGS.filter((s) => s !== c.slug).map((s) => (
+            <Link
+              key={s}
+              href={`/vs/${s}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                background: 'var(--surface)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--r-md)',
+                padding: '16px 18px',
+                textDecoration: 'none',
+                color: 'var(--ink)',
+                fontWeight: 600,
+                fontSize: 15,
+                boxShadow: 'var(--sh-1)',
+              }}
+            >
+              PersonaLink vs {COMPETITOR_NAMES[s]}
+              <span aria-hidden style={{ color: 'var(--pl-accent)' }}>→</span>
+            </Link>
+          ))}
+        </div>
+        <div style={{ marginTop: 16, fontSize: 14, color: 'var(--ink-3)' }}>
+          See the full roundup in{' '}
+          <Link href="/blog/best-taplio-alternatives" style={{ color: 'var(--pl-accent)', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+            the best Taplio alternatives for 2026
+          </Link>
+          , or browse{' '}
+          <Link href="/vs" style={{ color: 'var(--pl-accent)', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+            all comparisons
+          </Link>
+          .
+        </div>
+      </Section>
+
+      <Footer currentSlug={c.slug} />
     </div>
   )
 }
@@ -547,7 +592,8 @@ function Nav() {
   )
 }
 
-function Footer() {
+function Footer({ currentSlug }: { currentSlug: CompetitorSlug }) {
+  const others = COMPETITOR_SLUGS.filter((s) => s !== currentSlug)
   return (
     <footer
       style={{
@@ -569,10 +615,11 @@ function Footer() {
         }}
       >
         <div>© {new Date().getFullYear()} PersonaLink · Built in India</div>
-        <div style={{ display: 'flex', gap: 18 }}>
-          <Link href="/vs/taplio" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>vs Taplio</Link>
-          <Link href="/vs/kleo" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>vs Kleo</Link>
-          <Link href="/vs/supergrow" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>vs Supergrow</Link>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          {others.map((s) => (
+            <Link key={s} href={`/vs/${s}`} style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>vs {COMPETITOR_NAMES[s]}</Link>
+          ))}
+          <Link href="/vs" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>All comparisons</Link>
         </div>
       </div>
     </footer>
