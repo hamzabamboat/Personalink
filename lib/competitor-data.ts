@@ -39,7 +39,7 @@ export type Honest = { title: string; body: string }
 export type MigrationStep = { title: string; body: string }
 
 export type Competitor = {
-  slug: 'taplio' | 'kleo' | 'supergrow' | 'authoredup'
+  slug: 'taplio' | 'kleo' | 'supergrow' | 'authoredup' | 'easygen' | 'contentin'
   /** Brand name as printed publicly. */
   name: string
   /** One-line positioning of the competitor (used in hero subhead). */
@@ -95,7 +95,7 @@ export function pickCompetitorPlanFor(competitor: Competitor, postsPerMonth: num
 export const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
 
 export type CompetitorSlug = Competitor['slug']
-export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow', 'authoredup']
+export const COMPETITOR_SLUGS: CompetitorSlug[] = ['taplio', 'kleo', 'supergrow', 'authoredup', 'easygen', 'contentin']
 
 /** Raw USD plans — rate-independent, the source of truth for prices. */
 export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
@@ -114,6 +114,14 @@ export const COMPETITOR_PLANS: Record<CompetitorSlug, CompetitorPlan[]> = {
   authoredup: [
     { name: 'Individual', monthlyUsd: 19.95, postBudget: 999, seats: 1 },
     { name: 'Business', monthlyUsd: 14.95, postBudget: 999, seats: 3 },
+  ],
+  easygen: [
+    { name: 'Pro', monthlyUsd: 59.99, postBudget: 999, seats: 1 },
+  ],
+  contentin: [
+    { name: 'Essentials', monthlyUsd: 15, postBudget: 0, seats: 1 },
+    { name: 'Growth', monthlyUsd: 31, postBudget: 12, seats: 1 },
+    { name: 'Pro', monthlyUsd: 48, postBudget: 999, seats: 1 },
   ],
 }
 
@@ -496,6 +504,134 @@ function buildAuthoredup(rate: number): Competitor {
 }
 
 /* ────────────────────────────────────────────────────────────────────
+ * EASYGEN
+ * ──────────────────────────────────────────────────────────────────── */
+
+function buildEasygen(rate: number): Competitor {
+  return {
+  slug: 'easygen',
+  name: 'EasyGen',
+  oneLiner: 'A well-known LinkedIn AI writer — but a single $59.99/mo plan, no free tier, and USD-only.',
+  pricingModel: 'recurring',
+  plans: COMPETITOR_PLANS.easygen,
+  hero: {
+    subhead: 'The same LinkedIn AI writing, at a fraction of the price. Pay in INR, get GST invoices, post in Hinglish.',
+    headlineSavings: Math.round((59.99 * rate - PL_PLANS.starter.inr) * 12),
+  },
+  features: [
+    { label: 'Entry-level monthly price', pl: inr(PL_PLANS.starter.inr), competitor: `${inr(59.99 * rate)} ($59.99)`, highlight: 'pl', note: 'EasyGen has one plan at $59.99/mo ($49.99 billed annually).' },
+    { label: 'Permanent free tier', pl: '✅ 3 posts/month free', competitor: '❌ 3 sample posts, then a 7-day trial', highlight: 'pl' },
+    { label: 'AI writing in your voice', pl: '✅ 6-dimension voice fingerprint', competitor: '✅ Style-based generation' },
+    { label: 'Voice notes → post', pl: '✅', competitor: '❌', highlight: 'pl' },
+    { label: 'Auto-publish & scheduling', pl: '✅', competitor: '✅' },
+    ...indiaRows,
+    { label: 'Repurpose engine (1 post → 5 formats)', pl: '✅', competitor: '❌', highlight: 'pl' },
+    { label: 'Story bank (reusable lived experiences)', pl: '✅', competitor: '❌', highlight: 'pl' },
+    { label: 'Hook & opening-line library', pl: '⚠️ Built into drafts', competitor: '✅ A core strength', highlight: 'competitor' },
+    { label: 'Plan flexibility', pl: '✅ Free + 4 paid tiers', competitor: '⚠️ One plan only', highlight: 'pl' },
+    { label: 'Free trial', pl: '✅ 7-day, no card', competitor: '⚠️ 3 sample posts, then 7-day trial' },
+    { label: 'Cancel in one click', pl: '✅', competitor: '⚠️ Account settings' },
+  ],
+  honest: [
+    {
+      title: 'When EasyGen might be a better fit',
+      body: 'EasyGen is built by a well-known LinkedIn creator and is genuinely strong at hooks and opening lines, with a simple one-click workflow. If you specifically want that creator-brand style engine and the $59.99/mo price is not a concern, it is a polished choice.',
+    },
+    {
+      title: 'The price gap is the headline',
+      body: `EasyGen is one plan at $59.99/mo — roughly ${inr(59.99 * rate)} once you add FX, with no GST invoice and no free tier. PersonaLink starts free, and its first paid tier is ${inr(PL_PLANS.starter.inr)}/mo with a GST invoice. For Indian creators that difference is most of the decision.`,
+    },
+  ],
+  faq: [
+    { q: 'Is PersonaLink cheaper than EasyGen?', a: `Substantially. EasyGen is a single plan at $59.99/month (about ${inr(59.99 * rate)} with FX), with no GST invoice and no free tier. PersonaLink starts free, and the first paid tier is ${inr(PL_PLANS.starter.inr)}/month billed in INR with a GST invoice.` },
+    { q: 'Does EasyGen have a free plan?', a: 'No — you get 3 sample posts and then a 7-day trial, after which a subscription is required. PersonaLink has a permanent free tier (3 posts/month, one voice fingerprint, no card).' },
+    { q: 'Does EasyGen bill in INR or give GST invoices?', a: 'No. EasyGen bills in USD and cannot issue an India GST invoice. PersonaLink bills in INR via Razorpay (UPI + cards) and puts a GSTIN on every invoice so you can claim input tax credit.' },
+    { q: 'Does EasyGen write Hinglish posts?', a: 'No — EasyGen writes in English. PersonaLink natively writes code-mixed Hinglish without forcing translation.' },
+    { q: 'Does EasyGen turn voice notes into posts?', a: 'No. PersonaLink lets you record a 2-minute voice note and returns a structured, polished LinkedIn post — EasyGen has no voice-note workflow.' },
+    { q: 'Is EasyGen’s writing better than PersonaLink’s?', a: 'EasyGen is well-regarded for hooks and opening lines. PersonaLink constrains every draft to a 6-dimension fingerprint of your past posts so it reads like you. Both let you try before paying — PersonaLink free, EasyGen with 3 sample posts.' },
+    { q: 'Can I schedule and auto-publish in EasyGen?', a: 'Yes — EasyGen has a content calendar for scheduling and publishing. PersonaLink also schedules and auto-publishes through official LinkedIn OAuth (posting-only access).' },
+    { q: 'Who is EasyGen best for?', a: 'Creators who want a known creator-brand tool and are comfortable with USD pricing at $59.99/month. PersonaLink is built for India-based creators who want INR billing, GST invoices, and Hinglish at a much lower entry price.' },
+    { q: 'Can I cancel anytime?', a: 'PersonaLink cancels in one click in Settings and you keep access to the end of the billing period. EasyGen subscriptions are cancellable from account settings.' },
+  ],
+  migration: [
+    { title: 'Keep your EasyGen drafts', body: 'Copy any drafts you want to keep — then you can stop paying $59.99/mo once you have moved.' },
+    { title: 'Sign up to PersonaLink', body: 'Connect with official LinkedIn OAuth and start on the free tier or a 7-day trial — no card required.' },
+    { title: 'Paste 3 sample posts', body: 'We build your 6-dimension voice fingerprint in about 30 seconds, then you can draft in your voice and auto-publish.' },
+  ],
+  quote: {
+    body: 'EasyGen wrote good hooks, but $59.99 a month with no GST invoice was a hard sell to my accountant. PersonaLink does the same job in rupees, and the Hinglish is a bonus.',
+    name: '— Real testimonial coming soon',
+    role: 'Founder · India (placeholder)',
+  },
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * CONTENTIN
+ * ──────────────────────────────────────────────────────────────────── */
+
+function buildContentin(rate: number): Competitor {
+  return {
+  slug: 'contentin',
+  name: 'ContentIn',
+  oneLiner: 'A capable global LinkedIn ghostwriter — but USD-only, no Hinglish, and AI writing starts on its $31 plan.',
+  pricingModel: 'recurring',
+  plans: COMPETITOR_PLANS.contentin,
+  hero: {
+    subhead: 'A LinkedIn ghostwriter that finally fits India: INR billing, GST invoices, Hinglish — and voice notes → post.',
+    headlineSavings: Math.round((31 * rate - PL_PLANS.standard.inr) * 12),
+  },
+  features: [
+    { label: 'Entry price for AI writing in your voice', pl: `${inr(PL_PLANS.starter.inr)} (Starter)`, competitor: `${inr(31 * rate)} ($31 Growth)`, highlight: 'pl', note: 'ContentIn’s $15 Essentials plan schedules posts but has no AI writing — voice drafting starts on the $31 Growth plan.' },
+    { label: 'Permanent free tier', pl: '✅ 3 posts/month free', competitor: '❌ Free trial only', highlight: 'pl' },
+    { label: 'AI writing in your voice', pl: `✅ On every paid plan (from ${inr(PL_PLANS.starter.inr)})`, competitor: '✅ From the $31 Growth plan' },
+    { label: 'Voice notes → post', pl: '✅', competitor: '❌', highlight: 'pl' },
+    ...indiaRows,
+    { label: 'Auto-publish & scheduling', pl: '✅', competitor: '✅' },
+    { label: 'Post analytics', pl: '✅ What resonates', competitor: '✅ Full' },
+    { label: 'Carousel generator', pl: '⚠️ Beta', competitor: '✅ From Growth', highlight: 'competitor' },
+    { label: 'Viral template library', pl: '⚠️', competitor: '✅', highlight: 'competitor' },
+    { label: 'AI comment assistant', pl: '❌', competitor: '✅', highlight: 'competitor' },
+    { label: 'Repurpose engine (1 post → 5 formats)', pl: '✅', competitor: '⚠️', highlight: 'pl' },
+    { label: 'Story bank (reusable lived experiences)', pl: '✅', competitor: '❌', highlight: 'pl' },
+    { label: 'Official LinkedIn OAuth (posting-only)', pl: '✅', competitor: '✅' },
+    { label: 'Cancel in one click', pl: '✅', competitor: '✅' },
+  ],
+  honest: [
+    {
+      title: 'When ContentIn might be a better fit',
+      body: 'ContentIn is mature and feature-rich — viral templates, a strong carousel builder, an AI comment assistant, and full analytics, with 80+ public reviews behind it. If you are outside India (so INR/GST and Hinglish do not matter) and want the widest creator toolkit, it is a strong global option.',
+    },
+    {
+      title: 'Where PersonaLink pulls ahead',
+      body: `Two places. India fit — INR billing, GST invoices, Hinglish, and India-aware trends — and voice. PersonaLink includes its 6-dimension voice fingerprint on every paid plan from ${inr(PL_PLANS.starter.inr)}, whereas ContentIn gates AI writing to its $31 Growth plan, and PersonaLink adds voice notes → post, which ContentIn does not have.`,
+    },
+  ],
+  faq: [
+    { q: 'Is PersonaLink cheaper than ContentIn?', a: `For AI writing, yes. ContentIn’s voice writing starts on its $31/month Growth plan (about ${inr(31 * rate)} with FX); its $15 Essentials plan only schedules. PersonaLink includes the voice fingerprint from its ${inr(PL_PLANS.starter.inr)} Starter plan, billed in INR with a GST invoice, and has a free tier.` },
+    { q: 'What does PersonaLink have that ContentIn does not?', a: 'INR billing, GST invoices, native Hinglish, India-aware trends, voice notes → post, and a story bank. ContentIn is built for the global English-speaking market and bills only in USD.' },
+    { q: 'What does ContentIn do better than PersonaLink?', a: 'Honestly, a few things: its carousel builder, viral template library, and AI comment assistant are more mature today, and it has 80+ public reviews. If those matter more to you than India fit, ContentIn is a fair pick.' },
+    { q: 'Does ContentIn bill in INR or issue GST invoices?', a: 'No — ContentIn bills in USD and does not provide India GST invoices. PersonaLink bills in INR via Razorpay and puts a GSTIN on every invoice.' },
+    { q: 'Does ContentIn write Hinglish?', a: 'No. ContentIn writes in English. PersonaLink natively writes code-mixed Hinglish without forcing translation.' },
+    { q: 'Does ContentIn have voice notes → post?', a: 'No. PersonaLink lets you record a voice note and returns a polished post; ContentIn has no voice-note workflow.' },
+    { q: 'Is ContentIn LinkedIn-only, like PersonaLink?', a: 'Yes — both are built specifically for LinkedIn, so the comparison is genuinely like-for-like on platform. The differences are India fit, voice depth, and pricing model.' },
+    { q: 'Will the posts sound like me?', a: 'With PersonaLink, every draft is constrained to a 6-dimension fingerprint of your past posts (rhythm, vocabulary, openings, pet phrases, warmth, punctuation). ContentIn also learns your voice on its Growth plan and above.' },
+    { q: 'Can I cancel anytime?', a: 'Both let you cancel from settings. PersonaLink cancels in one click and you keep access to the end of the billing period.' },
+  ],
+  migration: [
+    { title: 'Export your ContentIn content', body: 'Save any drafts and your scheduled queue from ContentIn.' },
+    { title: 'Sign up to PersonaLink', body: 'Connect with official LinkedIn OAuth and start on the free tier or a 7-day trial — no card required.' },
+    { title: 'Paste 3 sample posts', body: 'We build your 6-dimension voice fingerprint in about 30 seconds; email anything you want imported to migrate@personalink.in.' },
+  ],
+  quote: {
+    body: 'ContentIn was the closest thing to what I wanted, but everything was in dollars and there was no Hinglish. PersonaLink felt built for an Indian founder — same kind of ghostwriting, rupee pricing, GST sorted.',
+    name: '— Real testimonial coming soon',
+    role: 'Consultant · India (placeholder)',
+  },
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
  * Registry
  * ──────────────────────────────────────────────────────────────────── */
 
@@ -505,6 +641,8 @@ export function getCompetitor(slug: CompetitorSlug, rate: number): Competitor {
     case 'kleo': return buildKleo(rate)
     case 'supergrow': return buildSupergrow(rate)
     case 'authoredup': return buildAuthoredup(rate)
+    case 'easygen': return buildEasygen(rate)
+    case 'contentin': return buildContentin(rate)
   }
 }
 
