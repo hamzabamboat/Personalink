@@ -721,6 +721,21 @@ Respond with ONLY the prompt string, nothing else.`,
     : `${styleHint}, ${industry} concept scene, no people, no text, clean composition`
 }
 
+/** Generate carousel slides (cover/body/cta) from a topic or post. */
+export async function extractCarouselSlides(
+  source: string,
+  slideCount: number,
+): Promise<import('./supabase').CarouselSlide[]> {
+  const { buildCarouselPrompt, parseCarouselSlides } = await import('./images/carousel-content')
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 1600,
+    messages: [{ role: 'user', content: buildCarouselPrompt(source, slideCount) }],
+  })
+  const raw = msg.content[0].type === 'text' ? msg.content[0].text : ''
+  return parseCarouselSlides(raw)
+}
+
 /** Extract short, card-ready content from a post for a branded template graphic. */
 export async function extractCardContent(
   postContent: string,

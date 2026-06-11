@@ -10,6 +10,7 @@ export type TourStepId =
   | 'voice'
   | 'images'
   | 'brandkit'
+  | 'carousel'
   | 'done'
 
 export interface TourStep {
@@ -93,6 +94,15 @@ export const TOUR_STEPS: TourStep[] = [
     target: 'brand-kit',
     title: 'Make it yours',
     body: 'Add your logo and brand colour once — every graphic you generate uses them automatically. Custom font uploads coming soon.',
+  },
+  {
+    id: 'carousel',
+    route: '/dashboard/carousel',
+    target: 'carousel',
+    requiresPlan: 'standard',
+    title: 'Make swipeable carousels',
+    body: 'Turn any idea into a multi-slide PDF carousel — in your brand, ready to upload to LinkedIn as a document post.',
+    lockedBody: 'Turn any idea into a swipeable PDF carousel in your brand. Carousels are on the Standard plan — upgrade anytime to unlock them.',
   },
   {
     id: 'done',

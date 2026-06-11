@@ -42,12 +42,20 @@ describe('TOUR_STEPS', () => {
     expect(done.cta?.route).toBe('/dashboard/generate')
   })
 
-  it('includes the new image + brand-kit feature stops, before done', () => {
+  it('includes the new image, brand-kit & carousel feature stops, before done', () => {
     const ids = TOUR_STEPS.map(s => s.id)
     expect(ids).toContain('images')
     expect(ids).toContain('brandkit')
+    expect(ids).toContain('carousel')
     const lastIndex = ids.length - 1
     expect(ids.indexOf('images')).toBeLessThan(lastIndex)
     expect(ids.indexOf('brandkit')).toBeLessThan(lastIndex)
+    expect(ids.indexOf('carousel')).toBeLessThan(lastIndex)
+  })
+
+  it('carousel is gated to standard with locked copy', () => {
+    const c = TOUR_STEPS.find(s => s.id === 'carousel')!
+    expect(c.requiresPlan).toBe('standard')
+    expect(c.lockedBody).toBeTruthy()
   })
 })
