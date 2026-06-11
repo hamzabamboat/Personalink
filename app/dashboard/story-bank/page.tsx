@@ -7,7 +7,6 @@ import {
   BookOpen, Plus, Sparkles, Trash2, Save, Loader2,
   Mic, Upload, SquareIcon, CheckCircle2, Clock, RefreshCw, AlertTriangle,
 } from 'lucide-react'
-import { AiImageButton } from '@/components/ai-image-button'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -202,7 +201,6 @@ export default function StoryBankPage() {
           </h1>
         </div>
         <div className="db-screen__actions">
-          <AiImageButton plan={plan} />
           <button
             onClick={() => { setShowForm(v => !v); setInputMode('text') }}
             className="btn-dash btn-dash--primary"

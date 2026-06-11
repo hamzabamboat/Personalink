@@ -41,4 +41,13 @@ describe('TOUR_STEPS', () => {
     const done = TOUR_STEPS.find(s => s.id === 'done')!
     expect(done.cta?.route).toBe('/dashboard/generate')
   })
+
+  it('includes the new image + brand-kit feature stops, before done', () => {
+    const ids = TOUR_STEPS.map(s => s.id)
+    expect(ids).toContain('images')
+    expect(ids).toContain('brandkit')
+    const lastIndex = ids.length - 1
+    expect(ids.indexOf('images')).toBeLessThan(lastIndex)
+    expect(ids.indexOf('brandkit')).toBeLessThan(lastIndex)
+  })
 })

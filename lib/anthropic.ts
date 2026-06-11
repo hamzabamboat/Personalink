@@ -690,30 +690,50 @@ Respond ONLY with a valid JSON array (empty array if nothing notable):
   }
 }
 
-export async function craftDallePrompt(postContent: string, industry: string): Promise<string> {
+export async function craftImagePrompt(
+  postContent: string,
+  industry: string,
+  styleHint = 'photorealistic, professional editorial lighting',
+): Promise<string> {
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
+    max_tokens: 320,
     messages: [{
       role: 'user',
-      content: `Create a DALL-E 3 image generation prompt for a LinkedIn post. The image must be professional, photorealistic, and suitable for a business social network.
+      content: `Write an image-generation prompt for a LinkedIn post image. Target aesthetic: ${styleHint}.
 
 Post content (first 400 chars): "${postContent.slice(0, 400)}"
 Industry: ${industry}
 
 Rules:
-- Photorealistic style, professional lighting
-- No text or words in the image
+- Match the target aesthetic above
+- No text, words, letters, or logos in the image
 - No faces or identifiable people (avoid copyright/likeness issues)
-- Focus on concepts, environments, objects, or abstract visual metaphors
-- LinkedIn-appropriate (business context)
-- Describe scene, composition, lighting, and mood specifically
+- Focus on concepts, environments, objects, or visual metaphors
+- Business-appropriate; describe scene, composition, lighting, and mood specifically
 
 Respond with ONLY the prompt string, nothing else.`,
     }],
   })
 
-  return msg.content[0].type === 'text' ? msg.content[0].text.trim() : `Professional ${industry} workplace scene, photorealistic, soft natural lighting, no people, clean composition`
+  return msg.content[0].type === 'text'
+    ? msg.content[0].text.trim()
+    : `${styleHint}, ${industry} concept scene, no people, no text, clean composition`
+}
+
+/** Extract short, card-ready content from a post for a branded template graphic. */
+export async function extractCardContent(
+  postContent: string,
+  type: import('./images/presets').TemplateType,
+): Promise<import('./images/card-content').CardContent | null> {
+  const { buildCardExtractionPrompt, parseCardContent } = await import('./images/card-content')
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 400,
+    messages: [{ role: 'user', content: buildCardExtractionPrompt(postContent, type) }],
+  })
+  const raw = msg.content[0].type === 'text' ? msg.content[0].text : ''
+  return parseCardContent(raw, type)
 }
 
 export async function extractTopicsFromPost(content: string): Promise<string[]> {

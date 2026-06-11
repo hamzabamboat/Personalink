@@ -272,6 +272,44 @@ export type PostImage = {
   analysed_at: string | null
   uploaded_at: string
   used_in_post_ids: string[] | null
+  kind: 'ai_photo' | 'template'
+  template_type: 'quote' | 'stat' | 'title' | 'list' | 'myth' | null
+  theme: string | null
+  aspect_ratio: string | null
+}
+
+export type BrandKit = {
+  id: string
+  user_id: string
+  agency_client_id: string | null
+  primary_color: string | null
+  accent_color: string | null
+  logo_url: string | null
+  font_family: string | null
+  font_url: string | null
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type CarouselSlide = {
+  kind: 'cover' | 'body' | 'cta'
+  headline: string
+  body?: string
+  image_url?: string
+}
+
+export type Carousel = {
+  id: string
+  user_id: string
+  post_id: string | null
+  theme: string
+  slides: CarouselSlide[]
+  pdf_url: string | null
+  png_urls: string[] | null
+  status: 'draft' | 'rendering' | 'ready' | 'failed'
+  created_at: string
+  updated_at: string
 }
 
 export type LinkedInAccount = {

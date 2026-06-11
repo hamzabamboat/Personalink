@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { BrandKitSection } from '@/components/brand-kit-section'
 import {
   Loader2,
   Link2,
@@ -658,6 +659,8 @@ function SettingsContent() {
           </CardContent>
         </Card>
       </section>
+
+      <BrandKitSection />
 
       {/* ── Plan & Billing ── */}
       <section className="mb-8" ref={planRef} id="plan">

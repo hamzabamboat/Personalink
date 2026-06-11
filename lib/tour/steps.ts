@@ -8,6 +8,8 @@ export type TourStepId =
   | 'analytics'
   | 'suggestions'
   | 'voice'
+  | 'images'
+  | 'brandkit'
   | 'done'
 
 export interface TourStep {
@@ -49,6 +51,13 @@ export const TOUR_STEPS: TourStep[] = [
     body: 'Every draft lands here for you to review, edit, and approve before it goes out.',
   },
   {
+    id: 'images',
+    route: '/dashboard/posts',
+    target: 'center',
+    title: 'Add a graphic to any post',
+    body: 'When you edit a post, one click turns it into a branded quote, stat, or carousel — in your colours and logo, never a watermark. Unlimited branded graphics, plus AI images.',
+  },
+  {
     id: 'calendar',
     route: '/dashboard/calendar',
     target: 'calendar',
@@ -77,6 +86,13 @@ export const TOUR_STEPS: TourStep[] = [
     target: 'voice',
     title: 'Tune your voice',
     body: 'Adjust your tone, voice, and language anytime — every post is generated to match.',
+  },
+  {
+    id: 'brandkit',
+    route: '/dashboard/settings',
+    target: 'brand-kit',
+    title: 'Make it yours',
+    body: 'Add your logo and brand colour once — every graphic you generate uses them automatically. Custom font uploads coming soon.',
   },
   {
     id: 'done',
