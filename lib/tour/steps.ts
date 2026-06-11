@@ -11,6 +11,7 @@ export type TourStepId =
   | 'images'
   | 'brandkit'
   | 'carousel'
+  | 'banner'
   | 'done'
 
 export interface TourStep {
@@ -103,6 +104,13 @@ export const TOUR_STEPS: TourStep[] = [
     title: 'Make swipeable carousels',
     body: 'Turn any idea into a multi-slide PDF carousel — in your brand, ready to upload to LinkedIn as a document post.',
     lockedBody: 'Turn any idea into a swipeable PDF carousel in your brand. Carousels are on the Standard plan — upgrade anytime to unlock them.',
+  },
+  {
+    id: 'banner',
+    route: '/dashboard/profile-improve',
+    target: 'center',
+    title: 'Design your profile banner',
+    body: 'Generate a professional LinkedIn banner with your name, role, brand colour, logo, and what you do — sized perfectly at 1584×396, ready to download.',
   },
   {
     id: 'done',

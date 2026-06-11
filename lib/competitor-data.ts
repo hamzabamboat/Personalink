@@ -144,7 +144,9 @@ const voiceRows: FeatureRow[] = [
   { label: 'Voice notes → post', pl: '✅', competitor: '❌', highlight: 'pl' },
   { label: 'Story bank (reusable lived experiences)', pl: '✅', competitor: '⚠️' },
   { label: 'Voice retuning on edits', pl: '✅ Continuous', competitor: '❌ One-time at setup' },
-  { label: 'AI image generation in your brand style', pl: '✅', competitor: '⚠️ Stock library only' },
+  { label: 'AI image generation in your brand style', pl: '✅ Unlimited · your brand · no watermark', competitor: '⚠️ Stock library only' },
+  { label: 'Branded graphics from any post (quote/stat/list cards)', pl: '✅ Unlimited', competitor: '⚠️ Limited templates', highlight: 'pl' },
+  { label: 'LinkedIn banner generator (name, brand colour & logo)', pl: '✅', competitor: '❌', highlight: 'pl' },
 ]
 
 const trustRows: FeatureRow[] = [
@@ -177,7 +179,7 @@ function buildTaplio(rate: number): Competitor {
     { label: 'Multi-account / agency mode', pl: '✅ Custom-priced', competitor: '✅ Agency tier ($199)' },
     { label: 'Repurpose engine (turn 1 post → 5 formats)', pl: '✅', competitor: '⚠️ Manual remix' },
     { label: 'Approval workflow (autopilot / approve / suggest)', pl: '✅ Three modes', competitor: '⚠️ Approve before publish only' },
-    { label: 'Carousel generator', pl: '⚠️ Beta', competitor: '✅', highlight: 'competitor' },
+    { label: 'Carousel generator', pl: '✅ In your brand, no watermark', competitor: '✅' },
     { label: 'Public viral-post inspiration library', pl: '⚠️', competitor: '✅', highlight: 'competitor' },
     ...trustRows,
   ],
@@ -272,7 +274,7 @@ function buildKleo(rate: number): Competitor {
     { label: 'Repurpose engine (turn 1 post → 5 formats)', pl: '✅', competitor: '❌', highlight: 'pl' },
     { label: 'Approval workflow (autopilot / approve / suggest)', pl: '✅ Three modes', competitor: '❌ Manual copy-paste', highlight: 'pl' },
     { label: 'Trend tracker', pl: '✅', competitor: '❌', highlight: 'pl' },
-    { label: 'Built-in carousel builder', pl: '⚠️ Beta', competitor: '✅ Mature', highlight: 'competitor' },
+    { label: 'Built-in carousel builder', pl: '✅ In your brand, no watermark', competitor: '✅ Mature' },
     { label: 'Voice cloning depth', pl: '✅ 6-dimension fingerprint', competitor: '⚠️ Style match' },
     ...trustRows,
   ],
@@ -305,7 +307,7 @@ function buildKleo(rate: number): Competitor {
     },
     {
       q: 'What if I just want carousels?',
-      a: 'Honest answer: Kleo\'s carousel builder is more mature today. Our beta is closing the gap fast — but if 80% of your content is carousels, Kleo is still defensible. For text-first founders, Personalink wins on voice match and auto-publish.',
+      a: 'Personalink now ships a carousel builder — in your brand, with no watermark — alongside voice match and auto-publish. Kleo\'s carousel maker is still more mature for heavy carousel-only workflows, but for most founders Personalink covers carousels plus everything Kleo can\'t do.',
     },
     {
       q: 'Will the posts actually sound like me?',
@@ -589,7 +591,7 @@ function buildContentin(rate: number): Competitor {
     ...indiaRows,
     { label: 'Auto-publish & scheduling', pl: '✅', competitor: '✅' },
     { label: 'Post analytics', pl: '✅ What resonates', competitor: '✅ Full' },
-    { label: 'Carousel generator', pl: '⚠️ Beta', competitor: '✅ From Growth', highlight: 'competitor' },
+    { label: 'Carousel generator', pl: '✅ In your brand', competitor: '✅ From Growth' },
     { label: 'Viral template library', pl: '⚠️', competitor: '✅', highlight: 'competitor' },
     { label: 'AI comment assistant', pl: '❌', competitor: '✅', highlight: 'competitor' },
     { label: 'Repurpose engine (1 post → 5 formats)', pl: '✅', competitor: '⚠️', highlight: 'pl' },
