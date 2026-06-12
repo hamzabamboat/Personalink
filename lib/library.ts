@@ -14,6 +14,18 @@ export async function getSavedItemIds(userId: string): Promise<Set<string>> {
   return new Set((data ?? []).map(r => r.library_item_id as string))
 }
 
+/** Public, indexable curated patterns only (no auth, no user content). For /library. */
+export async function getPublicLibraryItems(): Promise<LibraryItem[]> {
+  const { data } = await supabaseAdmin
+    .from('library_items')
+    .select('*')
+    .eq('is_public', true)
+    .eq('source', 'curated')
+    .order('created_at', { ascending: true })
+    .limit(100)
+  return (data ?? []) as LibraryItem[]
+}
+
 /** Curated public items + the user's own first-party items, with a `saved` flag. */
 export async function getLibraryItems(userId: string, filters: LibraryFilters = {}): Promise<LibraryItem[]> {
   let q = supabaseAdmin
