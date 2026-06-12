@@ -11,9 +11,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ImageSelector } from '@/components/image-selector'
-import { AiImageButton } from '@/components/ai-image-button'
+import { BulkGraphicsModal } from '@/components/bulk-graphics-modal'
 import {
-  Plus, Zap, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
+  Plus, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
   Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2,
 } from 'lucide-react'
 
@@ -180,17 +180,6 @@ function PostsContent() {
     toast.success('Post updated')
   }
 
-  async function bulkGenerate() {
-    toast('Bulk generating 30 days of posts...')
-    const res = await fetch('/api/posts/bulk-generate', { method: 'POST' })
-    const data = await res.json()
-    if (data.error) { toast.error('Error: ' + data.error); return }
-    const postsRes = await fetch('/api/posts?order=scheduled_at')
-    const postsData = await postsRes.json()
-    setPosts(postsData.posts || [])
-    toast.success(`Generated ${data.count} posts for the next 30 days!`)
-  }
-
   const sortedPosts = [...posts].sort((a, b) => {
     const aTime = a.scheduled_at ? new Date(a.scheduled_at).getTime() : (a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime())
     const bTime = b.scheduled_at ? new Date(b.scheduled_at).getTime() : (b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime())
@@ -246,6 +235,10 @@ function PostsContent() {
         postContent={editContent}
       />
 
+      <div className="flex justify-end mb-3">
+        <BulkGraphicsModal onDone={() => window.location.reload()} />
+      </div>
+
       <Dialog open={!!editingPost} onOpenChange={(open) => { if (!open) setEditingPost(null) }}>
         <DialogContent
           className="max-w-lg mx-4 md:mx-auto w-[calc(100vw-2rem)] md:w-full"
@@ -288,16 +281,17 @@ function PostsContent() {
             )}
             <button
               type="button"
+              data-tour="add-image"
               onClick={() => setImageSelectorOpen(true)}
               className="flex items-center gap-2 transition-all"
               style={{
-                fontSize: 12, fontWeight: 500, color: 'var(--ink-3)',
+                fontSize: 12, fontWeight: 600, color: 'var(--ink-2)',
                 border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
-                padding: '6px 12px',
+                padding: '7px 12px',
               }}
             >
               <ImageIcon className="w-3.5 h-3.5" />
-              {editImages.length > 0 ? `${editImages.length} photo${editImages.length > 1 ? 's' : ''} selected` : 'Add photos from library'}
+              {editImages.length > 0 ? `${editImages.length} image${editImages.length > 1 ? 's' : ''} added — edit` : 'Add image — AI, graphic, or upload'}
             </button>
           </div>
 
@@ -370,17 +364,9 @@ function PostsContent() {
           </h1>
         </div>
         <div className="db-screen__actions">
-          <AiImageButton plan={plan} postContent={editContent} />
-          {plan === 'pro' && (
-            <button onClick={bulkGenerate} className="btn-dash btn-dash--outline">
-              <Zap />
-              <span className="hidden sm:inline">Bulk Fill 30 Days</span>
-              <span className="sm:hidden">Bulk Fill</span>
-            </button>
-          )}
           <Link href="/dashboard/generate" className="btn-dash btn-dash--primary">
             <Plus />
-            New Post
+            Generate post
           </Link>
         </div>
       </div>

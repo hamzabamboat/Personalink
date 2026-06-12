@@ -24,6 +24,8 @@ export type FeatureKey =
   | 'batch_runs'
   | 'repurpose_runs'
   | 'ai_image_generations'
+  | 'carousels'
+  | 'template_graphics'
 
 export interface PerFeatureQuota {
   posts_generated: number
@@ -38,6 +40,10 @@ export interface PerFeatureQuota {
   batch_runs: number
   repurpose_runs: number
   ai_image_generations: number
+  /** Carousel (multi-slide PDF) generations per month. */
+  carousels: number
+  /** Branded template graphics (quote/stat/title/list cards) — near-zero cost, kept generous. */
+  template_graphics: number
 }
 
 export interface TierLimits {
@@ -86,6 +92,8 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       batch_runs: 0,
       repurpose_runs: 0,
       ai_image_generations: 0,
+      carousels: 0,
+      template_graphics: 10,
     },
   },
   starter: {
@@ -111,7 +119,9 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       story_conversions: 5,
       batch_runs: 1,
       repurpose_runs: 0,
-      ai_image_generations: 0,
+      ai_image_generations: 5,
+      carousels: 0,
+      template_graphics: 50,
     },
   },
   standard: {
@@ -137,7 +147,9 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       story_conversions: 10,
       batch_runs: 2,
       repurpose_runs: 0,
-      ai_image_generations: 15,
+      ai_image_generations: 25,
+      carousels: 10,
+      template_graphics: 9999,
     },
   },
   pro: {
@@ -163,7 +175,9 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       story_conversions: 20,
       batch_runs: 4,
       repurpose_runs: 10,
-      ai_image_generations: 35,
+      ai_image_generations: 50,
+      carousels: 25,
+      template_graphics: 9999,
     },
   },
   agency: {
@@ -191,6 +205,8 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       batch_runs: 99999,
       repurpose_runs: 99999,
       ai_image_generations: 99999,
+      carousels: 99999,
+      template_graphics: 99999,
     },
   },
 }
@@ -342,6 +358,8 @@ export const TIER_FEATURE_BULLETS: Record<TierID, string[]> = {
     '1 voice fingerprint',
     'Post scheduling',
     'No watermark',
+    'Branded graphics · 50/month',
+    'AI image generations · 5/month',
     'Story bank · 10 entries · 5 conversions',
     'Trend refreshes · 5/month',
     'Image uploads · 10/month',
@@ -355,7 +373,9 @@ export const TIER_FEATURE_BULLETS: Record<TierID, string[]> = {
     'Hinglish + WhatsApp delivery',
     'Everything in Starter, plus —',
     'Voice notes → post · 8/month',
-    'AI image generations · 15/month',
+    'Unlimited branded graphics',
+    'AI image generations · 25/month',
+    'Carousels · 10/month',
     'Story bank · 30 entries · 10 conversions',
     'Image uploads · 30/month',
     'Profile analyses · 4/month',
@@ -369,7 +389,8 @@ export const TIER_FEATURE_BULLETS: Record<TierID, string[]> = {
     'Everything in Standard, plus —',
     'Repurpose engine · 10 runs/month',
     'Voice notes · 20/month · 60 min',
-    'AI image generations · 35/month',
+    'AI image generations · 50/month',
+    'Carousels · 25/month',
     'Story bank · 60 entries · 20 conversions',
     'Image uploads · 80/month',
     'Profile analyses · 8/month',
@@ -397,6 +418,8 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   batch_runs: 'Batch Generation Runs',
   repurpose_runs: 'Repurpose Runs',
   ai_image_generations: 'AI Image Generations',
+  carousels: 'Carousels',
+  template_graphics: 'Branded Graphics',
 }
 
 /* ─────────────────────────────────────────────

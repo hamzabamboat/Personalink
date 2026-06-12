@@ -12,6 +12,7 @@ import { TIER_LIMITS, TIER_FEATURE_BULLETS } from '@/lib/pricing-config'
 import { Hero } from '@/components/landing/Hero'
 import { AuthenticityStack } from '@/components/landing/AuthenticityStack'
 import { BuiltForIndia } from '@/components/landing/BuiltForIndia'
+import { VisualsShowcase } from '@/components/landing/VisualsShowcase'
 
 /* ─── SVG icons ─── */
 function LinkedinIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -433,6 +434,9 @@ function HomeContent() {
           </div>
         </div>
       </section>
+
+      {/* ── Visuals Showcase ── */}
+      <VisualsShowcase />
 
       {/* ── Sample Transformation ── */}
       <section id="sample" style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>

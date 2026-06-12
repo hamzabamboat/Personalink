@@ -41,4 +41,19 @@ describe('TOUR_STEPS', () => {
     const done = TOUR_STEPS.find(s => s.id === 'done')!
     expect(done.cta?.route).toBe('/dashboard/generate')
   })
+
+  it('includes every new feature stop (image, brand-kit, carousel, banner, library), before done', () => {
+    const ids = TOUR_STEPS.map(s => s.id)
+    const lastIndex = ids.length - 1
+    for (const id of ['images', 'brandkit', 'carousel', 'banner', 'library']) {
+      expect(ids).toContain(id)
+      expect(ids.indexOf(id)).toBeLessThan(lastIndex)
+    }
+  })
+
+  it('carousel is gated to standard with locked copy', () => {
+    const c = TOUR_STEPS.find(s => s.id === 'carousel')!
+    expect(c.requiresPlan).toBe('standard')
+    expect(c.lockedBody).toBeTruthy()
+  })
 })

@@ -8,7 +8,7 @@ import {
   CloudUpload, CheckCircle2, X, Trash2, Loader2, Image as ImageIcon,
   ExternalLink, Lightbulb, RefreshCw, Lock, Zap, Camera,
 } from 'lucide-react'
-import { AiImageButton } from '@/components/ai-image-button'
+import { LibraryImageGenerator } from '@/components/library-image-generator'
 
 const MOOD_CSS: Record<string, { bg: string; color: string }> = {
   professional:        { bg: 'rgba(10,102,194,0.10)',  color: '#0A66C2' },
@@ -325,10 +325,7 @@ export default function UploadPage() {
             Visuals, <em>cleanly attached.</em>
           </h1>
         </div>
-        <AiImageButton
-          plan={plan}
-          onSelect={img => { if (img.length) setImages(prev => [img[0], ...prev]) }}
-        />
+        <LibraryImageGenerator plan={plan} onGenerated={img => setImages(prev => [img, ...prev])} />
       </div>
 
       <PhotoIdeasSection plan={plan} />

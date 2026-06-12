@@ -21,6 +21,51 @@ export const BLOG_POSTS: BlogPost[] = [
     readTime: '7 min read',
   },
   {
+    slug: 'how-to-add-images-to-linkedin-posts',
+    title: 'How to add images to LinkedIn posts (branded graphics, no Canva)',
+    excerpt:
+      'Branded quote, stat and list cards in your colours, AI images, and the right LinkedIn image sizes for 2026 — without opening a design tool.',
+    tags: ['LinkedIn Images', 'Branded Graphics', 'How-to'],
+    date: 'June 2026',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'linkedin-carousel-maker',
+    title: 'How to make a LinkedIn carousel in 2026 (free, in your brand)',
+    excerpt:
+      'The right slide size, how many slides, and how to export a document PDF — plus the fastest way to generate a carousel on-brand without InDesign.',
+    tags: ['LinkedIn Carousel', 'Content', 'How-to'],
+    date: 'June 2026',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'linkedin-banner-size-generator',
+    title: 'LinkedIn banner size in 2026 (+ a free banner generator)',
+    excerpt:
+      'The correct LinkedIn banner size is 1584×396. What fits in the safe zone, what to put on it, and how to generate a professional banner in your brand — in HD.',
+    tags: ['LinkedIn Banner', 'Profile', 'How-to'],
+    date: 'June 2026',
+    readTime: '5 min read',
+  },
+  {
+    slug: 'linkedin-post-templates-that-work',
+    title: 'LinkedIn post templates that actually work (10 proven hooks)',
+    excerpt:
+      '10 LinkedIn post templates and the hook patterns behind them — contrarian takes, vulnerable stories, data hooks — plus how to remix them in your own voice.',
+    tags: ['LinkedIn Templates', 'Hooks', 'Content Strategy'],
+    date: 'June 2026',
+    readTime: '7 min read',
+  },
+  {
+    slug: 'linkedin-quote-card-generator',
+    title: 'Free LinkedIn quote card generator (no watermark, no signup)',
+    excerpt:
+      'Turn a line into a clean LinkedIn quote card in your colours — free, no watermark, no signup. Plus when to use quote, stat and list cards, and the right size.',
+    tags: ['LinkedIn Tools', 'Graphics', 'Free Tool'],
+    date: 'June 2026',
+    readTime: '4 min read',
+  },
+  {
     slug: 'linkedin-content-ideas-india',
     title: 'LinkedIn content ideas for Indian professionals (2026)',
     excerpt:

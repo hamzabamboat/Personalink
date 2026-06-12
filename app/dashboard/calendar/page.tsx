@@ -9,7 +9,6 @@ import { ImageSelector } from '@/components/image-selector'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Sparkles, ChevronLeft, ChevronRight, Plus, X, CalendarDays, Pencil, Clock, ImageIcon, RefreshCw, CheckCircle2, Trash2 } from 'lucide-react'
-import { AiImageButton } from '@/components/ai-image-button'
 
 function utcToLocalInput(utcString: string): string {
   if (!utcString) return ''
@@ -286,7 +285,6 @@ export default function CalendarPage() {
           </h1>
         </div>
         <div className="db-screen__actions">
-          <AiImageButton plan={plan} postContent={editingPost?.content || ''} />
           <Link
             href="/dashboard/generate"
             className="btn-dash btn-dash--primary"
