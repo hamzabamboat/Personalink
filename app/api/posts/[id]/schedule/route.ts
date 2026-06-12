@@ -26,9 +26,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
 
-    if (!['approved', 'draft', 'pending_approval'].includes(post.status)) {
+    // Includes 'scheduled' (overdue) and 'failed' so the Reschedule action works.
+    // The "≥ 30 minutes from now" check above guarantees a future time.
+    if (!['approved', 'draft', 'pending_approval', 'scheduled', 'failed'].includes(post.status)) {
       return NextResponse.json(
-        { error: 'Only approved or draft posts can be scheduled' },
+        { error: "This post can't be scheduled from its current state." },
         { status: 400 }
       )
     }

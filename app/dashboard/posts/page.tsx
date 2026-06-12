@@ -14,8 +14,9 @@ import { ImageSelector } from '@/components/image-selector'
 import { BulkGraphicsModal } from '@/components/bulk-graphics-modal'
 import {
   Plus, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
-  Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2,
+  Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2, AlertTriangle, CalendarClock,
 } from 'lucide-react'
+import { postAttentionKind } from '@/lib/posts-attention'
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'var(--ink-3)',
@@ -55,7 +56,7 @@ function statusStateClass(status: string): string {
 }
 
 type ViewMode = 'list' | 'calendar'
-type FilterStatus = 'all' | 'scheduled' | 'draft' | 'published'
+type FilterStatus = 'all' | 'attention' | 'scheduled' | 'draft' | 'published'
 
 function PostsContent() {
   const [posts, setPosts] = useState<Post[]>([])
@@ -97,7 +98,16 @@ function PostsContent() {
   function openEdit(post: Post) {
     setEditingPost(post)
     setEditContent(post.content)
-    setEditSchedule(post.scheduled_at ? utcToLocalInput(post.scheduled_at) : '')
+    // Stuck posts (overdue/failed) have a useless past time — suggest tomorrow 09:00.
+    const stuck = postAttentionKind(post, new Date()) !== null
+    if (post.scheduled_at && !stuck) {
+      setEditSchedule(utcToLocalInput(post.scheduled_at))
+    } else {
+      const s = new Date()
+      s.setDate(s.getDate() + 1)
+      s.setHours(9, 0, 0, 0)
+      setEditSchedule(utcToLocalInput(s.toISOString()))
+    }
     setEditImages([])
   }
 
@@ -186,16 +196,20 @@ function PostsContent() {
     return aTime - bTime
   })
 
-  const filtered = sortedPosts.filter(p => {
-    if (filter === 'all') return true
-    if (filter === 'scheduled') return p.status === 'scheduled'
-    if (filter === 'draft') return ['draft', 'pending_approval'].includes(p.status)
-    if (filter === 'published') return p.status === 'published'
-    return true
-  }).filter(p => {
-    if (!search.trim()) return true
-    return p.content.toLowerCase().includes(search.toLowerCase())
-  })
+  const now = new Date()
+  const filtered = sortedPosts
+    .filter(p => {
+      if (filter === 'all') return true
+      if (filter === 'attention') return postAttentionKind(p, now) !== null
+      // Healthy "Scheduled" excludes overdue posts (they live under Needs attention).
+      if (filter === 'scheduled') return p.status === 'scheduled' && postAttentionKind(p, now) === null
+      if (filter === 'draft') return ['draft', 'pending_approval'].includes(p.status)
+      if (filter === 'published') return p.status === 'published'
+      return true
+    })
+    .filter(p => !search.trim() || p.content.toLowerCase().includes(search.toLowerCase()))
+    // Pin stuck posts to the top (stable within each group — time order preserved).
+    .sort((a, b) => (postAttentionKind(a, now) ? 0 : 1) - (postAttentionKind(b, now) ? 0 : 1))
 
   const byDate: Record<string, Post[]> = {}
   sortedPosts.filter(p => p.scheduled_at || p.published_at).forEach(p => {
@@ -206,7 +220,8 @@ function PostsContent() {
 
   const tabCounts: Record<FilterStatus, number> = {
     all: posts.length,
-    scheduled: posts.filter(p => p.status === 'scheduled').length,
+    attention: posts.filter(p => postAttentionKind(p, now) !== null).length,
+    scheduled: posts.filter(p => p.status === 'scheduled' && postAttentionKind(p, now) === null).length,
     draft: posts.filter(p => ['draft', 'pending_approval'].includes(p.status)).length,
     published: posts.filter(p => p.status === 'published').length,
   }
@@ -310,7 +325,7 @@ function PostsContent() {
           </div>
 
           <div className="flex flex-col gap-2 pt-1">
-            {editingPost && ['draft', 'pending_approval', 'approved'].includes(editingPost.status) && (
+            {editingPost && ['draft', 'pending_approval', 'approved', 'scheduled', 'failed'].includes(editingPost.status) && (
               <button
                 onClick={saveAndSchedule}
                 disabled={saving}
@@ -323,7 +338,7 @@ function PostsContent() {
                 }}
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {saving ? 'Working…' : 'Approve & Schedule'}
+                {saving ? 'Working…' : ['scheduled', 'failed'].includes(editingPost.status) ? 'Reschedule' : 'Approve & Schedule'}
               </button>
             )}
             <div className="flex gap-3">
@@ -374,13 +389,17 @@ function PostsContent() {
       {/* Filter bar */}
       <div className="filter-bar">
         <div className="filter-tabs">
-          {(['all', 'scheduled', 'draft', 'published'] as FilterStatus[]).map(f => (
+          {((tabCounts.attention > 0
+            ? ['all', 'attention', 'scheduled', 'draft', 'published']
+            : ['all', 'scheduled', 'draft', 'published']) as FilterStatus[]).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`ft${filter === f ? ' is-on' : ''}`}
+              style={f === 'attention' ? { color: '#ef4444' } : undefined}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'attention' && <AlertTriangle style={{ width: 13, height: 13, marginRight: 4, verticalAlign: '-2px' }} />}
+              {f === 'attention' ? 'Needs attention' : f.charAt(0).toUpperCase() + f.slice(1)}
               <em>{tabCounts[f]}</em>
             </button>
           ))}
@@ -412,7 +431,9 @@ function PostsContent() {
               <FileText strokeWidth={1.5} />
               <strong>No posts found</strong>
               <span>
-                {filter !== 'all'
+                {filter === 'attention'
+                  ? 'Nothing needs attention — all your scheduled posts are on track.'
+                  : filter !== 'all'
                   ? `No ${filter} posts yet.`
                   : search
                   ? 'No posts match your search.'
@@ -449,19 +470,23 @@ function PostsContent() {
                 ? new Date(post.published_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
                 : null
 
+              const kind = postAttentionKind(post, now)
               return (
-                <div key={post.id} className="pt-row">
+                <div key={post.id} className="pt-row" style={kind ? { borderLeft: '3px solid #ef4444', background: 'color-mix(in oklab, #ef4444 5%, transparent)' } : undefined}>
                   {/* Title + snippet */}
                   <div className="pt-title">
                     <strong>{post.content_pillar || 'Post'}</strong>
                     <em>{post.content}</em>
+                    {kind === 'failed' && post.failure_reason && (
+                      <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 500 }}>⚠ {post.failure_reason}</span>
+                    )}
                   </div>
 
                   {/* Scheduled date */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{scheduledDate}</span>
+                    <span style={{ color: kind === 'overdue' ? '#ef4444' : 'var(--ink-2)', fontWeight: 500 }}>{scheduledDate}</span>
                     {scheduledTime && (
-                      <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{scheduledTime}</span>
+                      <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: kind === 'overdue' ? '#ef4444' : 'var(--ink-4)' }}>{scheduledTime}</span>
                     )}
                   </div>
 
@@ -471,9 +496,15 @@ function PostsContent() {
                   </span>
 
                   {/* Status badge */}
-                  <span className={statusStateClass(post.status)}>
-                    {STATUS_LABEL[post.status] || post.status}
-                  </span>
+                  {kind ? (
+                    <span className="state state--review" style={{ color: '#ef4444', background: 'color-mix(in oklab, #ef4444 12%, transparent)' }}>
+                      {kind === 'overdue' ? 'Overdue' : 'Failed'}
+                    </span>
+                  ) : (
+                    <span className={statusStateClass(post.status)}>
+                      {STATUS_LABEL[post.status] || post.status}
+                    </span>
+                  )}
 
                   {/* Reach (members reached) */}
                   <span className={post.members_reached != null && post.members_reached > 0 ? 'pt-up' : ''}>
@@ -489,6 +520,16 @@ function PostsContent() {
 
                   {/* Actions */}
                   <div className="pt-more" style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+                    {kind && (
+                      <button
+                        onClick={() => openEdit(post)}
+                        className="btn-dash btn-dash--sm"
+                        title="Reschedule"
+                        style={{ background: '#ef4444', color: '#fff', border: 'none' }}
+                      >
+                        <CalendarClock />
+                      </button>
+                    )}
                     {['pending_approval', 'draft', 'approved'].includes(post.status) && (
                       <button
                         onClick={() => approveSchedule(post)}
@@ -564,9 +605,15 @@ function PostsContent() {
 
                     {/* Status + actions */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className={statusStateClass(post.status)}>
-                        {STATUS_LABEL[post.status]}
-                      </span>
+                      {postAttentionKind(post, now) ? (
+                        <span className="state state--review" style={{ color: '#ef4444', background: 'color-mix(in oklab, #ef4444 12%, transparent)' }}>
+                          {postAttentionKind(post, now) === 'overdue' ? 'Overdue' : 'Failed'}
+                        </span>
+                      ) : (
+                        <span className={statusStateClass(post.status)}>
+                          {STATUS_LABEL[post.status]}
+                        </span>
+                      )}
                       {['pending_approval', 'draft', 'approved'].includes(post.status) && (
                         <button
                           onClick={() => approveSchedule(post)}
