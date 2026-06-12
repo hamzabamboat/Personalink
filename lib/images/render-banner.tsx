@@ -71,5 +71,6 @@ export function renderBannerResponse(content: BannerContent, theme: Theme, brand
     width: BASE_W * scale,
     height: BASE_H * scale,
     ...(font ? { fonts: font.fonts } : {}),
+    headers: { 'cache-control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400' },
   })
 }

@@ -126,6 +126,7 @@ export function renderCardResponse(content: CardContent, theme: Theme, brand: Ca
     width: w,
     height: h,
     ...(font ? { fonts: font.fonts } : {}),
+    headers: { 'cache-control': 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400' },
   })
 }
 

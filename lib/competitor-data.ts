@@ -195,13 +195,13 @@ function buildTaplio(rate: number): Competitor {
     { label: 'Repurpose engine (turn 1 post → 5 formats)', pl: '✅', competitor: '⚠️ Manual remix' },
     { label: 'Approval workflow (autopilot / approve / suggest)', pl: '✅ Three modes', competitor: '⚠️ Approve before publish only' },
     { label: 'Carousel generator', pl: '✅ In your brand, no watermark', competitor: '✅' },
-    { label: 'Public viral-post inspiration library', pl: '⚠️', competitor: '✅', highlight: 'competitor' },
+    { label: 'Public inspiration library', pl: '✅ + remix in your voice', competitor: '✅' },
     ...trustRows,
   ],
   honest: [
     {
       title: 'When Taplio might be a better fit',
-      body: 'If your audience is entirely outside India and you want a polished carousel maker plus a chrome extension that surfaces viral posts inline on your LinkedIn feed, Taplio\'s inspiration library is still industry-leading.',
+      body: 'If your audience is entirely outside India and you specifically want Taplio\'s Chrome extension that surfaces viral posts inline on your LinkedIn feed, that inline workflow is genuinely still its edge. PersonaLink now matches it on carousels and a public inspiration library — with remix-in-your-voice on top.',
     },
     {
       title: 'If you already have a Taplio annual subscription',
