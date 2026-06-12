@@ -3,42 +3,35 @@
 import { motion } from 'framer-motion'
 import { fadeUp, staggerParent, viewportOnce } from './motion'
 
-/* ─── Mini on-brand mockups (pure CSS/SVG, theme-aware via CSS vars) ─── */
+/* ─── Real product renders via the live OG endpoints (auth-free), so the
+   showcase shows actual PersonaLink output rather than abstractions. ─── */
 
-// Branded quote/stat card
+const ACCENT = '%232B4DFF' // #2B4DFF, url-encoded
+function cardSrc(type: string, ar: string, headline: string) {
+  return `/api/og/card?type=${type}&theme=midnight&ar=${ar}&accent=${ACCENT}` +
+    `&headline=${encodeURIComponent(headline)}&name=${encodeURIComponent('Your brand')}`
+}
+
+// Real branded quote card (square)
 function GraphicMock() {
   return (
-    <div style={{
-      aspectRatio: '4 / 3', borderRadius: 'var(--r-md)', overflow: 'hidden',
-      background: 'linear-gradient(150deg, #0b1020, #161d36)', border: '1px solid var(--line)',
-      padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-    }}>
-      <div style={{ display: 'flex', gap: 10 }}>
-        <div style={{ width: 4, borderRadius: 4, background: 'var(--pl-accent)', alignSelf: 'stretch' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
-          <div style={{ height: 8, width: '92%', borderRadius: 3, background: 'rgba(255,255,255,0.92)' }} />
-          <div style={{ height: 8, width: '78%', borderRadius: 3, background: 'rgba(255,255,255,0.92)' }} />
-          <div style={{ height: 8, width: '54%', borderRadius: 3, background: 'rgba(255,255,255,0.55)' }} />
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <div style={{ width: 16, height: 16, borderRadius: 5, background: 'var(--pl-accent)' }} />
-        <div style={{ height: 6, width: 56, borderRadius: 3, background: 'rgba(255,255,255,0.4)' }} />
-      </div>
+    <div style={{ aspectRatio: '1 / 1', borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={cardSrc('quote', '1080x1080', 'Consistency beats genius.')} alt="A branded quote card generated in PersonaLink" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
     </div>
   )
 }
 
-// AI photo tile
+// AI photo tile (photoreal generation is inherently varied — a styled tile, not one fixed sample)
 function PhotoMock() {
   return (
     <div style={{
-      aspectRatio: '4 / 3', borderRadius: 'var(--r-md)', overflow: 'hidden', position: 'relative',
-      background: 'radial-gradient(120% 120% at 25% 15%, #6b86ff 0%, #2b4dff 38%, #131a33 100%)',
-      border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      aspectRatio: '1 / 1', borderRadius: 'var(--r-md)', overflow: 'hidden', position: 'relative',
+      background: 'radial-gradient(130% 130% at 22% 12%, #7d97ff 0%, #2b4dff 36%, #0e1530 100%)',
+      border: '1px solid var(--line)', boxShadow: 'var(--sh-1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <svg viewBox="0 0 24 24" width={30} height={30} fill="none" aria-hidden="true" style={{ filter: 'drop-shadow(0 1px 6px rgba(0,0,0,.35))' }}>
-        <path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9L12 2.5z" fill="#fff" opacity="0.95" />
+      <svg viewBox="0 0 24 24" width={34} height={34} fill="none" aria-hidden="true" style={{ filter: 'drop-shadow(0 1px 7px rgba(0,0,0,.4))' }}>
+        <path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9L12 2.5z" fill="#fff" opacity="0.96" />
         <circle cx="19" cy="5" r="1.3" fill="#fff" opacity="0.85" />
         <circle cx="5.5" cy="18" r="1" fill="#fff" opacity="0.7" />
       </svg>
@@ -46,62 +39,43 @@ function PhotoMock() {
         position: 'absolute', left: 12, bottom: 12, fontFamily: 'var(--f-mono)', fontSize: 9.5,
         color: '#fff', background: 'rgba(0,0,0,0.32)', borderRadius: 'var(--r-pill)', padding: '3px 8px',
         backdropFilter: 'blur(4px)',
-      }}>1200×627 · on-brand</span>
+      }}>gpt-image · your brief</span>
     </div>
   )
 }
 
-// Carousel: stacked slides
+// Carousel: a real rendered cover slide, with placeholder slides fanned behind
 function CarouselMock() {
   return (
     <div style={{ aspectRatio: '4 / 3', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {[2, 1, 0].map((i) => (
+      {[2, 1].map((i) => (
         <div key={i} style={{
-          position: 'absolute', width: '52%', aspectRatio: '4 / 5', borderRadius: 'var(--r-sm)',
-          background: i === 0 ? 'linear-gradient(160deg,#161d36,#0b1020)' : 'var(--surface-3)',
-          border: '1px solid var(--line)', boxShadow: 'var(--sh-1)',
-          transform: `translateX(${i * 18}px) translateY(${i * -6}px) rotate(${i * 3}deg)`,
-          opacity: i === 0 ? 1 : 0.55, zIndex: 3 - i,
-          padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        }}>
-          {i === 0 && (
-            <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <div style={{ height: 4, width: 22, borderRadius: 3, background: 'var(--pl-accent)' }} />
-                <div style={{ height: 6, width: '85%', borderRadius: 3, background: 'rgba(255,255,255,0.9)' }} />
-                <div style={{ height: 6, width: '62%', borderRadius: 3, background: 'rgba(255,255,255,0.6)' }} />
-              </div>
-              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 8, color: 'rgba(255,255,255,0.6)' }}>1 / 6</span>
-            </>
-          )}
-        </div>
+          position: 'absolute', width: '47%', aspectRatio: '1080 / 1350', borderRadius: 'var(--r-sm)',
+          background: 'var(--surface-3)', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)',
+          transform: `translateX(${i * 15}px) translateY(${i * -5}px) rotate(${i * 3}deg)`,
+          opacity: 0.5, zIndex: 1,
+        }} />
       ))}
+      <div style={{ position: 'relative', width: '47%', aspectRatio: '1080 / 1350', borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)', boxShadow: 'var(--sh-2)', zIndex: 3 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={cardSrc('title', '1080x1350', '5 lessons from my first raise')} alt="A carousel cover slide" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
       <span style={{
         position: 'absolute', right: 8, bottom: 6, fontFamily: 'var(--f-mono)', fontSize: 9.5,
         color: 'var(--pl-accent)', background: 'var(--pl-accent-soft)', border: '1px solid var(--pl-accent)',
-        borderRadius: 'var(--r-pill)', padding: '2px 8px',
+        borderRadius: 'var(--r-pill)', padding: '2px 8px', zIndex: 4,
       }}>PDF</span>
     </div>
   )
 }
 
-// LinkedIn banner (wide)
+// Real rendered LinkedIn banner (wide)
 function BannerMock() {
   return (
     <div style={{ aspectRatio: '4 / 3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{
-        width: '100%', aspectRatio: '1584 / 396', borderRadius: 'var(--r-sm)', overflow: 'hidden',
-        background: 'linear-gradient(120deg,#0b1020,#1b2440)', border: '1px solid var(--line)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 4, height: 30, borderRadius: 3, background: 'var(--pl-accent)' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <div style={{ height: 8, width: 96, borderRadius: 3, background: 'rgba(255,255,255,0.92)' }} />
-            <div style={{ height: 5, width: 64, borderRadius: 3, background: 'var(--pl-accent)' }} />
-          </div>
-        </div>
-        <div style={{ width: 26, height: 26, borderRadius: '50%', border: '3px solid var(--pl-accent)', opacity: 0.5 }} />
+      <div style={{ width: '100%', aspectRatio: '1584 / 396', borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/api/og/banner?theme=ink&accent=%232B4DFF" alt="A LinkedIn banner generated in PersonaLink" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       </div>
     </div>
   )
