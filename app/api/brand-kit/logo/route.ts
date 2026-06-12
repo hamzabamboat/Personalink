@@ -31,18 +31,23 @@ export async function POST(request: NextRequest) {
 
   const { data: { publicUrl } } = supabaseAdmin.storage.from('post-images').getPublicUrl(path)
 
-  const { data: existing } = await supabaseAdmin
-    .from('brand_kits')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('is_default', true)
-    .maybeSingle()
+  // Target a specific kit when given (multi-client); else the active kit.
+  const kitId = (formData.get('kitId') as string | null) || null
+  let existing: { id: string } | null = null
+  if (kitId) {
+    const { data } = await supabaseAdmin.from('brand_kits').select('id').eq('id', kitId).eq('user_id', user.id).maybeSingle()
+    existing = data
+  }
+  if (!existing) {
+    const { data } = await supabaseAdmin.from('brand_kits').select('id').eq('user_id', user.id).eq('is_default', true).maybeSingle()
+    existing = data
+  }
 
   if (existing) {
     await supabaseAdmin.from('brand_kits').update({ logo_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', existing.id)
   } else {
-    await supabaseAdmin.from('brand_kits').insert({ user_id: user.id, is_default: true, logo_url: publicUrl })
+    await supabaseAdmin.from('brand_kits').insert({ user_id: user.id, is_default: true, name: 'My brand', logo_url: publicUrl })
   }
 
-  return NextResponse.json({ logo_url: publicUrl })
+  return NextResponse.json({ logo_url: publicUrl, kit_id: existing?.id ?? null })
 }
