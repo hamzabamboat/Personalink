@@ -38,6 +38,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/features/repurpose-engine`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE}/ai-linkedin-ghostwriter`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE}/tools/linkedin-cost-calculator`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE}/tools/card-generator`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE}/library`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${BASE}/vs`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     ...vsPages,
     { url: `${BASE}/for-agencies`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
