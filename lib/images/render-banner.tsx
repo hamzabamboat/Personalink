@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og'
 import type { Theme } from './presets'
 import type { CardBrand } from './render-card'
+import { loadBrandFont, type LoadedBrandFont } from './fonts'
 
 // LinkedIn personal banner is 1584 x 396. We render at a scale multiple for a
 // crisp, high-resolution download (default 3x = 4752 x 1188).
@@ -19,13 +20,13 @@ function accentOf(brand: CardBrand, theme: Theme): string {
   return brand.accentColor || brand.primaryColor || theme.accent
 }
 
-function bannerElement(content: BannerContent, theme: Theme, brand: CardBrand, s: number) {
+function bannerElement(content: BannerContent, theme: Theme, brand: CardBrand, s: number, fontFamily: string) {
   const accent = accentOf(brand, theme)
   const keywords = (content.keywords || []).filter(Boolean).slice(0, 4)
   const chipBg = theme.id === 'mist' ? 'rgba(43,77,255,0.08)' : 'rgba(255,255,255,0.10)'
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.bg, color: theme.ink, fontFamily: 'sans-serif', padding: `0 ${96 * s}px` }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.bg, color: theme.ink, fontFamily, padding: `0 ${96 * s}px` }}>
       {/* main content */}
       <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 1040 * s }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -59,10 +60,16 @@ function bannerElement(content: BannerContent, theme: Theme, brand: CardBrand, s
 }
 
 export async function renderBannerToBuffer(content: BannerContent, theme: Theme, brand: CardBrand, scale: number = BANNER_SCALE): Promise<Buffer> {
-  const resp = new ImageResponse(bannerElement(content, theme, brand, scale), { width: BASE_W * scale, height: BASE_H * scale })
+  const font = await loadBrandFont(brand.fontFamily)
+  const resp = renderBannerResponse(content, theme, brand, scale, font)
   return Buffer.from(await resp.arrayBuffer())
 }
 
-export function renderBannerResponse(content: BannerContent, theme: Theme, brand: CardBrand, scale: number = BANNER_SCALE): ImageResponse {
-  return new ImageResponse(bannerElement(content, theme, brand, scale), { width: BASE_W * scale, height: BASE_H * scale })
+export function renderBannerResponse(content: BannerContent, theme: Theme, brand: CardBrand, scale: number = BANNER_SCALE, font?: LoadedBrandFont | null): ImageResponse {
+  const family = font?.family ?? 'sans-serif'
+  return new ImageResponse(bannerElement(content, theme, brand, scale, family), {
+    width: BASE_W * scale,
+    height: BASE_H * scale,
+    ...(font ? { fonts: font.fonts } : {}),
+  })
 }

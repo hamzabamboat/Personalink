@@ -34,13 +34,14 @@ export async function renderAndStoreCarousel(
 /** The user's default brand kit + display identity, for branding slides. */
 export async function getDefaultBrand(userId: string): Promise<CardBrand> {
   const [{ data: kit }, { data: profile }] = await Promise.all([
-    supabaseAdmin.from('brand_kits').select('primary_color, accent_color, logo_url').eq('user_id', userId).eq('is_default', true).maybeSingle(),
+    supabaseAdmin.from('brand_kits').select('primary_color, accent_color, logo_url, font_family').eq('user_id', userId).eq('is_default', true).maybeSingle(),
     supabaseAdmin.from('user_profiles').select('name, role').eq('user_id', userId).maybeSingle(),
   ])
   return {
     accentColor: kit?.accent_color ?? null,
     primaryColor: kit?.primary_color ?? null,
     logoUrl: kit?.logo_url ?? null,
+    fontFamily: kit?.font_family ?? null,
     name: profile?.name ?? null,
     sub: profile?.role ?? null,
   }

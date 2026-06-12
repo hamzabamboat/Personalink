@@ -1,15 +1,18 @@
 import { ImageResponse } from 'next/og'
 import type { CardContent } from './card-content'
 import { ASPECT_RATIOS, type AspectRatioId, type Theme } from './presets'
+import { loadBrandFont, type LoadedBrandFont } from './fonts'
 
-// Brand kit applied to a card. v1 = accent colour + logo (background stays themed;
-// full background re-colouring with contrast handling is Phase 2).
+// Brand kit applied to a card: accent colour + logo + optional brand font.
+// (Background stays themed; full background re-colouring is a later pass.)
 export interface CardBrand {
   primaryColor?: string | null
   accentColor?: string | null
   logoUrl?: string | null
   name?: string | null
   sub?: string | null
+  /** Brand-font id (see lib/images/fonts.ts). Null/unknown → system sans. */
+  fontFamily?: string | null
 }
 
 function initials(name?: string | null): string {
@@ -90,7 +93,7 @@ function Middle({ content, theme, accent }: { content: CardContent; theme: Theme
   }
 }
 
-function cardElement(content: CardContent, theme: Theme, brand: CardBrand) {
+function cardElement(content: CardContent, theme: Theme, brand: CardBrand, fontFamily: string) {
   const accent = brand.accentColor || brand.primaryColor || theme.accent
   return (
     <div
@@ -103,7 +106,7 @@ function cardElement(content: CardContent, theme: Theme, brand: CardBrand) {
         padding: 80,
         background: theme.bg,
         color: theme.ink,
-        fontFamily: 'sans-serif',
+        fontFamily,
       }}
     >
       <Middle content={content} theme={theme} accent={accent} />
@@ -112,14 +115,23 @@ function cardElement(content: CardContent, theme: Theme, brand: CardBrand) {
   )
 }
 
-/** Render a branded card as a streaming PNG Response (for live preview / public tool). */
-export function renderCardResponse(content: CardContent, theme: Theme, brand: CardBrand, ar: AspectRatioId): ImageResponse {
+/**
+ * Render a branded card as a streaming PNG Response (live preview / public tool).
+ * Pass a preloaded brand font (callers load it async via loadBrandFont).
+ */
+export function renderCardResponse(content: CardContent, theme: Theme, brand: CardBrand, ar: AspectRatioId, font?: LoadedBrandFont | null): ImageResponse {
   const { w, h } = ASPECT_RATIOS[ar]
-  return new ImageResponse(cardElement(content, theme, brand), { width: w, height: h })
+  const family = font?.family ?? 'sans-serif'
+  return new ImageResponse(cardElement(content, theme, brand, family), {
+    width: w,
+    height: h,
+    ...(font ? { fonts: font.fonts } : {}),
+  })
 }
 
-/** Render a branded card to a PNG Buffer (for storage). */
+/** Render a branded card to a PNG Buffer (for storage). Loads the brand font if set. */
 export async function renderCardToBuffer(content: CardContent, theme: Theme, brand: CardBrand, ar: AspectRatioId): Promise<Buffer> {
-  const resp = renderCardResponse(content, theme, brand, ar)
+  const font = await loadBrandFont(brand.fontFamily)
+  const resp = renderCardResponse(content, theme, brand, ar, font)
   return Buffer.from(await resp.arrayBuffer())
 }

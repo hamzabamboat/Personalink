@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib'
 import type { CarouselSlide } from '@/lib/supabase'
 import type { Theme } from './presets'
 import type { CardBrand } from './render-card'
+import { loadBrandFont } from './fonts'
 
 const W = 1080
 const H = 1350
@@ -29,12 +30,12 @@ function Footer({ brand, theme, accent, page, total }: { brand: CardBrand; theme
   )
 }
 
-function slideElement(slide: CarouselSlide, index: number, total: number, theme: Theme, brand: CardBrand) {
+function slideElement(slide: CarouselSlide, index: number, total: number, theme: Theme, brand: CardBrand, fontFamily: string) {
   const accent = accentOf(brand, theme)
   const isCover = slide.kind === 'cover'
   const isCta = slide.kind === 'cta'
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 90, background: theme.bg, color: theme.ink, fontFamily: 'sans-serif' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 90, background: theme.bg, color: theme.ink, fontFamily }}>
       <div style={{ display: 'flex' }}>
         {isCover ? (
           <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 4, color: accent }}>CAROUSEL</div>
@@ -67,9 +68,13 @@ export async function renderCarousel(
   theme: Theme,
   brand: CardBrand,
 ): Promise<{ pngBuffers: Buffer[]; pdfBuffer: Buffer }> {
+  const font = await loadBrandFont(brand.fontFamily)
+  const family = font?.family ?? 'sans-serif'
+  const fontOpt = font ? { fonts: font.fonts } : {}
+
   const pngBuffers: Buffer[] = []
   for (let i = 0; i < slides.length; i++) {
-    const resp = new ImageResponse(slideElement(slides[i], i, slides.length, theme, brand), { width: W, height: H })
+    const resp = new ImageResponse(slideElement(slides[i], i, slides.length, theme, brand, family), { width: W, height: H, ...fontOpt })
     pngBuffers.push(Buffer.from(await resp.arrayBuffer()))
   }
 

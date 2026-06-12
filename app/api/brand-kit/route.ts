@@ -24,6 +24,7 @@ export async function PUT(request: NextRequest) {
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if ('primary_color' in body) patch.primary_color = body.primary_color || null
   if ('accent_color' in body) patch.accent_color = body.accent_color || null
+  if ('font_family' in body) patch.font_family = body.font_family || null
 
   const { data: existing } = await supabaseAdmin
     .from('brand_kits')

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2, Upload, Check, Palette } from 'lucide-react'
+import { Loader2, Upload, Check, Palette, Type } from 'lucide-react'
+import { BRAND_FONTS } from '@/lib/images/fonts'
 
 const SAMPLE_HEADLINE = 'Consistency beats genius.'
 
@@ -10,6 +11,7 @@ export function BrandKitSection() {
   const [accent, setAccent] = useState('#2B4DFF')
   const [previewAccent, setPreviewAccent] = useState('#2B4DFF')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [font, setFont] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -23,6 +25,7 @@ export function BrandKitSection() {
         if (d.kit) {
           const a = d.kit.accent_color || '#2B4DFF'
           setAccent(a); setPreviewAccent(a); setLogoUrl(d.kit.logo_url || null)
+          setFont(d.kit.font_family || '')
         }
       })
       .catch(() => {})
@@ -41,7 +44,7 @@ export function BrandKitSection() {
       await fetch('/api/brand-kit', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accent_color: accent }),
+        body: JSON.stringify({ accent_color: accent, font_family: font || null }),
       })
       setSaved(true); setTimeout(() => setSaved(false), 2000)
     } finally { setSaving(false) }
@@ -64,6 +67,7 @@ export function BrandKitSection() {
     `&headline=${encodeURIComponent(SAMPLE_HEADLINE)}` +
     `&name=${encodeURIComponent('Your brand')}` +
     `&accent=${encodeURIComponent(previewAccent)}` +
+    (font ? `&font=${encodeURIComponent(font)}` : '') +
     (logoUrl ? `&logo=${encodeURIComponent(logoUrl)}` : '')
 
   return (
@@ -107,10 +111,24 @@ export function BrandKitSection() {
             </div>
 
             <div>
-              <label className="text-[13px] font-semibold text-slate-400 block mb-2">Custom fonts</label>
-              <div className="text-[12px] text-slate-400 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200">
-                Upload your own font — <span className="font-semibold">coming soon</span>
+              <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                <Type className="w-3.5 h-3.5 text-brand" /> Brand font
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setFont('')}
+                  className={`text-left px-3 py-1.5 rounded-lg border transition-all ${font === '' ? 'border-brand bg-brand-light/40' : 'border-slate-200 hover:border-brand/40'}`}>
+                  <div className={`text-[12.5px] font-semibold ${font === '' ? 'text-brand' : 'text-slate-700 dark:text-slate-300'}`}>System</div>
+                  <div className="text-[10px] text-slate-400">Clean default</div>
+                </button>
+                {BRAND_FONTS.map(f => (
+                  <button key={f.id} type="button" onClick={() => setFont(f.id)}
+                    className={`text-left px-3 py-1.5 rounded-lg border transition-all ${font === f.id ? 'border-brand bg-brand-light/40' : 'border-slate-200 hover:border-brand/40'}`}>
+                    <div className={`text-[12.5px] font-semibold ${font === f.id ? 'text-brand' : 'text-slate-700 dark:text-slate-300'}`}>{f.label}</div>
+                    <div className="text-[10px] text-slate-400">{f.vibe}</div>
+                  </button>
+                ))}
               </div>
+              <div className="text-[11px] text-slate-400 mt-1.5">Applied to branded graphics, carousels and your banner. AI photos are unaffected.</div>
             </div>
 
             <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">

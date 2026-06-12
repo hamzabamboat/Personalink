@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const { data: kit } = await supabaseAdmin
       .from('brand_kits')
-      .select('primary_color, accent_color, logo_url')
+      .select('primary_color, accent_color, logo_url, font_family')
       .eq('user_id', user.id)
       .eq('is_default', true)
       .maybeSingle()
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       accentColor: kit?.accent_color ?? null,
       primaryColor: kit?.primary_color ?? null,
       logoUrl: kit?.logo_url ?? null,
+      fontFamily: kit?.font_family ?? null,
       name: null,
       sub: null,
     }
