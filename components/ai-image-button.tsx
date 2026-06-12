@@ -5,6 +5,7 @@ import { Wand2, Lock } from 'lucide-react'
 import { PostImage } from '@/lib/supabase'
 import { ImageSelector } from '@/components/image-selector'
 import Link from 'next/link'
+import { getTierLimits } from '@/lib/pricing-config'
 
 interface Props {
   plan: string
@@ -16,7 +17,7 @@ interface Props {
 export function AiImageButton({ plan, postContent = '', onSelect, className = '' }: Props) {
   const [open, setOpen] = useState(false)
   const [remaining, setRemaining] = useState<number | null>(null)
-  const canGenerate = plan === 'standard' || plan === 'pro'
+  const canGenerate = getTierLimits(plan).perFeature.ai_image_generations > 0
 
   useEffect(() => {
     if (!canGenerate) return
@@ -37,12 +38,12 @@ export function AiImageButton({ plan, postContent = '', onSelect, className = ''
       <Link
         href="/dashboard/settings?tab=plan"
         className={`btn-dash btn-dash--outline flex items-center gap-1.5 ${className}`}
-        title="Upgrade to Standard or Pro to generate images with AI"
+        title="Upgrade to a paid plan to generate images with AI"
       >
         <Lock size={12} />
         AI image
         <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--ink-6)', color: 'var(--ink-3)', padding: '1px 6px', borderRadius: 99 }}>
-          STD+
+          PAID
         </span>
       </Link>
     )
