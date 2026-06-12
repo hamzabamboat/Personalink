@@ -775,6 +775,60 @@ Respond ONLY with a JSON array of strings. Example: ["leadership", "startup grow
   }
 }
 
+export interface ExtractedLibraryPattern {
+  hook_type: string
+  format: 'text' | 'list' | 'story'
+  niche: string
+  pattern_summary: string
+  template_text: string
+}
+
+/**
+ * Analyse WHY a LinkedIn post works and return a transformative breakdown +
+ * reusable template — never the verbatim post text. Used by first-party
+ * ingestion so the library stores patterns, not republished content.
+ */
+export async function extractLibraryPattern(postContent: string): Promise<ExtractedLibraryPattern | null> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 700,
+    messages: [{
+      role: 'user',
+      content: `You analyse what makes a LinkedIn post work — WITHOUT republishing it. Never copy its sentences verbatim; describe the structure in your own words.
+
+Post:
+"${postContent.slice(0, 1500)}"
+
+Respond with ONLY a JSON object with these exact keys:
+- hook_type: short label for the opening move (e.g. "contrarian", "vulnerable", "data", "how-to", "listicle", "confession", "question")
+- format: one of "text", "list", "story"
+- niche: short audience tag (e.g. "founders", "b2b-saas", "careers", "marketing", "general")
+- pattern_summary: 1–2 sentences on WHY this structure works, generalised (not about this specific post)
+- template_text: a reusable fill-in-the-blank template using [brackets] for placeholders — your own words, NOT the original text
+
+Example:
+{"hook_type":"contrarian","format":"text","niche":"general","pattern_summary":"Names the crowd's belief then flips it, promising a non-obvious payoff.","template_text":"Everyone says [common advice]. I did the opposite..."}`,
+    }],
+  })
+  try {
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '{}'
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    const o = JSON.parse(match[0])
+    if (!o.template_text || !o.pattern_summary) return null
+    const format = ['text', 'list', 'story'].includes(o.format) ? o.format : 'text'
+    return {
+      hook_type: String(o.hook_type || 'general').slice(0, 40),
+      format,
+      niche: String(o.niche || 'general').slice(0, 40),
+      pattern_summary: String(o.pattern_summary).slice(0, 600),
+      template_text: String(o.template_text).slice(0, 1200),
+    }
+  } catch {
+    return null
+  }
+}
+
 export async function generateSuggestionsForUser(
   profile: UserProfile,
   trendingNews: string[],

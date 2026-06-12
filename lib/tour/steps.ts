@@ -12,6 +12,7 @@ export type TourStepId =
   | 'brandkit'
   | 'carousel'
   | 'banner'
+  | 'library'
   | 'done'
 
 export interface TourStep {
@@ -94,7 +95,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/dashboard/settings',
     target: 'brand-kit',
     title: 'Make it yours',
-    body: 'Add your logo and brand colour once — every graphic you generate uses them automatically. Custom font uploads coming soon.',
+    body: 'Set your logo, brand colour and font once — every graphic uses them automatically. Managing a few clients? Keep a separate kit for each.',
   },
   {
     id: 'carousel',
@@ -111,6 +112,13 @@ export const TOUR_STEPS: TourStep[] = [
     target: 'center',
     title: 'Design your profile banner',
     body: 'Generate a professional LinkedIn banner with your name, role, brand colour, logo, and what you do — sized perfectly at 1584×396, ready to download.',
+  },
+  {
+    id: 'library',
+    route: '/dashboard/library',
+    target: 'library',
+    title: 'Never start from a blank page',
+    body: 'Browse proven post patterns — the hook, why it works, and a reusable template — then remix any one in your own voice with a click.',
   },
   {
     id: 'done',

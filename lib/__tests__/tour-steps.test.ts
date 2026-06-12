@@ -42,10 +42,10 @@ describe('TOUR_STEPS', () => {
     expect(done.cta?.route).toBe('/dashboard/generate')
   })
 
-  it('includes every new feature stop (image, brand-kit, carousel, banner), before done', () => {
+  it('includes every new feature stop (image, brand-kit, carousel, banner, library), before done', () => {
     const ids = TOUR_STEPS.map(s => s.id)
     const lastIndex = ids.length - 1
-    for (const id of ['images', 'brandkit', 'carousel', 'banner']) {
+    for (const id of ['images', 'brandkit', 'carousel', 'banner', 'library']) {
       expect(ids).toContain(id)
       expect(ids.indexOf(id)).toBeLessThan(lastIndex)
     }

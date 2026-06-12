@@ -592,7 +592,7 @@ function buildContentin(rate: number): Competitor {
     { label: 'Auto-publish & scheduling', pl: '✅', competitor: '✅' },
     { label: 'Post analytics', pl: '✅ What resonates', competitor: '✅ Full' },
     { label: 'Carousel generator', pl: '✅ In your brand', competitor: '✅ From Growth' },
-    { label: 'Viral template library', pl: '⚠️', competitor: '✅', highlight: 'competitor' },
+    { label: 'Viral template library', pl: '✅ + remix in your voice', competitor: '✅' },
     { label: 'AI comment assistant', pl: '❌', competitor: '✅', highlight: 'competitor' },
     { label: 'Repurpose engine (1 post → 5 formats)', pl: '✅', competitor: '⚠️', highlight: 'pl' },
     { label: 'Story bank (reusable lived experiences)', pl: '✅', competitor: '❌', highlight: 'pl' },
@@ -602,7 +602,7 @@ function buildContentin(rate: number): Competitor {
   honest: [
     {
       title: 'When ContentIn might be a better fit',
-      body: 'ContentIn is mature and feature-rich — viral templates, a strong carousel builder, an AI comment assistant, and full analytics, with 80+ public reviews behind it. If you are outside India (so INR/GST and Hinglish do not matter) and want the widest creator toolkit, it is a strong global option.',
+      body: 'ContentIn is mature and feature-rich — an AI comment assistant, full analytics, and 80+ public reviews behind it. If you are outside India (so INR/GST and Hinglish do not matter) and want the widest creator toolkit, it is a strong global option.',
     },
     {
       title: 'Where PersonaLink pulls ahead',
@@ -612,7 +612,7 @@ function buildContentin(rate: number): Competitor {
   faq: [
     { q: 'Is PersonaLink cheaper than ContentIn?', a: `For AI writing, yes. ContentIn’s voice writing starts on its $31/month Growth plan (about ${inr(31 * rate)} with FX); its $15 Essentials plan only schedules. PersonaLink includes the voice fingerprint from its ${inr(PL_PLANS.starter.inr)} Starter plan, billed in INR with a GST invoice, and has a free tier.` },
     { q: 'What does PersonaLink have that ContentIn does not?', a: 'INR billing, GST invoices, native Hinglish, India-aware trends, voice notes → post, and a story bank. ContentIn is built for the global English-speaking market and bills only in USD.' },
-    { q: 'What does ContentIn do better than PersonaLink?', a: 'Honestly, a few things: its carousel builder, viral template library, and AI comment assistant are more mature today, and it has 80+ public reviews. If those matter more to you than India fit, ContentIn is a fair pick.' },
+    { q: 'What does ContentIn do better than PersonaLink?', a: 'Honestly, a couple of things: its AI comment assistant is a genuine gap for us, and it has 80+ public reviews. We now match it on carousels and a template library (and add remix-in-your-voice on top). If the comment assistant matters more to you than India fit, ContentIn is a fair pick.' },
     { q: 'Does ContentIn bill in INR or issue GST invoices?', a: 'No — ContentIn bills in USD and does not provide India GST invoices. PersonaLink bills in INR via Razorpay and puts a GSTIN on every invoice.' },
     { q: 'Does ContentIn write Hinglish?', a: 'No. ContentIn writes in English. PersonaLink natively writes code-mixed Hinglish without forcing translation.' },
     { q: 'Does ContentIn have voice notes → post?', a: 'No. PersonaLink lets you record a voice note and returns a polished post; ContentIn has no voice-note workflow.' },

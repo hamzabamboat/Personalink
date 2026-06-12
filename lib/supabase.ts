@@ -281,6 +281,7 @@ export type PostImage = {
 export type BrandKit = {
   id: string
   user_id: string
+  name: string | null
   agency_client_id: string | null
   primary_color: string | null
   accent_color: string | null
@@ -310,6 +311,33 @@ export type Carousel = {
   status: 'draft' | 'rendering' | 'ready' | 'failed'
   created_at: string
   updated_at: string
+}
+
+export type LibraryItem = {
+  id: string
+  source: 'curated' | 'first_party' | 'community'
+  slug: string | null
+  title: string | null
+  niche: string | null
+  format: string | null
+  hook_type: string | null
+  pattern_summary: string | null
+  template_text: string | null
+  engagement_tier: 'high' | 'top' | null
+  contributed_by: string | null
+  attributed: boolean
+  is_public: boolean
+  created_at: string
+  /** Joined client-side: whether the current user has saved this item. */
+  saved?: boolean
+}
+
+export type SwipeSave = {
+  id: string
+  user_id: string
+  library_item_id: string
+  notes: string | null
+  created_at: string
 }
 
 export type LinkedInAccount = {

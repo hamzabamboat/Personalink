@@ -77,6 +77,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard/analytics',   label: 'Analytics',      icon: BarChart3, minPlan: 'standard' },
       { href: '/dashboard/suggestions', label: 'Trending ideas', icon: Lightbulb, badge: 5 },
+      { href: '/dashboard/library',     label: 'Inspiration',    icon: Compass, badge: 'new' },
       { href: '/dashboard/upload',      label: 'Image library',  icon: ImageIcon },
     ],
   },
