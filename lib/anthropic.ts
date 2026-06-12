@@ -32,6 +32,8 @@ type GeneratePostOptions = {
   voiceExemplars?: string[]
   /** Language mode applied additively on top of the voice fingerprint. */
   locale?: LocaleId
+  /** How many post variants to generate. Default 3 (bulk/other callers). Single-generate passes 1. */
+  count?: number
 }
 
 export type ExtractedMemory = {
@@ -237,7 +239,7 @@ Respond ONLY with a valid JSON object exactly like this — no markdown fences, 
 }
 
 export async function generateLinkedInPosts(options: GeneratePostOptions): Promise<string[]> {
-  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext, voiceExemplars, locale = 'english' } = options
+  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext, voiceExemplars, locale = 'english', count = 3 } = options
 
   const pillar = pickContentPillar(profile, recentTopicsByPillar)
   const voiceContext = buildVoiceContext(profile)
@@ -287,24 +289,21 @@ ${voiceContext}${exemplarBlock}`
   system.push({ type: 'text', text: perUserBlock, cache_control: { type: 'ephemeral' } })
   system.push({ type: 'text', text: dynamicTail })
 
-  const userPrompt = `${sourceContext}
+  const promptHead = `${sourceContext}
 ${additionalContext ? `\nAdditional instructions: ${additionalContext}` : ''}
-${trendingContext ? `\nTrending context to weave in naturally: ${trendingContext}` : ''}
+${trendingContext ? `\nTrending context to weave in naturally: ${trendingContext}` : ''}`
 
-Write 3 different LinkedIn post options with different angles/hooks. Format:
+  const variantInstruction = count === 1
+    ? `\n\nWrite one LinkedIn post. Return only the post text — no preamble, no labels, no options.`
+    : `\n\nWrite ${count} different LinkedIn post options with different angles/hooks. Format:\n\n${
+        Array.from({ length: count }, (_, i) => `---POST ${i + 1}---\n[post content]`).join('\n\n')
+      }`
 
----POST 1---
-[post content]
-
----POST 2---
-[post content]
-
----POST 3---
-[post content]`
+  const userPrompt = promptHead + variantInstruction
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 2500,
+    max_tokens: count === 1 ? 1200 : 2500,
     temperature: 0.85,
     system,
     messages: [{ role: 'user', content: userPrompt }],

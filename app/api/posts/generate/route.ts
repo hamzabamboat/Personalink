@@ -14,7 +14,6 @@ import { getNextTier, getTierLimits, tierLabel, type TierID } from '@/lib/pricin
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 import { buildScheduleSlots } from '@/lib/scheduling'
-import { syncPostToCalendar } from '@/lib/google-calendar'
 import { isLanguageModesEnabled } from '@/lib/flags'
 import { resolveLocale } from '@/lib/resolve-locale'
 
@@ -195,6 +194,7 @@ export async function POST(request: NextRequest) {
     imageContext,
     voiceExemplars,
     locale,
+    count: 1,
   })
 
   // Run every draft through the anti-AI-detection gate
@@ -229,25 +229,22 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
   )
 
-  const slots = buildScheduleSlots(now, validPosts.length, preferredHour, preferredDays, takenDateStrings, timezone)
+  // Suggested time only — pre-fills the editor's picker. NOT committed to the post.
+  const suggestedSlots = buildScheduleSlots(now, 1, preferredHour, preferredDays, takenDateStrings, timezone)
+  const suggestedScheduledAt = suggestedSlots[0]?.toISOString() ?? null
 
-  // Mirror generate-batch's behavior: respect the user's control_preference.
-  // autopilot → posts go straight to 'scheduled' and the publish cron handles them.
-  // suggest  → posts stay as 'draft' (user has to act).
-  // approve  → posts wait for the approval email link (or dashboard click).
-  const controlPreference: string = (profile.control_preference as string) || 'approve'
-  const postStatus: 'scheduled' | 'draft' | 'pending_approval' =
-    controlPreference === 'autopilot' ? 'scheduled'
-    : controlPreference === 'suggest' ? 'draft'
-    : 'pending_approval'
+  // Single-generate always saves an unscheduled DRAFT. Nothing reaches the calendar
+  // until the user clicks Schedule in the editor. Hands-off automation lives in the
+  // bulk/month flow, not here.
+  const postStatus = 'draft' as const
 
-  // Save posts — each gets its own pre-assigned scheduled slot
+  // Save the generated post as a draft — no committed schedule.
   const insertedPosts = await Promise.all(
-    validPosts.map(async (gate, idx) => {
+    validPosts.map(async (gate) => {
       const content = gate.content
       const scores = analyzeContent(content)
       const similarityScore = calculateSimilarityScore(content, recentContents)
-      const scheduledAt = slots[idx]?.toISOString() ?? null
+      const scheduledAt = null
 
       const fullRow: Record<string, unknown> = {
         user_id: user.id,
@@ -294,16 +291,6 @@ export async function POST(request: NextRequest) {
         logComplianceEvent(user.id, 'post_flagged_review', 'low', {
           flags: scores.flags,
         }, result.data?.id)
-      }
-
-      // Sync to Google Calendar immediately (non-blocking)
-      if (scheduledAt && result.data) {
-        syncPostToCalendar(user.id, {
-          id: result.data.id,
-          content: result.data.content,
-          scheduled_at: scheduledAt,
-          google_calendar_event_id: null,
-        })
       }
 
       return result.data
@@ -360,7 +347,7 @@ export async function POST(request: NextRequest) {
   // A voice-note transcript is the person's own words — add it to the voice corpus
   if (transcript) addVoiceSample(user.id, transcript, 'voice_note').catch(() => { /* non-fatal */ })
 
-  return NextResponse.json({ posts: savedPosts })
+  return NextResponse.json({ posts: savedPosts, suggestedScheduledAt })
   } catch (error) {
     console.error('[posts/generate]', error)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
