@@ -8,6 +8,11 @@ export type TourStepId =
   | 'analytics'
   | 'suggestions'
   | 'voice'
+  | 'images'
+  | 'brandkit'
+  | 'carousel'
+  | 'banner'
+  | 'library'
   | 'done'
 
 export interface TourStep {
@@ -49,6 +54,13 @@ export const TOUR_STEPS: TourStep[] = [
     body: 'Every draft lands here for you to review, edit, and approve before it goes out.',
   },
   {
+    id: 'images',
+    route: '/dashboard/posts',
+    target: 'center',
+    title: 'Add a graphic to any post',
+    body: 'When you edit a post, one click turns it into a branded quote, stat, or carousel — in your colours and logo, never a watermark. Unlimited branded graphics, plus AI images.',
+  },
+  {
     id: 'calendar',
     route: '/dashboard/calendar',
     target: 'calendar',
@@ -77,6 +89,36 @@ export const TOUR_STEPS: TourStep[] = [
     target: 'voice',
     title: 'Tune your voice',
     body: 'Adjust your tone, voice, and language anytime — every post is generated to match.',
+  },
+  {
+    id: 'brandkit',
+    route: '/dashboard/settings',
+    target: 'brand-kit',
+    title: 'Make it yours',
+    body: 'Set your logo, brand colour and font once — every graphic uses them automatically. Managing a few clients? Keep a separate kit for each.',
+  },
+  {
+    id: 'carousel',
+    route: '/dashboard/carousel',
+    target: 'carousel',
+    requiresPlan: 'standard',
+    title: 'Make swipeable carousels',
+    body: 'Turn any idea into a multi-slide PDF carousel — in your brand, ready to upload to LinkedIn as a document post.',
+    lockedBody: 'Turn any idea into a swipeable PDF carousel in your brand. Carousels are on the Standard plan — upgrade anytime to unlock them.',
+  },
+  {
+    id: 'banner',
+    route: '/dashboard/profile-improve',
+    target: 'center',
+    title: 'Design your profile banner',
+    body: 'Generate a professional LinkedIn banner with your name, role, brand colour, logo, and what you do — sized perfectly at 1584×396, ready to download.',
+  },
+  {
+    id: 'library',
+    route: '/dashboard/library',
+    target: 'library',
+    title: 'Never start from a blank page',
+    body: 'Browse proven post patterns — the hook, why it works, and a reusable template — then remix any one in your own voice with a click.',
   },
   {
     id: 'done',

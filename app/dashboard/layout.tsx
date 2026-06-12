@@ -26,6 +26,7 @@ import {
   ChevronDown,
   CalendarDays,
   BookOpen,
+  Layers,
   MoreHorizontal,
   ImageIcon,
   Mail,
@@ -67,6 +68,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: '/dashboard/generate',    label: 'Generate',       icon: Sparkles,    badge: 'ai' },
       { href: '/dashboard/posts',       label: 'Posts',          icon: FileText },
       { href: '/dashboard/calendar',    label: 'Calendar',       icon: CalendarDays },
+      { href: '/dashboard/carousel',    label: 'Carousels',      icon: Layers, minPlan: 'standard', badge: 'ai' },
       { href: '/dashboard/story-bank',  label: 'Story bank',     icon: BookOpen },
     ],
   },
@@ -75,6 +77,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard/analytics',   label: 'Analytics',      icon: BarChart3, minPlan: 'standard' },
       { href: '/dashboard/suggestions', label: 'Trending ideas', icon: Lightbulb, badge: 5 },
+      { href: '/dashboard/library',     label: 'Inspiration',    icon: Compass, badge: 'new' },
       { href: '/dashboard/upload',      label: 'Image library',  icon: ImageIcon },
     ],
   },

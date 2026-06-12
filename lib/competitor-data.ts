@@ -159,7 +159,9 @@ const voiceRows: FeatureRow[] = [
   { label: 'Voice notes → post', pl: '✅', competitor: '❌', highlight: 'pl' },
   { label: 'Story bank (reusable lived experiences)', pl: '✅', competitor: '⚠️' },
   { label: 'Voice retuning on edits', pl: '✅ Continuous', competitor: '❌ One-time at setup' },
-  { label: 'AI image generation in your brand style', pl: '✅', competitor: '⚠️ Stock library only' },
+  { label: 'AI image generation in your brand style', pl: '✅ Unlimited · your brand · no watermark', competitor: '⚠️ Stock library only' },
+  { label: 'Branded graphics from any post (quote/stat/list cards)', pl: '✅ Unlimited', competitor: '⚠️ Limited templates', highlight: 'pl' },
+  { label: 'LinkedIn banner generator (name, brand colour & logo)', pl: '✅', competitor: '❌', highlight: 'pl' },
 ]
 
 const trustRows: FeatureRow[] = [
@@ -192,14 +194,14 @@ function buildTaplio(rate: number): Competitor {
     { label: 'Multi-account / agency mode', pl: '✅ Custom-priced', competitor: '✅ Agency tier ($199)' },
     { label: 'Repurpose engine (turn 1 post → 5 formats)', pl: '✅', competitor: '⚠️ Manual remix' },
     { label: 'Approval workflow (autopilot / approve / suggest)', pl: '✅ Three modes', competitor: '⚠️ Approve before publish only' },
-    { label: 'Carousel generator', pl: '⚠️ Beta', competitor: '✅', highlight: 'competitor' },
-    { label: 'Public viral-post inspiration library', pl: '⚠️', competitor: '✅', highlight: 'competitor' },
+    { label: 'Carousel generator', pl: '✅ In your brand, no watermark', competitor: '✅' },
+    { label: 'Public inspiration library', pl: '✅ + remix in your voice', competitor: '✅' },
     ...trustRows,
   ],
   honest: [
     {
       title: 'When Taplio might be a better fit',
-      body: 'If your audience is entirely outside India and you want a polished carousel maker plus a chrome extension that surfaces viral posts inline on your LinkedIn feed, Taplio\'s inspiration library is still industry-leading.',
+      body: 'If your audience is entirely outside India and you specifically want Taplio\'s Chrome extension that surfaces viral posts inline on your LinkedIn feed, that inline workflow is genuinely still its edge. PersonaLink now matches it on carousels and a public inspiration library — with remix-in-your-voice on top.',
     },
     {
       title: 'If you already have a Taplio annual subscription',
@@ -287,7 +289,7 @@ function buildKleo(rate: number): Competitor {
     { label: 'Repurpose engine (turn 1 post → 5 formats)', pl: '✅', competitor: '❌', highlight: 'pl' },
     { label: 'Approval workflow (autopilot / approve / suggest)', pl: '✅ Three modes', competitor: '❌ Manual copy-paste', highlight: 'pl' },
     { label: 'Trend tracker', pl: '✅', competitor: '❌', highlight: 'pl' },
-    { label: 'Built-in carousel builder', pl: '⚠️ Beta', competitor: '✅ Mature', highlight: 'competitor' },
+    { label: 'Built-in carousel builder', pl: '✅ In your brand, no watermark', competitor: '✅ Mature' },
     { label: 'Voice cloning depth', pl: '✅ 6-dimension fingerprint', competitor: '⚠️ Style match' },
     ...trustRows,
   ],
@@ -320,7 +322,7 @@ function buildKleo(rate: number): Competitor {
     },
     {
       q: 'What if I just want carousels?',
-      a: 'Honest answer: Kleo\'s carousel builder is more mature today. Our beta is closing the gap fast — but if 80% of your content is carousels, Kleo is still defensible. For text-first founders, Personalink wins on voice match and auto-publish.',
+      a: 'Personalink now ships a carousel builder — in your brand, with no watermark — alongside voice match and auto-publish. Kleo\'s carousel maker is still more mature for heavy carousel-only workflows, but for most founders Personalink covers carousels plus everything Kleo can\'t do.',
     },
     {
       q: 'Will the posts actually sound like me?',
@@ -604,8 +606,8 @@ function buildContentin(rate: number): Competitor {
     ...indiaRows,
     { label: 'Auto-publish & scheduling', pl: '✅', competitor: '✅' },
     { label: 'Post analytics', pl: '✅ What resonates', competitor: '✅ Full' },
-    { label: 'Carousel generator', pl: '⚠️ Beta', competitor: '✅ From Growth', highlight: 'competitor' },
-    { label: 'Viral template library', pl: '⚠️', competitor: '✅', highlight: 'competitor' },
+    { label: 'Carousel generator', pl: '✅ In your brand', competitor: '✅ From Growth' },
+    { label: 'Viral template library', pl: '✅ + remix in your voice', competitor: '✅' },
     { label: 'AI comment assistant', pl: '❌', competitor: '✅', highlight: 'competitor' },
     { label: 'Repurpose engine (1 post → 5 formats)', pl: '✅', competitor: '⚠️', highlight: 'pl' },
     { label: 'Story bank (reusable lived experiences)', pl: '✅', competitor: '❌', highlight: 'pl' },
@@ -615,7 +617,7 @@ function buildContentin(rate: number): Competitor {
   honest: [
     {
       title: 'When ContentIn might be a better fit',
-      body: 'ContentIn is mature and feature-rich — viral templates, a strong carousel builder, an AI comment assistant, and full analytics, with 80+ public reviews behind it. If you are outside India (so INR/GST and Hinglish do not matter) and want the widest creator toolkit, it is a strong global option.',
+      body: 'ContentIn is mature and feature-rich — an AI comment assistant, full analytics, and 80+ public reviews behind it. If you are outside India (so INR/GST and Hinglish do not matter) and want the widest creator toolkit, it is a strong global option.',
     },
     {
       title: 'Where PersonaLink pulls ahead',
@@ -625,7 +627,7 @@ function buildContentin(rate: number): Competitor {
   faq: [
     { q: 'Is PersonaLink cheaper than ContentIn?', a: `For AI writing, yes. ContentIn’s voice writing starts on its $31/month Growth plan (about ${inr(31 * rate)} with FX); its $15 Essentials plan only schedules. PersonaLink includes the voice fingerprint from its ${inr(PL_PLANS.starter.inr)} Starter plan, billed in INR with a GST invoice, and has a free tier.` },
     { q: 'What does PersonaLink have that ContentIn does not?', a: 'INR billing, GST invoices, native Hinglish, India-aware trends, voice notes → post, and a story bank. ContentIn is built for the global English-speaking market and bills only in USD.' },
-    { q: 'What does ContentIn do better than PersonaLink?', a: 'Honestly, a few things: its carousel builder, viral template library, and AI comment assistant are more mature today, and it has 80+ public reviews. If those matter more to you than India fit, ContentIn is a fair pick.' },
+    { q: 'What does ContentIn do better than PersonaLink?', a: 'Honestly, a couple of things: its AI comment assistant is a genuine gap for us, and it has 80+ public reviews. We now match it on carousels and a template library (and add remix-in-your-voice on top). If the comment assistant matters more to you than India fit, ContentIn is a fair pick.' },
     { q: 'Does ContentIn bill in INR or issue GST invoices?', a: 'No — ContentIn bills in USD and does not provide India GST invoices. PersonaLink bills in INR via Razorpay and puts a GSTIN on every invoice.' },
     { q: 'Does ContentIn write Hinglish?', a: 'No. ContentIn writes in English. PersonaLink natively writes code-mixed Hinglish without forcing translation.' },
     { q: 'Does ContentIn have voice notes → post?', a: 'No. PersonaLink lets you record a voice note and returns a polished post; ContentIn has no voice-note workflow.' },

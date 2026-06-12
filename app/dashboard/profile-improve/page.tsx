@@ -8,6 +8,7 @@ import {
   ArrowRight, RotateCcw, History,
 } from 'lucide-react'
 import Link from 'next/link'
+import { BannerGenerator } from '@/components/banner-generator'
 
 /* ── Types ──────────────────────────────────────────────── */
 type ProfileData = {
@@ -276,6 +277,8 @@ function ResultsSection({ result }: { result: BeautifyResult }) {
           </div>
         )}
       </div>
+
+      <BannerGenerator />
 
       {/* Improvement notes */}
       {result.improvement_notes?.length > 0 && (

@@ -32,6 +32,8 @@ type GeneratePostOptions = {
   voiceExemplars?: string[]
   /** Language mode applied additively on top of the voice fingerprint. */
   locale?: LocaleId
+  /** How many post variants to generate. Default 3 (bulk/other callers). Single-generate passes 1. */
+  count?: number
 }
 
 export type ExtractedMemory = {
@@ -237,7 +239,7 @@ Respond ONLY with a valid JSON object exactly like this — no markdown fences, 
 }
 
 export async function generateLinkedInPosts(options: GeneratePostOptions): Promise<string[]> {
-  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext, voiceExemplars, locale = 'english' } = options
+  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext, voiceExemplars, locale = 'english', count = 3 } = options
 
   const pillar = pickContentPillar(profile, recentTopicsByPillar)
   const voiceContext = buildVoiceContext(profile)
@@ -287,24 +289,21 @@ ${voiceContext}${exemplarBlock}`
   system.push({ type: 'text', text: perUserBlock, cache_control: { type: 'ephemeral' } })
   system.push({ type: 'text', text: dynamicTail })
 
-  const userPrompt = `${sourceContext}
+  const promptHead = `${sourceContext}
 ${additionalContext ? `\nAdditional instructions: ${additionalContext}` : ''}
-${trendingContext ? `\nTrending context to weave in naturally: ${trendingContext}` : ''}
+${trendingContext ? `\nTrending context to weave in naturally: ${trendingContext}` : ''}`
 
-Write 3 different LinkedIn post options with different angles/hooks. Format:
+  const variantInstruction = count === 1
+    ? `\n\nWrite one LinkedIn post. Return only the post text — no preamble, no labels, no options.`
+    : `\n\nWrite ${count} different LinkedIn post options with different angles/hooks. Format:\n\n${
+        Array.from({ length: count }, (_, i) => `---POST ${i + 1}---\n[post content]`).join('\n\n')
+      }`
 
----POST 1---
-[post content]
-
----POST 2---
-[post content]
-
----POST 3---
-[post content]`
+  const userPrompt = promptHead + variantInstruction
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 2500,
+    max_tokens: count === 1 ? 1200 : 2500,
     temperature: 0.85,
     system,
     messages: [{ role: 'user', content: userPrompt }],
@@ -690,30 +689,65 @@ Respond ONLY with a valid JSON array (empty array if nothing notable):
   }
 }
 
-export async function craftDallePrompt(postContent: string, industry: string): Promise<string> {
+export async function craftImagePrompt(
+  postContent: string,
+  industry: string,
+  styleHint = 'photorealistic, professional editorial lighting',
+): Promise<string> {
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
+    max_tokens: 320,
     messages: [{
       role: 'user',
-      content: `Create a DALL-E 3 image generation prompt for a LinkedIn post. The image must be professional, photorealistic, and suitable for a business social network.
+      content: `Write an image-generation prompt for a LinkedIn post image. Target aesthetic: ${styleHint}.
 
 Post content (first 400 chars): "${postContent.slice(0, 400)}"
 Industry: ${industry}
 
 Rules:
-- Photorealistic style, professional lighting
-- No text or words in the image
+- Match the target aesthetic above
+- No text, words, letters, or logos in the image
 - No faces or identifiable people (avoid copyright/likeness issues)
-- Focus on concepts, environments, objects, or abstract visual metaphors
-- LinkedIn-appropriate (business context)
-- Describe scene, composition, lighting, and mood specifically
+- Focus on concepts, environments, objects, or visual metaphors
+- Business-appropriate; describe scene, composition, lighting, and mood specifically
 
 Respond with ONLY the prompt string, nothing else.`,
     }],
   })
 
-  return msg.content[0].type === 'text' ? msg.content[0].text.trim() : `Professional ${industry} workplace scene, photorealistic, soft natural lighting, no people, clean composition`
+  return msg.content[0].type === 'text'
+    ? msg.content[0].text.trim()
+    : `${styleHint}, ${industry} concept scene, no people, no text, clean composition`
+}
+
+/** Generate carousel slides (cover/body/cta) from a topic or post. */
+export async function extractCarouselSlides(
+  source: string,
+  slideCount: number,
+): Promise<import('./supabase').CarouselSlide[]> {
+  const { buildCarouselPrompt, parseCarouselSlides } = await import('./images/carousel-content')
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 1600,
+    messages: [{ role: 'user', content: buildCarouselPrompt(source, slideCount) }],
+  })
+  const raw = msg.content[0].type === 'text' ? msg.content[0].text : ''
+  return parseCarouselSlides(raw)
+}
+
+/** Extract short, card-ready content from a post for a branded template graphic. */
+export async function extractCardContent(
+  postContent: string,
+  type: import('./images/presets').TemplateType,
+): Promise<import('./images/card-content').CardContent | null> {
+  const { buildCardExtractionPrompt, parseCardContent } = await import('./images/card-content')
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 400,
+    messages: [{ role: 'user', content: buildCardExtractionPrompt(postContent, type) }],
+  })
+  const raw = msg.content[0].type === 'text' ? msg.content[0].text : ''
+  return parseCardContent(raw, type)
 }
 
 export async function extractTopicsFromPost(content: string): Promise<string[]> {
@@ -737,6 +771,60 @@ Respond ONLY with a JSON array of strings. Example: ["leadership", "startup grow
     return match ? JSON.parse(match[0]) : []
   } catch {
     return []
+  }
+}
+
+export interface ExtractedLibraryPattern {
+  hook_type: string
+  format: 'text' | 'list' | 'story'
+  niche: string
+  pattern_summary: string
+  template_text: string
+}
+
+/**
+ * Analyse WHY a LinkedIn post works and return a transformative breakdown +
+ * reusable template — never the verbatim post text. Used by first-party
+ * ingestion so the library stores patterns, not republished content.
+ */
+export async function extractLibraryPattern(postContent: string): Promise<ExtractedLibraryPattern | null> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 700,
+    messages: [{
+      role: 'user',
+      content: `You analyse what makes a LinkedIn post work — WITHOUT republishing it. Never copy its sentences verbatim; describe the structure in your own words.
+
+Post:
+"${postContent.slice(0, 1500)}"
+
+Respond with ONLY a JSON object with these exact keys:
+- hook_type: short label for the opening move (e.g. "contrarian", "vulnerable", "data", "how-to", "listicle", "confession", "question")
+- format: one of "text", "list", "story"
+- niche: short audience tag (e.g. "founders", "b2b-saas", "careers", "marketing", "general")
+- pattern_summary: 1–2 sentences on WHY this structure works, generalised (not about this specific post)
+- template_text: a reusable fill-in-the-blank template using [brackets] for placeholders — your own words, NOT the original text
+
+Example:
+{"hook_type":"contrarian","format":"text","niche":"general","pattern_summary":"Names the crowd's belief then flips it, promising a non-obvious payoff.","template_text":"Everyone says [common advice]. I did the opposite..."}`,
+    }],
+  })
+  try {
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '{}'
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    const o = JSON.parse(match[0])
+    if (!o.template_text || !o.pattern_summary) return null
+    const format = ['text', 'list', 'story'].includes(o.format) ? o.format : 'text'
+    return {
+      hook_type: String(o.hook_type || 'general').slice(0, 40),
+      format,
+      niche: String(o.niche || 'general').slice(0, 40),
+      pattern_summary: String(o.pattern_summary).slice(0, 600),
+      template_text: String(o.template_text).slice(0, 1200),
+    }
+  } catch {
+    return null
   }
 }
 

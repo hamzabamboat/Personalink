@@ -693,18 +693,24 @@ function GenerateContent() {
       if (!posts?.length) { setError('No posts generated. Please try again.'); return }
       setGeneratedPosts(posts)
       posthog.capture('language_mode_selected', { locale, surface: 'generator' })
-      if (overrideStoryId || initStoryId) selectPost(posts[0])
+      // One post per prompt: open it directly in the editor with the suggested time
+      // pre-filled. It's a draft — nothing is scheduled until the user hits Schedule.
+      selectPost(posts[0], (data.suggestedScheduledAt as string | null) ?? null)
     } catch { setError('Generation failed — check your connection.') }
     finally { clearInterval(interval); setLoading(false) }
   }
 
   const originalDraftRef = useRef<string>('')
 
-  function selectPost(post: { id: string; content: string; scheduled_at?: string | null; image_urls?: string[] | null }) {
+  function selectPost(post: { id: string; content: string; scheduled_at?: string | null; image_urls?: string[] | null }, suggestedScheduledAt?: string | null) {
     setSelectedPost(post)
     setEditContent(post.content)
     setActionResult('')
-    setScheduleDate(post.scheduled_at ? utcToLocalInput(post.scheduled_at) : '')
+    setScheduleDate(
+      post.scheduled_at ? utcToLocalInput(post.scheduled_at)
+      : suggestedScheduledAt ? utcToLocalInput(suggestedScheduledAt)
+      : ''
+    )
     setImageSuggestions([])
     setAttachedImages(post.image_urls || [])
     originalDraftRef.current = post.content
@@ -1112,43 +1118,13 @@ function GenerateContent() {
 
         {/* ── RIGHT: Output panel ── */}
         <div>
-          {/* Generated post chooser */}
-          {generatedPosts.length > 0 && !selectedPost && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <label className="db-label">// choose a version</label>
-              {generatedPosts.map((post, i) => (
-                <div key={post.id} onClick={() => selectPost(post)}
-                  className="gen-card"
-                  style={{ cursor: 'pointer', transition: 'transform .15s, box-shadow .15s, border-color .15s', borderColor: 'var(--line)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--sh-2)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}>
-                  <div className="oc-head">
-                    <span style={{ color: 'var(--accent)', fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>Option {i + 1}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink-4)' }}>Select <ArrowRight size={11} /></span>
-                  </div>
-                  {post.scheduled_at && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', marginBottom: 4 }}>
-                      <CalendarClock size={12} style={{ color: '#2563eb', flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: '#1d4ed8', fontWeight: 500 }}>
-                        Scheduled: {new Date(post.scheduled_at).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at {new Date(post.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                      </span>
-                    </div>
-                  )}
-                  <div className="oc-post">
-                    <p>{post.content}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Selected post editor */}
           {selectedPost && (
             <div className="gen-card gen-card--out">
               <div className="oc-head">
                 <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>// edit &amp; schedule</span>
-                <button onClick={() => { posthog.capture('post_skipped', { post_id: selectedPost.id }); setSelectedPost(null) }} className="btn-dash btn-dash--ghost btn-dash--sm">
-                  <ArrowLeft size={12} /> Choose different
+                <button onClick={() => { posthog.capture('post_regenerated', { post_id: selectedPost.id }); handleGenerate() }} disabled={loading} className="btn-dash btn-dash--ghost btn-dash--sm">
+                  <Sparkles size={12} /> Regenerate
                 </button>
               </div>
 
@@ -1157,18 +1133,12 @@ function GenerateContent() {
                   className="g-textarea" style={{ minHeight: 220 }} />
               </div>
 
-              {/* Scheduled date banner */}
-              {selectedPost?.scheduled_at && actionResult !== 'scheduled' && (
+              {/* Suggested-time hint — the post is a draft until the user schedules it */}
+              {scheduleDate && actionResult !== 'scheduled' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 'var(--r-sm)', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
                   <CalendarClock size={14} style={{ color: '#2563eb', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Auto-scheduled to post</div>
-                    <div style={{ fontSize: 12, color: '#1d4ed8' }}>
-                      {new Date(selectedPost.scheduled_at).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                      {' at '}
-                      {new Date(selectedPost.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                      {' · Approval email sent 1–2 hrs before'}
-                    </div>
+                  <div style={{ fontSize: 12, color: '#1d4ed8' }}>
+                    Suggested time below — this is a <strong>draft</strong>. Nothing posts until you hit <strong>Schedule</strong>.
                   </div>
                 </div>
               )}
