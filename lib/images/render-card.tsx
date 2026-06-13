@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import type { CardContent } from './card-content'
 import { ASPECT_RATIOS, type AspectRatioId, type Theme } from './presets'
-import { loadBrandFont, type LoadedBrandFont } from './fonts'
+import { loadBrandFont, DEFAULT_QUOTE_FONT, DEFAULT_CARD_FONT, type LoadedBrandFont } from './fonts'
 
 // Brand kit applied to a card: accent colour + logo + optional brand font.
 // (Background stays themed; full background re-colouring is a later pass.)
@@ -54,9 +54,10 @@ function Middle({ content, theme, accent }: { content: CardContent; theme: Theme
     case 'title':
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {content.kicker ? <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, color: accent, marginBottom: 16 }}>{content.kicker.toUpperCase()}</div> : null}
-          <div style={{ fontSize: 80, fontWeight: 800, color: theme.ink, lineHeight: 1.08 }}>{content.headline}</div>
-          {content.body ? <div style={{ fontSize: 38, color: theme.sub, marginTop: 20 }}>{content.body}</div> : null}
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 5, color: accent, marginBottom: 22 }}>{(content.kicker || 'CAROUSEL').toUpperCase()}</div>
+          <div style={{ fontSize: 92, fontWeight: 800, color: theme.ink, lineHeight: 1.04, letterSpacing: -2 }}>{content.headline}</div>
+          {content.body ? <div style={{ fontSize: 38, color: theme.sub, marginTop: 24, lineHeight: 1.3 }}>{content.body}</div> : null}
+          <div style={{ width: 84, height: 6, borderRadius: 3, background: accent, marginTop: 40 }} />
         </div>
       )
     case 'list':
@@ -85,9 +86,9 @@ function Middle({ content, theme, accent }: { content: CardContent; theme: Theme
     default:
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 150, fontWeight: 700, color: accent, lineHeight: 1 }}>&#8220;</div>
-          <div style={{ fontSize: 64, fontWeight: 700, color: theme.ink, lineHeight: 1.18 }}>{content.headline}</div>
-          <div style={{ width: 120, height: 10, borderRadius: 6, background: accent, marginTop: 28 }} />
+          <div style={{ fontSize: 210, fontWeight: 700, color: accent, lineHeight: 0.8, marginBottom: 8 }}>&#8220;</div>
+          <div style={{ fontSize: 72, fontWeight: 700, color: theme.ink, lineHeight: 1.22, letterSpacing: -1 }}>{content.headline}</div>
+          <div style={{ width: 84, height: 6, borderRadius: 3, background: accent, marginTop: 44 }} />
         </div>
       )
   }
@@ -132,7 +133,8 @@ export function renderCardResponse(content: CardContent, theme: Theme, brand: Ca
 
 /** Render a branded card to a PNG Buffer (for storage). Loads the brand font if set. */
 export async function renderCardToBuffer(content: CardContent, theme: Theme, brand: CardBrand, ar: AspectRatioId): Promise<Buffer> {
-  const font = await loadBrandFont(brand.fontFamily)
+  const defaultFont = content.type === 'quote' ? DEFAULT_QUOTE_FONT : DEFAULT_CARD_FONT
+  const font = await loadBrandFont(brand.fontFamily || defaultFont)
   const resp = renderCardResponse(content, theme, brand, ar, font)
   return Buffer.from(await resp.arrayBuffer())
 }

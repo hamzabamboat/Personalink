@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import type { Theme } from './presets'
 import type { CardBrand } from './render-card'
-import { loadBrandFont, type LoadedBrandFont } from './fonts'
+import { loadBrandFont, DEFAULT_BANNER_FONT, type LoadedBrandFont } from './fonts'
 
 // LinkedIn personal banner is 1584 x 396. We render at a scale multiple for a
 // crisp, high-resolution download (default 3x = 4752 x 1188).
@@ -24,6 +24,7 @@ function bannerElement(content: BannerContent, theme: Theme, brand: CardBrand, s
   const accent = accentOf(brand, theme)
   const keywords = (content.keywords || []).filter(Boolean).slice(0, 4)
   const chipBg = theme.id === 'mist' ? 'rgba(43,77,255,0.08)' : 'rgba(255,255,255,0.10)'
+  const initial = (content.name?.trim()?.[0] || 'P').toUpperCase()
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.bg, color: theme.ink, fontFamily, padding: `0 ${96 * s}px` }}>
@@ -46,13 +47,13 @@ function bannerElement(content: BannerContent, theme: Theme, brand: CardBrand, s
         ) : null}
       </div>
 
-      {/* right: logo or decorative accent ring */}
+      {/* right: logo, or an elegant initial monogram in a thin accent ring */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 260 * s, height: 260 * s }}>
         {brand.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={brand.logoUrl} height={180 * s} alt="" style={{ borderRadius: 12 * s }} />
         ) : (
-          <div style={{ display: 'flex', width: 210 * s, height: 210 * s, borderRadius: 999, border: `${16 * s}px solid ${accent}`, opacity: 0.22 }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 208 * s, height: 208 * s, borderRadius: 999, border: `${5 * s}px solid ${accent}`, color: accent, fontSize: 124 * s, fontWeight: 700, lineHeight: 1 }}>{initial}</div>
         )}
       </div>
     </div>
@@ -60,7 +61,7 @@ function bannerElement(content: BannerContent, theme: Theme, brand: CardBrand, s
 }
 
 export async function renderBannerToBuffer(content: BannerContent, theme: Theme, brand: CardBrand, scale: number = BANNER_SCALE): Promise<Buffer> {
-  const font = await loadBrandFont(brand.fontFamily)
+  const font = await loadBrandFont(brand.fontFamily || DEFAULT_BANNER_FONT)
   const resp = renderBannerResponse(content, theme, brand, scale, font)
   return Buffer.from(await resp.arrayBuffer())
 }

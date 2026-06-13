@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { renderCardResponse, type CardBrand } from '@/lib/images/render-card'
 import { resolveTheme, resolveAspectRatio, type TemplateType } from '@/lib/images/presets'
-import { loadBrandFont } from '@/lib/images/fonts'
+import { loadBrandFont, DEFAULT_QUOTE_FONT, DEFAULT_CARD_FONT } from '@/lib/images/fonts'
 import type { CardContent } from '@/lib/images/card-content'
 
 export const runtime = 'nodejs'
@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
     fontFamily: sp.get('font'),
   }
 
-  const font = await loadBrandFont(brand.fontFamily)
+  const defaultFont = type === 'quote' ? DEFAULT_QUOTE_FONT : DEFAULT_CARD_FONT
+  const font = await loadBrandFont(brand.fontFamily || defaultFont)
   return renderCardResponse(content, resolveTheme(sp.get('theme')), brand, resolveAspectRatio(sp.get('ar')), font)
 }
