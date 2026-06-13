@@ -15,8 +15,10 @@ import { BulkGraphicsModal } from '@/components/bulk-graphics-modal'
 import {
   Plus, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
   Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2, AlertTriangle, CalendarClock,
+  AtSign, CheckCheck,
 } from 'lucide-react'
 import { postAttentionKind } from '@/lib/posts-attention'
+import { shareToLinkedIn } from '@/lib/share-to-linkedin'
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'var(--ink-3)',
@@ -190,6 +192,50 @@ function PostsContent() {
     toast.success('Post updated')
   }
 
+  // Manual mention assist: hand the post to LinkedIn's composer so the user can
+  // type "@" to tag people/companies (the API can't resolve mention URNs for
+  // personal posts). If the post was scheduled, unschedule it first so the cron
+  // doesn't also publish a plain-text copy.
+  async function tagAndPost(post: Post) {
+    const result = await shareToLinkedIn(post.content)
+    if (result === 'failed') {
+      toast.error("Couldn't open LinkedIn — copy the text and post it manually")
+      return
+    }
+
+    if (post.status === 'scheduled') {
+      const res = await fetch(`/api/posts/${post.id}/update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'draft', scheduled_at: null }),
+      })
+      const data = await res.json()
+      if (data.post) setPosts(p => p.map(x => x.id === post.id ? { ...x, ...data.post } : x))
+    }
+
+    if (result === 'copied') {
+      toast.success('Post copied — paste in LinkedIn, then type @ to tag people', { duration: 6000 })
+    } else if (result === 'shared') {
+      toast('Add your @mentions in LinkedIn, then post')
+    }
+    // 'cancelled' (user dismissed the share sheet) → stay quiet
+  }
+
+  // After posting manually (with tags) on LinkedIn, record it so the post isn't
+  // left lingering as a draft.
+  async function markPosted(post: Post) {
+    const res = await fetch(`/api/posts/${post.id}/update`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'published' }),
+    })
+    const data = await res.json()
+    if (data.error) { toast.error(data.error); return }
+    if (data.post) setPosts(p => p.map(x => x.id === post.id ? { ...x, ...data.post } : x))
+    setEditingPost(null)
+    toast.success('Marked as posted')
+  }
+
   const sortedPosts = [...posts].sort((a, b) => {
     const aTime = a.scheduled_at ? new Date(a.scheduled_at).getTime() : (a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime())
     const bTime = b.scheduled_at ? new Date(b.scheduled_at).getTime() : (b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime())
@@ -340,6 +386,39 @@ function PostsContent() {
                 <CheckCircle2 className="w-4 h-4" />
                 {saving ? 'Working…' : ['scheduled', 'failed'].includes(editingPost.status) ? 'Reschedule' : 'Approve & Schedule'}
               </button>
+            )}
+            {editingPost && editingPost.status !== 'published' && (
+              <>
+                <div style={{ borderTop: '1px solid var(--line)', margin: '2px 0' }} />
+                <button
+                  onClick={() => tagAndPost(editingPost)}
+                  className="w-full flex items-center justify-center gap-2 transition-opacity"
+                  style={{
+                    background: '#0a66c2', color: '#fff',
+                    borderRadius: 'var(--r-sm)', padding: '10px 16px',
+                    fontSize: 14, fontWeight: 600,
+                  }}
+                >
+                  <AtSign className="w-4 h-4" />
+                  Tag &amp; post on LinkedIn
+                </button>
+                <p style={{ fontSize: 11, color: 'var(--ink-4)', margin: 0, textAlign: 'center' }}>
+                  Real @mentions can only be added in LinkedIn. Once you&rsquo;ve posted there:
+                </p>
+                <button
+                  onClick={() => markPosted(editingPost)}
+                  className="w-full flex items-center justify-center gap-2 transition-opacity"
+                  style={{
+                    background: 'var(--surface-2)', color: 'var(--ink-2)',
+                    border: '1px solid var(--line)',
+                    borderRadius: 'var(--r-sm)', padding: '9px 16px',
+                    fontSize: 13, fontWeight: 600,
+                  }}
+                >
+                  <CheckCheck className="w-4 h-4" />
+                  Mark as posted
+                </button>
+              </>
             )}
             <div className="flex gap-3">
               <button
@@ -538,6 +617,16 @@ function PostsContent() {
                         style={{ background: '#10b981', color: '#fff', border: 'none' }}
                       >
                         <CheckCircle2 />
+                      </button>
+                    )}
+                    {post.status !== 'published' && (
+                      <button
+                        onClick={() => tagAndPost(post)}
+                        className="btn-dash btn-dash--ghost btn-dash--sm"
+                        title="Tag & post on LinkedIn"
+                        style={{ color: '#0a66c2' }}
+                      >
+                        <AtSign />
                       </button>
                     )}
                     <button
