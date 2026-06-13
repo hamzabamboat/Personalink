@@ -3,7 +3,7 @@ import { PDFDocument } from 'pdf-lib'
 import type { CarouselSlide } from '@/lib/supabase'
 import type { Theme } from './presets'
 import type { CardBrand } from './render-card'
-import { loadBrandFont } from './fonts'
+import { loadBrandFont, DEFAULT_CAROUSEL_FONT } from './fonts'
 
 const W = 1080
 const H = 1350
@@ -68,7 +68,7 @@ export async function renderCarousel(
   theme: Theme,
   brand: CardBrand,
 ): Promise<{ pngBuffers: Buffer[]; pdfBuffer: Buffer }> {
-  const font = await loadBrandFont(brand.fontFamily)
+  const font = await loadBrandFont(brand.fontFamily || DEFAULT_CAROUSEL_FONT)
   const family = font?.family ?? 'sans-serif'
   const fontOpt = font ? { fonts: font.fonts } : {}
 

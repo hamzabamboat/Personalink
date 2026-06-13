@@ -43,9 +43,9 @@ export interface Theme {
 }
 
 export const THEMES: Theme[] = [
-  { id: 'midnight', label: 'Midnight', bg: 'linear-gradient(135deg,#0B1024,#1F2A5E,#2B4DFF)', ink: '#FFFFFF', sub: '#A7B4E0', accent: '#00E5C0' },
-  { id: 'mist', label: 'Mist', bg: '#EEF2FF', ink: '#0B1024', sub: '#5566AA', accent: '#2B4DFF' },
-  { id: 'ink', label: 'Ink', bg: '#0A0A0F', ink: '#FFFFFF', sub: '#8A8AA0', accent: '#FFB020' },
+  { id: 'midnight', label: 'Midnight', bg: 'radial-gradient(circle at 78% 0%, #2f3f9c 0%, #16204c 44%, #0a0e24 100%)', ink: '#FFFFFF', sub: '#AEB9E4', accent: '#00E5C0' },
+  { id: 'mist', label: 'Mist', bg: 'radial-gradient(circle at 50% 0%, #FFFFFF 0%, #ECF0FF 62%, #DDE4FF 100%)', ink: '#0B1024', sub: '#5566AA', accent: '#2B4DFF' },
+  { id: 'ink', label: 'Ink', bg: 'radial-gradient(circle at 50% 0%, #23233e 0%, #0f0f1b 54%, #060609 100%)', ink: '#FFFFFF', sub: '#8A8AA0', accent: '#FFB020' },
 ]
 
 export const ASPECT_RATIOS: Record<AspectRatioId, { w: number; h: number; label: string }> = {

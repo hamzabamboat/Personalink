@@ -31,6 +31,13 @@ export function resolveBrandFont(id?: string | null): BrandFontDef | null {
   return BRAND_FONTS.find(f => f.id === id) ?? null
 }
 
+// Distinctive default type per surface when no brand font is chosen — never the
+// system sans. Quotes/banners get an editorial serif; cards a clean geometric.
+export const DEFAULT_QUOTE_FONT = 'playfair-display'
+export const DEFAULT_CARD_FONT = 'poppins'
+export const DEFAULT_BANNER_FONT = 'playfair-display'
+export const DEFAULT_CAROUSEL_FONT = 'montserrat'
+
 type Weight = 400 | 700
 export interface SatoriFont {
   name: string
