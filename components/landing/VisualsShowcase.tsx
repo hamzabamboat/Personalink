@@ -6,10 +6,9 @@ import { fadeUp, staggerParent, viewportOnce } from './motion'
 /* ─── Real product renders via the live OG endpoints (auth-free), so the
    showcase shows actual PersonaLink output rather than abstractions. ─── */
 
-const ACCENT = '%232B4DFF' // #2B4DFF, url-encoded
-function cardSrc(type: string, ar: string, headline: string) {
-  return `/api/og/card?type=${type}&theme=midnight&ar=${ar}&accent=${ACCENT}` +
-    `&headline=${encodeURIComponent(headline)}&name=${encodeURIComponent('Your brand')}`
+function cardSrc(type: string, ar: string, headline: string, palette = 'electric', extra = '') {
+  return `/api/og/card?type=${type}&palette=${palette}&ar=${ar}` +
+    `&headline=${encodeURIComponent(headline)}&name=${encodeURIComponent('Your brand')}${extra}`
 }
 
 // Real branded quote card (square)
@@ -51,7 +50,7 @@ function CarouselMock() {
       ))}
       <div style={{ position: 'relative', width: '47%', aspectRatio: '1080 / 1350', borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)', boxShadow: 'var(--sh-2)', zIndex: 3 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cardSrc('title', '1080x1350', '5 lessons from my first raise') + '&font=montserrat'} alt="A carousel cover slide" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <img src={cardSrc('title', '1080x1350', '5 lessons from my first raise', 'midnight', '&kicker=Carousel')} alt="A carousel cover slide" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       </div>
       <span style={{
         position: 'absolute', right: 8, bottom: 6, fontFamily: 'var(--f-mono)', fontSize: 9.5,
@@ -68,7 +67,7 @@ function BannerMock() {
     <div style={{ aspectRatio: '4 / 3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: '100%', aspectRatio: '1584 / 396', borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/api/og/banner?theme=ink&accent=%232B4DFF" alt="A LinkedIn banner generated in PersonaLink" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <img src="/api/og/banner?palette=electric" alt="A LinkedIn banner generated in PersonaLink" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       </div>
     </div>
   )

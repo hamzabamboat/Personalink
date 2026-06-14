@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { renderCardResponse, type CardBrand } from '@/lib/images/render-card'
-import { resolveTheme, resolveAspectRatio, type TemplateType } from '@/lib/images/presets'
+import { resolveTheme, resolveAspectRatio, resolvePalette, paletteToTheme, type TemplateType } from '@/lib/images/presets'
 import { loadBrandFont, DEFAULT_QUOTE_FONT, DEFAULT_CARD_FONT } from '@/lib/images/fonts'
 import type { CardContent } from '@/lib/images/card-content'
 
@@ -34,5 +34,8 @@ export async function GET(req: NextRequest) {
 
   const defaultFont = type === 'quote' ? DEFAULT_QUOTE_FONT : DEFAULT_CARD_FONT
   const font = await loadBrandFont(brand.fontFamily || defaultFont)
-  return renderCardResponse(content, resolveTheme(sp.get('theme')), brand, resolveAspectRatio(sp.get('ar')), font)
+  // New: curated palette wins; fall back to the legacy theme for back-compat.
+  const palId = sp.get('palette')
+  const theme = palId ? paletteToTheme(resolvePalette(palId)) : resolveTheme(sp.get('theme'))
+  return renderCardResponse(content, theme, brand, resolveAspectRatio(sp.get('ar')), font)
 }

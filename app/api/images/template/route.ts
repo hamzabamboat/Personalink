@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { extractCardContent } from '@/lib/anthropic'
 import { renderCardToBuffer, type CardBrand } from '@/lib/images/render-card'
-import { resolveTheme, resolveAspectRatio, type TemplateType } from '@/lib/images/presets'
+import { resolveTheme, resolveAspectRatio, resolvePalette, paletteToTheme, type TemplateType } from '@/lib/images/presets'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const type: TemplateType = VALID_TYPES.includes(body.templateType) ? body.templateType : 'quote'
-    const theme = resolveTheme(body.theme)
+    // Curated palette (preferred) bundles bg+ink+accent; legacy theme is fallback.
+    const theme = body.palette ? paletteToTheme(resolvePalette(body.palette)) : resolveTheme(body.theme)
     const ar = resolveAspectRatio(body.aspectRatio)
     const postContent: string = body.postContent || ''
 
@@ -63,7 +64,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     const brand: CardBrand = {
-      accentColor: kit?.accent_color ?? null,
+      // In palette mode the palette owns the accent, so the harmony can't be broken.
+      accentColor: body.palette ? null : (kit?.accent_color ?? null),
       primaryColor: kit?.primary_color ?? null,
       logoUrl: kit?.logo_url ?? null,
       fontFamily: kit?.font_family ?? null,

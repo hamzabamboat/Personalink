@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og'
 import type { CardContent } from './card-content'
 import { ASPECT_RATIOS, type AspectRatioId, type Theme } from './presets'
 import { loadBrandFont, DEFAULT_QUOTE_FONT, DEFAULT_CARD_FONT, type LoadedBrandFont } from './fonts'
+import { pickDeco, Decoration, LogoDeco, hashStr } from './decorations'
 
 // Brand kit applied to a card: accent colour + logo + optional brand font.
 // (Background stays themed; full background re-colouring is a later pass.)
@@ -13,6 +14,22 @@ export interface CardBrand {
   sub?: string | null
   /** Brand-font id (see lib/images/fonts.ts). Null/unknown → system sans. */
   fontFamily?: string | null
+}
+
+// Readable text colour on an arbitrary fill, by luminance.
+export function textOn(hex: string): string {
+  const m = (hex || '#000').replace('#', '')
+  const r = parseInt(m.slice(0, 2), 16), g = parseInt(m.slice(2, 4), 16), b = parseInt(m.slice(4, 6), 16)
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return lum > 0.6 ? '#0B0B12' : '#FFFFFF'
+}
+
+// Auto-fit a headline so long text never overflows the card.
+function fitHeadline(text: string, max: number, min: number): number {
+  const len = (text || '').length
+  if (len <= 22) return max
+  if (len >= 150) return min
+  return Math.round(max - ((len - 22) / 128) * (max - min))
 }
 
 function initials(name?: string | null): string {
@@ -27,7 +44,7 @@ function Footer({ brand, theme, accent }: { brand: CardBrand; theme: Theme; acce
         // eslint-disable-next-line @next/next/no-img-element
         <img src={brand.logoUrl} height={56} alt="" style={{ borderRadius: 8 }} />
       ) : (
-        <div style={{ display: 'flex', width: 64, height: 64, borderRadius: 999, background: accent, color: theme.id === 'mist' ? '#FFFFFF' : '#0B1024', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700 }}>
+        <div style={{ display: 'flex', width: 64, height: 64, borderRadius: 16, background: accent, color: textOn(accent), alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800 }}>
           {initials(brand.name)}
         </div>
       )}
@@ -43,31 +60,35 @@ function Footer({ brand, theme, accent }: { brand: CardBrand; theme: Theme; acce
 
 function Middle({ content, theme, accent }: { content: CardContent; theme: Theme; accent: string }) {
   switch (content.type) {
-    case 'stat':
+    case 'stat': {
+      const big = fitHeadline(content.headline, 340, 190)
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {content.kicker ? <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, color: accent, marginBottom: 12 }}>{content.kicker.toUpperCase()}</div> : null}
-          <div style={{ fontSize: 300, fontWeight: 800, color: accent, lineHeight: 1 }}>{content.headline}</div>
-          {content.body ? <div style={{ fontSize: 52, fontWeight: 700, color: theme.ink, lineHeight: 1.15, marginTop: 24 }}>{content.body}</div> : null}
+          {content.kicker ? <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: 6, color: accent, marginBottom: 14 }}>{content.kicker.toUpperCase()}</div> : null}
+          <div style={{ fontSize: big, fontWeight: 800, color: accent, lineHeight: 0.92, letterSpacing: -6 }}>{content.headline}</div>
+          {content.body ? <div style={{ fontSize: 52, fontWeight: 700, color: theme.ink, lineHeight: 1.12, marginTop: 28 }}>{content.body}</div> : null}
         </div>
       )
-    case 'title':
+    }
+    case 'title': {
+      const fit = fitHeadline(content.headline, 100, 54)
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 5, color: accent, marginBottom: 22 }}>{(content.kicker || 'CAROUSEL').toUpperCase()}</div>
-          <div style={{ fontSize: 92, fontWeight: 800, color: theme.ink, lineHeight: 1.04, letterSpacing: -2 }}>{content.headline}</div>
-          {content.body ? <div style={{ fontSize: 38, color: theme.sub, marginTop: 24, lineHeight: 1.3 }}>{content.body}</div> : null}
-          <div style={{ width: 84, height: 6, borderRadius: 3, background: accent, marginTop: 40 }} />
+          {content.kicker ? <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 5, color: accent, marginBottom: 22 }}>{content.kicker.toUpperCase()}</div> : null}
+          <div style={{ fontSize: fit, fontWeight: 800, color: theme.ink, lineHeight: 1.03, letterSpacing: -2.5 }}>{content.headline}</div>
+          {content.body ? <div style={{ fontSize: 38, fontWeight: 500, color: theme.sub, marginTop: 26, lineHeight: 1.3 }}>{content.body}</div> : null}
+          <div style={{ width: 104, height: 10, borderRadius: 5, background: accent, marginTop: 44 }} />
         </div>
       )
+    }
     case 'list':
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 64, fontWeight: 800, color: theme.ink, lineHeight: 1.08, marginBottom: 36 }}>{content.headline}</div>
+          <div style={{ fontSize: fitHeadline(content.headline, 72, 46), fontWeight: 800, color: theme.ink, lineHeight: 1.04, letterSpacing: -1.5, marginBottom: 46 }}>{content.headline}</div>
           {(content.lines ?? []).slice(0, 5).map((l, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 20 }}>
-              <div style={{ fontSize: 40, fontWeight: 800, color: accent, width: 80 }}>{String(i + 1).padStart(2, '0')}</div>
-              <div style={{ fontSize: 40, color: theme.ink }}>{l}</div>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: 26 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 58, height: 58, borderRadius: 15, background: accent, color: textOn(accent), fontSize: 30, fontWeight: 800, marginRight: 28 }}>{i + 1}</div>
+              <div style={{ fontSize: 42, fontWeight: 600, color: theme.ink }}>{l}</div>
             </div>
           ))}
         </div>
@@ -75,30 +96,36 @@ function Middle({ content, theme, accent }: { content: CardContent; theme: Theme
     case 'myth':
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 4, color: '#FF6B8A' }}>MYTH</div>
-          <div style={{ fontSize: 54, fontWeight: 700, color: theme.ink, lineHeight: 1.15, marginTop: 10 }}>{content.headline}</div>
-          <div style={{ height: 3, background: theme.sub, opacity: 0.4, marginTop: 34, marginBottom: 34 }} />
-          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 4, color: accent }}>REALITY</div>
-          <div style={{ fontSize: 54, fontWeight: 700, color: theme.ink, lineHeight: 1.15, marginTop: 10 }}>{content.body ?? ''}</div>
+          <div style={{ display: 'flex', alignSelf: 'flex-start', fontSize: 26, fontWeight: 800, letterSpacing: 4, color: '#FFFFFF', background: '#E5484D', padding: '12px 24px', borderRadius: 14 }}>MYTH</div>
+          <div style={{ fontSize: fitHeadline(content.headline, 60, 42), fontWeight: 800, color: theme.ink, lineHeight: 1.1, marginTop: 18, letterSpacing: -1 }}>{content.headline}</div>
+          <div style={{ display: 'flex', alignSelf: 'flex-start', fontSize: 26, fontWeight: 800, letterSpacing: 4, color: textOn(accent), background: accent, padding: '12px 24px', borderRadius: 14, marginTop: 44 }}>REALITY</div>
+          <div style={{ fontSize: fitHeadline(content.body ?? '', 60, 42), fontWeight: 800, color: theme.ink, lineHeight: 1.1, marginTop: 18, letterSpacing: -1 }}>{content.body ?? ''}</div>
         </div>
       )
     case 'quote':
-    default:
+    default: {
+      const fit = fitHeadline(content.headline, 108, 52)
       return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 210, fontWeight: 700, color: accent, lineHeight: 0.8, marginBottom: 8 }}>&#8220;</div>
-          <div style={{ fontSize: 72, fontWeight: 700, color: theme.ink, lineHeight: 1.22, letterSpacing: -1 }}>{content.headline}</div>
-          <div style={{ width: 84, height: 6, borderRadius: 3, background: accent, marginTop: 44 }} />
+          <div style={{ fontSize: 176, fontWeight: 800, color: accent, lineHeight: 0.7, height: 104, marginBottom: 28 }}>&#8220;</div>
+          <div style={{ fontSize: fit, fontWeight: 800, color: theme.ink, lineHeight: 1.02, letterSpacing: -3 }}>{content.headline}</div>
+          <div style={{ width: 104, height: 10, borderRadius: 5, background: accent, marginTop: 52 }} />
         </div>
       )
+    }
   }
 }
 
 function cardElement(content: CardContent, theme: Theme, brand: CardBrand, fontFamily: string) {
   const accent = brand.accentColor || brand.primaryColor || theme.accent
+  const dark = textOn(theme.bg) === '#FFFFFF'
+  const seed = hashStr(content.type + '|' + (content.headline || '') + (content.body || ''))
+  const spec = pickDeco(seed)
   return (
     <div
       style={{
+        position: 'relative',
+        overflow: 'hidden',
         width: '100%',
         height: '100%',
         display: 'flex',
@@ -110,6 +137,9 @@ function cardElement(content: CardContent, theme: Theme, brand: CardBrand, fontF
         fontFamily,
       }}
     >
+      {brand.logoUrl && seed % 3 === 0
+        ? <LogoDeco logoUrl={brand.logoUrl} corner={spec.corner} dark={dark} />
+        : <Decoration spec={spec} color={accent} dark={dark} />}
       <Middle content={content} theme={theme} accent={accent} />
       <Footer brand={brand} theme={theme} accent={accent} />
     </div>
