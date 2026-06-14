@@ -19,9 +19,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json().catch(() => null)
     if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
 
-    const { content, scheduled_at, image_urls } = body
+    const { content, scheduled_at, image_urls, status } = body
     if (content !== undefined && typeof content !== 'string') {
       return NextResponse.json({ error: 'Content must be a string' }, { status: 400 })
+    }
+
+    // The tag-assist flow is the only caller that sets status here: unschedule a
+    // post (→ draft, so the cron won't also publish it) and record a manual post
+    // (→ published). Restrict to those so this endpoint can't set arbitrary states.
+    const ALLOWED_STATUS = ['draft', 'published']
+    if (status !== undefined && !ALLOWED_STATUS.includes(status)) {
+      return NextResponse.json({ error: 'Unsupported status change' }, { status: 400 })
     }
 
     if (scheduled_at) {
@@ -47,6 +55,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (content !== undefined) updatePayload.content = content
     if (scheduled_at !== undefined) updatePayload.scheduled_at = scheduled_at || null
     if (image_urls !== undefined) updatePayload.image_urls = Array.isArray(image_urls) ? image_urls : null
+    if (status !== undefined) {
+      updatePayload.status = status
+      if (status === 'published') updatePayload.published_at = new Date().toISOString()
+    }
 
     const { data, error } = await supabaseAdmin
       .from('posts')
