@@ -471,8 +471,18 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   /* Hide decorative absolute-positioned chips — they overflow off-screen */
   .pl-float-chip-a, .pl-float-chip-b { display: none; }
 
-  /* Hero CTA button — full width on small screens */
-  .pl-hero-cta-btn { width: 100% !important; justify-content: center !important; }
+  /* Hero CTA button — full width on small screens; grow vertically + center the
+     text when it wraps to two lines. The inline style sets a fixed 52px height
+     with no vertical padding, which crams the wrapped label with no top/bottom gap. */
+  .pl-hero-cta-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    height: auto !important;
+    min-height: 52px;
+    padding-block: 13px !important;
+    text-align: center;
+    line-height: 1.3;
+  }
 
   /* VoiceBars label — tighter so bars don't get squeezed out */
   .pl-voice-label { min-width: 110px !important; }
