@@ -80,6 +80,18 @@ html[data-font-display="fraunces"]   { --f-display: "Fraunces", "Times New Roman
 html[data-font-sans="geist"] { --f-sans: "Geist", ui-sans-serif, system-ui, sans-serif; }
 html[data-font-sans="inter"] { --f-sans: "Inter", ui-sans-serif, system-ui, sans-serif; }
 
+/* ── CONTENT WRAP SAFETY ───────────────────────────────────── */
+/* Long unbroken strings (URLs, hashtag runs, no-space text) in user/post content
+   must wrap instead of bleeding past their container on small screens — e.g. the
+   calendar day-detail panel and suggestion/analytics previews. `break-word` is
+   layout-safe (it doesn't change intrinsic sizing) and is a no-op on
+   `white-space: nowrap` elements, so existing ellipsis truncation (.pt-title,
+   sidebar names) is preserved. */
+:where(p, div, span, a, li, dd, dt, td, th, em, strong, blockquote, figcaption,
+       h1, h2, h3, h4, h5, h6) {
+  overflow-wrap: break-word;
+}
+
 /* ── APPEARANCE PICKER chrome ──────────────────────────────── */
 .pl-appearance {
   position: fixed; z-index: 9999;
