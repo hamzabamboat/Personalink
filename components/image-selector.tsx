@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button'
 import { Check, Loader2, Image as ImageIcon, CloudUpload, Wand2, Sparkles, Type as TypeIcon, Palette } from 'lucide-react'
 import Link from 'next/link'
-import { STYLE_PRESETS, THEMES, ASPECT_RATIOS, type AspectRatioId } from '@/lib/images/presets'
+import { STYLE_PRESETS, PALETTES, DEFAULT_PALETTE, ASPECT_RATIOS, type AspectRatioId } from '@/lib/images/presets'
 import { getTierLimits } from '@/lib/pricing-config'
 
 const AI_STYLES = STYLE_PRESETS.filter(p => p.kind === 'ai_photo')
@@ -93,7 +93,7 @@ function ImageGrid({ images, selected, maxSelect, onToggle, loading }: {
 
 function GraphicTab({ postContent, onSelect, onClose }: { postContent: string; onSelect: (i: PostImage[]) => void; onClose: () => void }) {
   const [type, setType] = useState(TEMPLATE_STYLES[0].templateType!)
-  const [theme, setTheme] = useState(THEMES[0].id)
+  const [palette, setPalette] = useState<string>(DEFAULT_PALETTE)
   const [ratio, setRatio] = useState<AspectRatioId>('1080x1350')
   const [generating, setGenerating] = useState(false)
   const [image, setImage] = useState<PostImage | null>(null)
@@ -110,7 +110,7 @@ function GraphicTab({ postContent, onSelect, onClose }: { postContent: string; o
     try {
       const res = await fetch('/api/images/template', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postContent, templateType: type, theme, aspectRatio: ratio }),
+        body: JSON.stringify({ postContent, templateType: type, palette, aspectRatio: ratio }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Generation failed'); return }
@@ -132,9 +132,21 @@ function GraphicTab({ postContent, onSelect, onClose }: { postContent: string; o
         </div>
       </div>
       <div>
-        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Theme</div>
-        <div className="flex flex-wrap gap-1.5">
-          {THEMES.map(t => <Chip key={t.id} active={theme === t.id} onClick={() => setTheme(t.id)}>{t.label}</Chip>)}
+        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Palette</div>
+        <div className="flex flex-wrap gap-2">
+          {PALETTES.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPalette(p.id)}
+              title={p.label}
+              aria-label={p.label}
+              aria-pressed={palette === p.id}
+              className={`relative w-9 h-9 rounded-lg overflow-hidden transition ${palette === p.id ? 'ring-2 ring-offset-2 ring-slate-900' : 'ring-1 ring-slate-200'}`}
+              style={{ background: p.bg }}
+            >
+              <span style={{ position: 'absolute', right: 4, bottom: 4, width: 13, height: 13, borderRadius: 999, background: p.accent }} />
+            </button>
+          ))}
         </div>
       </div>
       <div>

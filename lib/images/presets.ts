@@ -48,6 +48,43 @@ export const THEMES: Theme[] = [
   { id: 'ink', label: 'Ink', bg: 'radial-gradient(circle at 50% 0%, #23233e 0%, #0f0f1b 54%, #060609 100%)', ink: '#FFFFFF', sub: '#8A8AA0', accent: '#FFB020' },
 ]
 
+// ── Curated palettes ──
+// Bold & modern: clean backgrounds + one bright, harmonious accent. Users pick a
+// palette instead of a raw hex, so colours can never clash. `dark` drives
+// light/dark-aware bits; `onAccent` is text drawn on an accent-filled element.
+export interface Palette {
+  id: string
+  label: string
+  bg: string
+  ink: string
+  sub: string
+  accent: string
+  onAccent: string
+  dark: boolean
+}
+
+export const PALETTES: Palette[] = [
+  { id: 'electric',  label: 'Electric',  bg: '#FFFFFF', ink: '#0B0B12', sub: '#6F7480', accent: '#2B4DFF', onAccent: '#FFFFFF', dark: false },
+  { id: 'flame',     label: 'Flame',     bg: '#F7F6F3', ink: '#141414', sub: '#6E6E6E', accent: '#FF4D2E', onAccent: '#FFFFFF', dark: false },
+  { id: 'violet',    label: 'Violet',    bg: '#FBFAFF', ink: '#16121F', sub: '#6E6A86', accent: '#6A3DFF', onAccent: '#FFFFFF', dark: false },
+  { id: 'forest',    label: 'Forest',    bg: '#F4F8F4', ink: '#0E1A12', sub: '#5C6B60', accent: '#0E9E62', onAccent: '#FFFFFF', dark: false },
+  { id: 'electric-block', label: 'Electric block', bg: '#2B4DFF', ink: '#FFFFFF', sub: '#C7D2FF', accent: '#FFE24D', onAccent: '#0B0B12', dark: true },
+  { id: 'sunset-block',   label: 'Sunset block',   bg: '#FF4D2E', ink: '#FFFFFF', sub: '#FFD9CF', accent: '#FFFFFF', onAccent: '#FF4D2E', dark: true },
+  { id: 'midnight',  label: 'Midnight',  bg: '#0B0E1A', ink: '#FFFFFF', sub: '#9AA4C4', accent: '#5B86FF', onAccent: '#FFFFFF', dark: true },
+  { id: 'carbon',    label: 'Carbon',    bg: '#121214', ink: '#FFFFFF', sub: '#9A9AA6', accent: '#FFB020', onAccent: '#0B0B12', dark: true },
+]
+
+export const DEFAULT_PALETTE = 'electric'
+
+export function resolvePalette(id?: string | null): Palette {
+  return PALETTES.find(p => p.id === id) ?? PALETTES[0]
+}
+
+/** Adapt a palette into the Theme shape the renderers consume. */
+export function paletteToTheme(p: Palette): Theme {
+  return { id: p.dark ? 'ink' : 'mist', label: p.label, bg: p.bg, ink: p.ink, sub: p.sub, accent: p.accent }
+}
+
 export const ASPECT_RATIOS: Record<AspectRatioId, { w: number; h: number; label: string }> = {
   '1080x1350': { w: 1080, h: 1350, label: 'Portrait — best for feed' },
   '1080x1080': { w: 1080, h: 1080, label: 'Square' },
