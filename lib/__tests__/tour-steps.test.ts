@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { TOUR_STEPS } from '@/lib/tour/steps'
+import { TOUR_STEPS, type TourStepId } from '@/lib/tour/steps'
 
 describe('TOUR_STEPS', () => {
   it('starts with welcome and ends with done', () => {
@@ -45,7 +45,7 @@ describe('TOUR_STEPS', () => {
   it('includes every new feature stop (image, brand-kit, carousel, banner, library), before done', () => {
     const ids = TOUR_STEPS.map(s => s.id)
     const lastIndex = ids.length - 1
-    for (const id of ['images', 'brandkit', 'carousel', 'banner', 'library']) {
+    for (const id of ['images', 'brandkit', 'carousel', 'banner', 'library'] as TourStepId[]) {
       expect(ids).toContain(id)
       expect(ids.indexOf(id)).toBeLessThan(lastIndex)
     }
