@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
       accentColor: body.palette ? null : (kit?.accent_color ?? null),
       primaryColor: kit?.primary_color ?? null,
       logoUrl: kit?.logo_url ?? null,
-      fontFamily: kit?.font_family ?? null,
+      // Per-graphic font choice overrides the brand-kit default for this render.
+      fontFamily: body.font || kit?.font_family || null,
       name: profile?.name ?? null,
       sub: profile?.role ?? null,
     }

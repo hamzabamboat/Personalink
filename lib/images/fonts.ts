@@ -5,7 +5,7 @@
 // each), cache the bytes per warm instance, and fall back to the system sans if
 // anything fails — so a font choice can never break a render.
 
-export const FONT_CATEGORIES = ['Bold & modern', 'Display', 'Editorial serif', 'Elegant', 'Technical'] as const
+export const FONT_CATEGORIES = ['Bold & modern', 'Display', 'Editorial serif', 'Elegant', 'Technical', 'Handwritten'] as const
 export type FontCategory = (typeof FONT_CATEGORIES)[number]
 
 export interface BrandFontDef {
@@ -85,6 +85,57 @@ export const BRAND_FONTS: BrandFontDef[] = [
   { id: 'ibm-plex-mono', label: 'IBM Plex Mono', family: 'IBM Plex Mono', vibe: 'Corporate mono', kind: 'sans', category: 'Technical' },
   { id: 'dm-mono', label: 'DM Mono', family: 'DM Mono', vibe: 'Minimal mono', kind: 'sans', category: 'Technical' },
   { id: 'red-hat-mono', label: 'Red Hat Mono', family: 'Red Hat Mono', vibe: 'Clean · technical', kind: 'sans', category: 'Technical' },
+  // — Batch 2 (all CDN-verified) —
+  { id: 'hanken-grotesk', label: 'Hanken Grotesk', family: 'Hanken Grotesk', vibe: 'Geometric · friendly', kind: 'sans', category: 'Bold & modern' },
+  { id: 'red-hat-display', label: 'Red Hat Display', family: 'Red Hat Display', vibe: 'Open-source · clean', kind: 'sans', category: 'Bold & modern' },
+  { id: 'mulish', label: 'Mulish', family: 'Mulish', vibe: 'Minimalist · light', kind: 'sans', category: 'Bold & modern' },
+  { id: 'rubik', label: 'Rubik', family: 'Rubik', vibe: 'Rounded · modern', kind: 'sans', category: 'Bold & modern' },
+  { id: 'urbanist', label: 'Urbanist', family: 'Urbanist', vibe: 'Low-contrast · sleek', kind: 'sans', category: 'Bold & modern' },
+  { id: 'be-vietnam-pro', label: 'Be Vietnam Pro', family: 'Be Vietnam Pro', vibe: 'Versatile · neutral', kind: 'sans', category: 'Bold & modern' },
+  { id: 'albert-sans', label: 'Albert Sans', family: 'Albert Sans', vibe: 'Geometric · airy', kind: 'sans', category: 'Bold & modern' },
+  { id: 'instrument-sans', label: 'Instrument Sans', family: 'Instrument Sans', vibe: 'Modern · functional', kind: 'sans', category: 'Bold & modern' },
+  { id: 'geist', label: 'Geist', family: 'Geist', vibe: 'Vercel · precise', kind: 'sans', category: 'Bold & modern' },
+  { id: 'jost', label: 'Jost', family: 'Jost', vibe: 'Futura-style · geometric', kind: 'sans', category: 'Bold & modern' },
+  { id: 'bricolage-grotesque', label: 'Bricolage Grotesque', family: 'Bricolage Grotesque', vibe: 'Editorial · characterful', kind: 'sans', category: 'Bold & modern' },
+  { id: 'league-spartan', label: 'League Spartan', family: 'League Spartan', vibe: 'Bold · geometric', kind: 'sans', category: 'Bold & modern' },
+  { id: 'kanit', label: 'Kanit', family: 'Kanit', vibe: 'Loud · condensed', kind: 'sans', category: 'Display' },
+  { id: 'barlow-condensed', label: 'Barlow Condensed', family: 'Barlow Condensed', vibe: 'Tall · sporty', kind: 'sans', category: 'Display' },
+  { id: 'saira-condensed', label: 'Saira Condensed', family: 'Saira Condensed', vibe: 'Narrow · techy', kind: 'sans', category: 'Display' },
+  { id: 'archivo-narrow', label: 'Archivo Narrow', family: 'Archivo Narrow', vibe: 'Compact · grotesk', kind: 'sans', category: 'Display' },
+  { id: 'koulen', label: 'Koulen', family: 'Koulen', vibe: 'Condensed caps', kind: 'sans', category: 'Display' },
+  { id: 'bowlby-one', label: 'Bowlby One', family: 'Bowlby One', vibe: 'Fat · rounded', kind: 'sans', category: 'Display' },
+  { id: 'monoton', label: 'Monoton', family: 'Monoton', vibe: 'Retro · lined', kind: 'sans', category: 'Display' },
+  { id: 'ultra', label: 'Ultra', family: 'Ultra', vibe: 'Heavy slab', kind: 'serif', category: 'Display' },
+  { id: 'changa-one', label: 'Changa One', family: 'Changa One', vibe: 'Bold · sturdy', kind: 'sans', category: 'Display' },
+  { id: 'paytone-one', label: 'Paytone One', family: 'Paytone One', vibe: 'Solid · rounded', kind: 'sans', category: 'Display' },
+  { id: 'luckiest-guy', label: 'Luckiest Guy', family: 'Luckiest Guy', vibe: 'Comic · playful', kind: 'sans', category: 'Display' },
+  { id: 'fredoka', label: 'Fredoka', family: 'Fredoka', vibe: 'Rounded · fun', kind: 'sans', category: 'Display' },
+  { id: 'lilita-one', label: 'Lilita One', family: 'Lilita One', vibe: 'Chubby · bold', kind: 'sans', category: 'Display' },
+  { id: 'abril-fatface', label: 'Abril Fatface', family: 'Abril Fatface', vibe: 'Fashion · fat serif', kind: 'serif', category: 'Display' },
+  { id: 'pt-serif', label: 'PT Serif', family: 'PT Serif', vibe: 'Versatile · readable', kind: 'serif', category: 'Editorial serif' },
+  { id: 'merriweather', label: 'Merriweather', family: 'Merriweather', vibe: 'Screen serif · solid', kind: 'serif', category: 'Editorial serif' },
+  { id: 'zilla-slab', label: 'Zilla Slab', family: 'Zilla Slab', vibe: 'Slab · sturdy', kind: 'serif', category: 'Editorial serif' },
+  { id: 'roboto-slab', label: 'Roboto Slab', family: 'Roboto Slab', vibe: 'Slab · modern', kind: 'serif', category: 'Editorial serif' },
+  { id: 'domine', label: 'Domine', family: 'Domine', vibe: 'Body serif · strong', kind: 'serif', category: 'Editorial serif' },
+  { id: 'frank-ruhl-libre', label: 'Frank Ruhl Libre', family: 'Frank Ruhl Libre', vibe: 'Elegant · contrast', kind: 'serif', category: 'Editorial serif' },
+  { id: 'vollkorn', label: 'Vollkorn', family: 'Vollkorn', vibe: 'Warm · bookish', kind: 'serif', category: 'Editorial serif' },
+  { id: 'rozha-one', label: 'Rozha One', family: 'Rozha One', vibe: 'Display · dramatic', kind: 'serif', category: 'Editorial serif' },
+  { id: 'cardo', label: 'Cardo', family: 'Cardo', vibe: 'Scholarly · refined', kind: 'serif', category: 'Elegant' },
+  { id: 'forum', label: 'Forum', family: 'Forum', vibe: 'Roman caps · classic', kind: 'serif', category: 'Elegant' },
+  { id: 'tenor-sans', label: 'Tenor Sans', family: 'Tenor Sans', vibe: 'Quiet · refined', kind: 'sans', category: 'Elegant' },
+  { id: 'bodoni-moda', label: 'Bodoni Moda', family: 'Bodoni Moda', vibe: 'Vogue · high-contrast', kind: 'serif', category: 'Elegant' },
+  { id: 'rufina', label: 'Rufina', family: 'Rufina', vibe: 'Slim · stylish', kind: 'serif', category: 'Elegant' },
+  { id: 'amiri', label: 'Amiri', family: 'Amiri', vibe: 'Classical · ornate', kind: 'serif', category: 'Elegant' },
+  { id: 'fira-code', label: 'Fira Code', family: 'Fira Code', vibe: 'Code · ligatures', kind: 'sans', category: 'Technical' },
+  { id: 'roboto-mono', label: 'Roboto Mono', family: 'Roboto Mono', vibe: 'Clean mono', kind: 'sans', category: 'Technical' },
+  { id: 'source-code-pro', label: 'Source Code Pro', family: 'Source Code Pro', vibe: 'Dev · legible', kind: 'sans', category: 'Technical' },
+  { id: 'inconsolata', label: 'Inconsolata', family: 'Inconsolata', vibe: 'Humanist mono', kind: 'sans', category: 'Technical' },
+  { id: 'caveat', label: 'Caveat', family: 'Caveat', vibe: 'Casual handwriting', kind: 'sans', category: 'Handwritten' },
+  { id: 'dancing-script', label: 'Dancing Script', family: 'Dancing Script', vibe: 'Flowing script', kind: 'serif', category: 'Handwritten' },
+  { id: 'pacifico', label: 'Pacifico', family: 'Pacifico', vibe: 'Brush · friendly', kind: 'serif', category: 'Handwritten' },
+  { id: 'permanent-marker', label: 'Permanent Marker', family: 'Permanent Marker', vibe: 'Marker · bold', kind: 'sans', category: 'Handwritten' },
+  { id: 'satisfy', label: 'Satisfy', family: 'Satisfy', vibe: 'Signature script', kind: 'serif', category: 'Handwritten' },
+  { id: 'patrick-hand', label: 'Patrick Hand', family: 'Patrick Hand', vibe: 'Neat handwriting', kind: 'sans', category: 'Handwritten' },
 ]
 
 export function resolveBrandFont(id?: string | null): BrandFontDef | null {
