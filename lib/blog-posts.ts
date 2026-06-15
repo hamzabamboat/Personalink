@@ -12,6 +12,15 @@ export type BlogPost = {
 // always advertised to crawlers. Newest first.
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'taplio-vs-supergrow-vs-personalink',
+    title: 'Taplio vs Supergrow vs PersonaLink: the India cut (2026)',
+    excerpt:
+      'The Taplio vs Supergrow head-to-head is everywhere — but none of it accounts for INR, GST or Hinglish. Here\'s the three-way comparison India-based creators actually need.',
+    tags: ['Taplio Alternative', 'LinkedIn Tools', 'Comparison', 'LinkedIn India'],
+    date: 'June 2026',
+    readTime: '8 min read',
+  },
+  {
     slug: 'linkedin-algorithm-2026',
     title: 'The LinkedIn algorithm in 2026: how reach actually works',
     excerpt:
