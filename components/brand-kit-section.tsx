@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Loader2, Upload, Check, Palette, Type, Plus, Star, Trash2 } from 'lucide-react'
-import { BRAND_FONTS } from '@/lib/images/fonts'
+import { BRAND_FONTS, FONT_CATEGORIES } from '@/lib/images/fonts'
 
 const SAMPLE_HEADLINE = 'Consistency beats genius.'
 
@@ -58,6 +58,20 @@ export function BrandKitSection() {
     const t = setTimeout(() => setPreviewAccent(accent), 400)
     return () => clearTimeout(t)
   }, [accent])
+
+  // Load every catalog family from Google Fonts (browser-side) so the picker can
+  // render each option in its own typeface. No weight specifier — single-weight
+  // display faces (Anton, Bebas…) would 400 the whole request otherwise.
+  useEffect(() => {
+    const id = 'brand-font-previews'
+    if (document.getElementById(id)) return
+    const families = BRAND_FONTS.map(f => 'family=' + f.family.replace(/ /g, '+')).join('&')
+    const link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`
+    document.head.appendChild(link)
+  }, [])
 
   const selected = kits.find(k => k.id === selectedId) || null
   const isActive = selected ? selected.is_default : kits.length === 0
@@ -213,22 +227,30 @@ export function BrandKitSection() {
             <div>
               <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
                 <Type className="w-3.5 h-3.5 text-brand" /> Brand font
+                <span className="text-[10px] font-normal text-slate-400">· {BRAND_FONTS.length} to choose from</span>
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 max-h-72 overflow-y-auto space-y-3">
                 <button type="button" onClick={() => setFont('')}
-                  className={`text-left px-3 py-1.5 rounded-lg border transition-all ${font === '' ? 'border-brand bg-brand-light/40' : 'border-slate-200 hover:border-brand/40'}`}>
-                  <div className={`text-[12.5px] font-semibold ${font === '' ? 'text-brand' : 'text-slate-700 dark:text-slate-300'}`}>System</div>
-                  <div className="text-[10px] text-slate-400">Clean default</div>
+                  className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${font === '' ? 'border-brand bg-brand-light/40 ring-1 ring-brand' : 'border-slate-200 dark:border-slate-700 hover:border-brand/40'}`}>
+                  <div className={`text-[13px] font-semibold ${font === '' ? 'text-brand' : 'text-slate-700 dark:text-slate-300'}`}>System default</div>
+                  <div className="text-[10px] text-slate-400">Clean Montserrat — a safe, modern choice</div>
                 </button>
-                {BRAND_FONTS.map(f => (
-                  <button key={f.id} type="button" onClick={() => setFont(f.id)}
-                    className={`text-left px-3 py-1.5 rounded-lg border transition-all ${font === f.id ? 'border-brand bg-brand-light/40' : 'border-slate-200 hover:border-brand/40'}`}>
-                    <div className={`text-[12.5px] font-semibold ${font === f.id ? 'text-brand' : 'text-slate-700 dark:text-slate-300'}`}>{f.label}</div>
-                    <div className="text-[10px] text-slate-400">{f.vibe}</div>
-                  </button>
+                {FONT_CATEGORIES.map(cat => (
+                  <div key={cat}>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-1.5">{cat}</div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {BRAND_FONTS.filter(f => f.category === cat).map(f => (
+                        <button key={f.id} type="button" onClick={() => setFont(f.id)}
+                          className={`text-left px-3 py-2 rounded-lg border transition-all overflow-hidden ${font === f.id ? 'border-brand bg-brand-light/40 ring-1 ring-brand' : 'border-slate-200 dark:border-slate-700 hover:border-brand/40'}`}>
+                          <div className="text-[16px] leading-tight text-slate-900 dark:text-slate-100 truncate" style={{ fontFamily: `'${f.family}', ${f.kind === 'serif' ? 'serif' : 'sans-serif'}` }}>{f.label}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{f.vibe}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
-              <div className="text-[11px] text-slate-400 mt-1.5">Applied to branded graphics, carousels and your banner. AI photos are unaffected.</div>
+              <div className="text-[11px] text-slate-400 mt-1.5">Each name is shown in its own typeface. Applied to branded graphics, carousels and your banner — AI photos are unaffected.</div>
             </div>
 
             <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
