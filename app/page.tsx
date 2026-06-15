@@ -551,6 +551,46 @@ function HomeContent() {
         </div>
       </section>
 
+      {/* ── Trust Strip ── */}
+      <FadeUp>
+        <section style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', padding: 'clamp(40px,6vw,64px) var(--pad)' }}>
+          <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 32 }}>
+            {[
+              {
+                title: 'Your data, locked',
+                desc: 'SOC-2 in progress. Your posts and writing samples never train shared models.',
+                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><path d="M12 2l9 4v6c0 5-3.5 8.5-9 10-5.5-1.5-9-5-9-10V6l9-4z"/></svg>,
+              },
+              {
+                title: 'Official LinkedIn API',
+                desc: 'OAuth-only. Posting permission. No DMs, no networks, no passwords stored.',
+                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>,
+              },
+              {
+                title: 'Cancel any time',
+                desc: 'One click in Settings. You keep your data and full access through your billing period.',
+                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-5"/></svg>,
+              },
+              {
+                title: 'Razorpay-secured',
+                desc: 'Payments processed by Razorpay. Card details never touch our servers.',
+                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><path d="M4 6h16v12H4z"/><path d="M4 10h16M9 14h2M9 18v-4"/></svg>,
+              },
+            ].map(t => (
+              <div key={t.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--pl-accent)' }}>
+                  {t.svg}
+                </div>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t.title}</strong>
+                  <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>{t.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </FadeUp>
+
       {/* ── Pricing ── */}
       <section id="pricing" style={{ background: 'var(--bg)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
@@ -826,46 +866,6 @@ function HomeContent() {
           </FadeUp>
         </div>
       </section>
-
-      {/* ── Trust Strip ── */}
-      <FadeUp>
-        <section style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', padding: 'clamp(40px,6vw,64px) var(--pad)' }}>
-          <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 32 }}>
-            {[
-              {
-                title: 'Your data, locked',
-                desc: 'SOC-2 in progress. Your posts and writing samples never train shared models.',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><path d="M12 2l9 4v6c0 5-3.5 8.5-9 10-5.5-1.5-9-5-9-10V6l9-4z"/></svg>,
-              },
-              {
-                title: 'Official LinkedIn API',
-                desc: 'OAuth-only. Posting permission. No DMs, no networks, no passwords stored.',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>,
-              },
-              {
-                title: 'Cancel any time',
-                desc: 'One click in Settings. You keep your data and full access through your billing period.',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-5"/></svg>,
-              },
-              {
-                title: 'Razorpay-secured',
-                desc: 'Payments processed by Razorpay. Card details never touch our servers.',
-                svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ width: 24, height: 24 }}><path d="M4 6h16v12H4z"/><path d="M4 10h16M9 14h2M9 18v-4"/></svg>,
-              },
-            ].map(t => (
-              <div key={t.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--pl-accent)' }}>
-                  {t.svg}
-                </div>
-                <div>
-                  <strong style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t.title}</strong>
-                  <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6, margin: 0 }}>{t.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </FadeUp>
 
       {/* ── Final CTA ── */}
       <section style={{
