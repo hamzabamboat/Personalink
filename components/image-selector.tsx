@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Check, Loader2, Image as ImageIcon, CloudUpload, Wand2, Sparkles, Type as TypeIcon, Palette } from 'lucide-react'
 import Link from 'next/link'
 import { STYLE_PRESETS, PALETTES, DEFAULT_PALETTE, ASPECT_RATIOS, type AspectRatioId } from '@/lib/images/presets'
+import { BRAND_FONTS, FONT_CATEGORIES } from '@/lib/images/fonts'
 import { getTierLimits } from '@/lib/pricing-config'
 
 const AI_STYLES = STYLE_PRESETS.filter(p => p.kind === 'ai_photo')
@@ -94,6 +95,7 @@ function ImageGrid({ images, selected, maxSelect, onToggle, loading }: {
 function GraphicTab({ postContent, onSelect, onClose }: { postContent: string; onSelect: (i: PostImage[]) => void; onClose: () => void }) {
   const [type, setType] = useState(TEMPLATE_STYLES[0].templateType!)
   const [palette, setPalette] = useState<string>(DEFAULT_PALETTE)
+  const [font, setFont] = useState('')
   const [ratio, setRatio] = useState<AspectRatioId>('1080x1350')
   const [generating, setGenerating] = useState(false)
   const [image, setImage] = useState<PostImage | null>(null)
@@ -105,12 +107,27 @@ function GraphicTab({ postContent, onSelect, onClose }: { postContent: string; o
     fetch('/api/images/template').then(r => r.json()).then(d => { setRemaining(d.remaining ?? null); setLimit(d.limit ?? null) }).catch(() => {})
   }, [])
 
+  // Load the chosen font (just that family) so the inline sample previews it.
+  useEffect(() => {
+    const def = BRAND_FONTS.find(f => f.id === font)
+    if (!def) return
+    const id = `font-prev-${def.id}`
+    if (document.getElementById(id)) return
+    const link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    link.href = `https://fonts.googleapis.com/css2?family=${def.family.replace(/ /g, '+')}&display=swap`
+    document.head.appendChild(link)
+  }, [font])
+
+  const selFont = BRAND_FONTS.find(f => f.id === font) || null
+
   async function generate() {
     setGenerating(true); setError(''); setImage(null)
     try {
       const res = await fetch('/api/images/template', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postContent, templateType: type, palette, aspectRatio: ratio }),
+        body: JSON.stringify({ postContent, templateType: type, palette, font: font || undefined, aspectRatio: ratio }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Generation failed'); return }
@@ -148,6 +165,24 @@ function GraphicTab({ postContent, onSelect, onClose }: { postContent: string; o
             </button>
           ))}
         </div>
+      </div>
+      <div>
+        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Font</div>
+        <select value={font} onChange={e => setFont(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px]">
+          <option value="">Brand default</option>
+          {FONT_CATEGORIES.map(cat => (
+            <optgroup key={cat} label={cat}>
+              {BRAND_FONTS.filter(f => f.category === cat).map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </optgroup>
+          ))}
+        </select>
+        {selFont && (
+          <div className="mt-1.5 px-1 text-[19px] leading-tight text-slate-800 dark:text-slate-200 truncate"
+            style={{ fontFamily: `'${selFont.family}', ${selFont.kind === 'serif' ? 'serif' : 'sans-serif'}` }}>
+            Consistency beats genius.
+          </div>
+        )}
       </div>
       <div>
         <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Size</div>
