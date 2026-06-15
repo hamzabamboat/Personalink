@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, useInView } from 'framer-motion'
 import posthog from 'posthog-js'
-import { ease, fadeUp, staggerParent } from './motion'
+import { ease } from './motion'
 
 const HERO_H1_FLAG = 'landing-hero-h1'
 
@@ -221,13 +221,8 @@ export function Hero({ onConnect }: { onConnect?: () => void }) {
           alignItems: 'center',
         }}
       >
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={staggerParent}
-        >
-          <motion.div
-            variants={fadeUp}
+        <div>
+          <div
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 24,
               fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em',
@@ -240,11 +235,10 @@ export function Hero({ onConnect }: { onConnect?: () => void }) {
               animation: 'pulseDot 2.4s ease-in-out infinite', flexShrink: 0,
             }} />
             // LinkedIn AI, without the AI tells
-          </motion.div>
+          </div>
 
-          <motion.h1
+          <h1
             key={h1Key}
-            variants={fadeUp}
             className="pl-hero-h1"
             style={{
               fontFamily: 'var(--f-sans)',
@@ -258,23 +252,33 @@ export function Hero({ onConnect }: { onConnect?: () => void }) {
             }}
           >
             {h1}
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            variants={fadeUp}
+          <p
             style={{
               fontSize: 'clamp(15px, 1.4vw, 17px)',
               color: 'var(--ink-3)',
               lineHeight: 1.7,
+              marginBottom: 12,
+              maxWidth: 540,
+            }}
+          >
+            Describe a thought. Get a LinkedIn post that sounds like you actually wrote it — then schedule it automatically.
+          </p>
+
+          <p
+            style={{
+              fontSize: 'clamp(13px, 1.2vw, 14px)',
+              color: 'var(--ink-4)',
+              lineHeight: 1.6,
               marginBottom: 28,
               maxWidth: 540,
             }}
           >
-            PersonaLink is an AI LinkedIn tool built for India: 6-dimensional voice mapping plus an Anti-AI humanizer generate posts in your exact tone. Pay in INR, get GST invoices — from ₹999/month.
-          </motion.p>
+            Built for India — pay in INR, get GST invoices. From ₹999/month.
+          </p>
 
-          <motion.div
-            variants={fadeUp}
+          <div
             className="pl-hero-cta-stack"
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}
           >
@@ -312,10 +316,9 @@ export function Hero({ onConnect }: { onConnect?: () => void }) {
               </svg>
               Connect LinkedIn — start free
             </button>
-          </motion.div>
+          </div>
 
-          <motion.p
-            variants={fadeUp}
+          <p
             style={{
               fontFamily: 'var(--f-mono)', fontSize: 12,
               color: 'var(--ink-4)', lineHeight: 1.7, margin: 0,
@@ -333,8 +336,8 @@ export function Hero({ onConnect }: { onConnect?: () => void }) {
             >
               See pricing →
             </Link>
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
 
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <VoiceFingerprintDemo />

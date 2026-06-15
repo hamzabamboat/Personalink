@@ -4,15 +4,29 @@ import { TOUR_STEPS, type TourStep } from '@/lib/tour/steps'
 
 const step = (id: string): TourStep => TOUR_STEPS.find(s => s.id === id)!
 
+// The default first-run tour no longer routes through plan-gated features, but
+// the gating helpers stay general-purpose (used wherever a step declares a
+// requiresPlan). Test them against an explicit fixture rather than a specific
+// tour step so coverage doesn't depend on the tour's contents.
+const gatedStep: TourStep = {
+  id: 'analytics',
+  route: '/dashboard/analytics',
+  target: 'analytics',
+  requiresPlan: 'standard',
+  title: 'See what is working',
+  body: 'Track reach and engagement on every post.',
+  lockedBody: 'Analytics is on the Standard plan — upgrade anytime to unlock it.',
+}
+
 describe('isStepLocked', () => {
-  it('locks analytics for a free user', () => {
-    expect(isStepLocked(step('analytics'), 'free')).toBe(true)
+  it('locks a standard-gated step for a free user', () => {
+    expect(isStepLocked(gatedStep, 'free')).toBe(true)
   })
-  it('unlocks analytics for a standard user', () => {
-    expect(isStepLocked(step('analytics'), 'standard')).toBe(false)
+  it('unlocks a standard-gated step for a standard user', () => {
+    expect(isStepLocked(gatedStep, 'standard')).toBe(false)
   })
-  it('unlocks analytics for a higher plan (pro)', () => {
-    expect(isStepLocked(step('analytics'), 'pro')).toBe(false)
+  it('unlocks a standard-gated step for a higher plan (pro)', () => {
+    expect(isStepLocked(gatedStep, 'pro')).toBe(false)
   })
   it('never locks a step without requiresPlan', () => {
     expect(isStepLocked(step('generate'), 'free')).toBe(false)
@@ -21,12 +35,12 @@ describe('isStepLocked', () => {
 
 describe('resolveStepView', () => {
   it('renders a locked step as a centered info card with lockedBody', () => {
-    const v = resolveStepView(step('analytics'), 'free')
+    const v = resolveStepView(gatedStep, 'free')
     expect(v.mode).toBe('center')
-    expect(v.body).toBe(step('analytics').lockedBody)
+    expect(v.body).toBe(gatedStep.lockedBody)
   })
   it('renders an unlocked gated step as a spotlight', () => {
-    const v = resolveStepView(step('analytics'), 'standard')
+    const v = resolveStepView(gatedStep, 'standard')
     expect(v.mode).toBe('spotlight')
     if (v.mode === 'spotlight') expect(v.target).toBe('analytics')
   })
@@ -48,7 +62,7 @@ describe('shouldNavigate', () => {
     expect(shouldNavigate(step('generate'), 'free', '/dashboard/generate')).toBe(false)
   })
   it('does not navigate into a locked feature', () => {
-    expect(shouldNavigate(step('analytics'), 'free', '/dashboard')).toBe(false)
+    expect(shouldNavigate(gatedStep, 'free', '/dashboard')).toBe(false)
   })
   it('does not navigate for a routeless step (done)', () => {
     expect(shouldNavigate(step('done'), 'free', '/dashboard/profile')).toBe(false)

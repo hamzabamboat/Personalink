@@ -28,7 +28,7 @@ export async function moderateContent(content: string): Promise<ModerationResult
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 150,
-      system: SYSTEM_PROMPT,
+      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: content.slice(0, 2000) }],
     })
 

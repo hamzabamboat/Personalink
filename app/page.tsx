@@ -12,6 +12,7 @@ import { TIER_LIMITS, TIER_FEATURE_BULLETS } from '@/lib/pricing-config'
 import { Hero } from '@/components/landing/Hero'
 import { AuthenticityStack } from '@/components/landing/AuthenticityStack'
 import { BuiltForIndia } from '@/components/landing/BuiltForIndia'
+import { VisualsShowcase } from '@/components/landing/VisualsShowcase'
 
 /* ─── SVG icons ─── */
 function LinkedinIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -209,60 +210,86 @@ function HomeContent() {
       {/* ── Authenticity Stack ── */}
       <AuthenticityStack />
 
-      {/* ── Built for India ── */}
-      <BuiltForIndia />
-
-      {/* ── Kinetic Words ── */}
-      <section style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg)', padding: 'clamp(60px,10vw,120px) var(--pad)', textAlign: 'center' }}>
-        {/* Blobs */}
-        <div style={{ position: 'absolute', inset: '-10%', zIndex: 0, pointerEvents: 'none', filter: 'blur(70px)', opacity: 0.45 }}>
-          <div style={{
-            position: 'absolute', width: '40vw', height: '40vw', maxWidth: 600, maxHeight: 600,
-            borderRadius: '50%', top: '-15%', left: '5%',
-            background: 'radial-gradient(circle, rgba(43,77,255,.22), transparent 65%)',
-            animation: 'fwDrift1 24s ease-in-out infinite alternate',
-          }} />
-          <div style={{
-            position: 'absolute', width: '35vw', height: '35vw', maxWidth: 500, maxHeight: 500,
-            borderRadius: '50%', bottom: '-15%', right: '5%',
-            background: 'radial-gradient(circle, rgba(107,134,255,.18), transparent 65%)',
-            animation: 'fwDrift2 30s ease-in-out infinite alternate',
-          }} />
-        </div>
-
-        {/* Animated SVG waves */}
-        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}
-          viewBox="0 0 1440 480" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="fwGrad" x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0%" stopColor="var(--pl-accent)" stopOpacity="0" />
-              <stop offset="20%" stopColor="var(--pl-accent)" stopOpacity=".4" />
-              <stop offset="80%" stopColor="var(--pl-accent-2)" stopOpacity=".4" />
-              <stop offset="100%" stopColor="var(--pl-accent-2)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path fill="none" stroke="url(#fwGrad)" strokeWidth="1.6">
-            <animate attributeName="d" dur="16s" repeatCount="indefinite"
-              values="M-40,260 C220,140 520,360 760,220 S1200,120 1480,280;M-40,240 C220,360 520,140 760,300 S1200,360 1480,220;M-40,260 C220,140 520,360 760,220 S1200,120 1480,280" />
-          </path>
-          <path fill="none" stroke="url(#fwGrad)" strokeWidth="1.2">
-            <animate attributeName="d" dur="22s" repeatCount="indefinite"
-              values="M-40,300 C260,200 540,400 820,260 S1240,200 1480,340;M-40,320 C260,420 540,180 820,360 S1240,420 1480,260;M-40,300 C260,200 540,400 820,260 S1240,200 1480,340" />
-          </path>
-        </svg>
-
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 760, margin: '0 auto' }}>
+      {/* ── Sample Transformation ── */}
+      <section id="sample" style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
+        <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
           <FadeUp>
-            <h2 style={{
-              fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4.5vw,52px)',
-              color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.1,
-            }}>
-              Most &ldquo;AI writers&rdquo; hand you a blank box.<br />
-              {serif('We hand you your own voice.')}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface)' }}>
+              // Live demo
+            </div>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 12 }}>
+              Watch a thought {serif('become a post.')}
             </h2>
+            <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 560, marginBottom: 40 }}>
+              Pick a starting line. We&apos;ll show you the post PersonaLink would draft — in a real founder&apos;s voice, not ours.
+            </p>
+          </FadeUp>
+
+          <FadeUp delay={0.08}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--sh-2)' }}>
+              {/* Tab bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--line)', background: 'var(--surface-2)', flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginRight: 4 }}>// raw thought</span>
+                {SAMPLES.map((s, i) => (
+                  <button key={i} onClick={() => setActiveSample(i)} style={{
+                    padding: '5px 12px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 500,
+                    cursor: 'pointer', border: `1px solid ${activeSample === i ? 'var(--pl-accent)' : 'var(--line)'}`,
+                    background: activeSample === i ? 'var(--pl-accent-soft)' : 'var(--surface)',
+                    color: activeSample === i ? 'var(--pl-accent)' : 'var(--ink-3)',
+                    transition: 'all .15s',
+                  }}>{s.chip}</button>
+                ))}
+              </div>
+              {/* Content grid */}
+              <div className="pl-sample-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))' }}>
+                {/* Left: input */}
+                <div className="pl-sample-left" style={{ padding: '24px 28px', borderRight: '1px solid var(--line)' }}>
+                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginBottom: 16 }}>// you say —</div>
+                  <p style={{ fontFamily: 'var(--f-mono)', fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.7, marginBottom: 24, animation: 'fadeSwap .4s ease' }}>
+                    {SAMPLES[activeSample].input}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[
+                      { dot: 'blue', text: 'voice fingerprint loaded' },
+                      { dot: 'ok',   text: 'voice match · strong' },
+                      { dot: 'ok',   text: 'length · 142 words' },
+                    ].map((m, i) => (
+                      <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot === 'ok' ? '#10b981' : 'var(--pl-accent)', flexShrink: 0 }} />
+                        {m.text}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {/* Right: output */}
+                <div style={{ padding: '24px 28px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>// we ship —</span>
+                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#10b981' }}>drafted in seconds</span>
+                  </div>
+                  <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.75, whiteSpace: 'pre-line', marginBottom: 24, animation: 'fadeSwap .4s ease' }}>
+                    {SAMPLES[activeSample].output}
+                  </p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={{
+                      padding: '9px 16px', fontSize: 13, fontWeight: 500, borderRadius: 'var(--r-sm)',
+                      background: 'transparent', color: 'var(--ink-2)', border: '1px solid var(--line)', cursor: 'pointer',
+                    }}>Edit draft</button>
+                    <button style={{
+                      padding: '9px 16px', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r-sm)',
+                      background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer',
+                    }}>Schedule · Tue 9:14 AM</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </FadeUp>
         </div>
       </section>
+
+      {/* ── Built for India ── */}
+      <BuiltForIndia />
+
 
       {/* ── Features Bento ── */}
       <section id="features" style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
@@ -364,15 +391,12 @@ function HomeContent() {
                 <h3 style={{ fontWeight: 600, fontSize: 16, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 8 }}>Five fresh angles, <em>every Monday.</em></h3>
                 <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6, marginBottom: 16 }}>We scan what's moving in your industry and hand you five post-ready takes.</p>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {['+412% · Series B narratives', '+186% · Hiring under 10', '+94% · Pricing experiments'].map((item, i) => {
-                    const [pct, ...rest] = item.split(' · ')
-                    return (
-                      <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                        <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#10b981', background: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: 'var(--r-pill)', padding: '2px 8px', flexShrink: 0 }}>{pct}</span>
-                        <span style={{ color: 'var(--ink-3)' }}>{rest.join(' · ')}</span>
-                      </li>
-                    )
-                  })}
+                  {['Series B narratives', 'Hiring under 10', 'Pricing experiments'].map((topic, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#10b981', background: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: 'var(--r-pill)', padding: '2px 8px', flexShrink: 0 }}>↑ trending</span>
+                      <span style={{ color: 'var(--ink-3)' }}>{topic}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </FadeUp>
@@ -413,6 +437,7 @@ function HomeContent() {
                 </h3>
                 <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.65, marginBottom: 20 }}>Impressions, engagement rate, and topic patterns — so you always know what to write more of.</p>
                 {/* Mini analytics rows */}
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--ink-4)', marginBottom: 8 }}>// example</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[
                     { label: 'Impressions this week', value: '4,218', delta: '+31%', color: '#10b981' },
@@ -434,89 +459,15 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* ── Sample Transformation ── */}
-      <section id="sample" style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
-        <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
-          <FadeUp>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface)' }}>
-              // Live demo
-            </div>
-            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 12 }}>
-              Watch a thought {serif('become a post.')}
-            </h2>
-            <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 560, marginBottom: 40 }}>
-              Pick a starting line. We&apos;ll show you the post PersonaLink would draft — in a real founder&apos;s voice, not ours.
-            </p>
-          </FadeUp>
-
-          <FadeUp delay={0.08}>
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--sh-2)' }}>
-              {/* Tab bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--line)', background: 'var(--surface-2)', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginRight: 4 }}>// raw thought</span>
-                {SAMPLES.map((s, i) => (
-                  <button key={i} onClick={() => setActiveSample(i)} style={{
-                    padding: '5px 12px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 500,
-                    cursor: 'pointer', border: `1px solid ${activeSample === i ? 'var(--pl-accent)' : 'var(--line)'}`,
-                    background: activeSample === i ? 'var(--pl-accent-soft)' : 'var(--surface)',
-                    color: activeSample === i ? 'var(--pl-accent)' : 'var(--ink-3)',
-                    transition: 'all .15s',
-                  }}>{s.chip}</button>
-                ))}
-              </div>
-              {/* Content grid */}
-              <div className="pl-sample-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))' }}>
-                {/* Left: input */}
-                <div className="pl-sample-left" style={{ padding: '24px 28px', borderRight: '1px solid var(--line)' }}>
-                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginBottom: 16 }}>// you say —</div>
-                  <p style={{ fontFamily: 'var(--f-mono)', fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.7, marginBottom: 24, animation: 'fadeSwap .4s ease' }}>
-                    {SAMPLES[activeSample].input}
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {[
-                      { dot: 'blue', text: 'voice fingerprint loaded' },
-                      { dot: 'ok',   text: 'voice match · strong' },
-                      { dot: 'ok',   text: 'length · 142 words' },
-                    ].map((m, i) => (
-                      <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot === 'ok' ? '#10b981' : 'var(--pl-accent)', flexShrink: 0 }} />
-                        {m.text}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                {/* Right: output */}
-                <div style={{ padding: '24px 28px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>// we ship —</span>
-                    <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: '#10b981' }}>drafted in seconds</span>
-                  </div>
-                  <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.75, whiteSpace: 'pre-line', marginBottom: 24, animation: 'fadeSwap .4s ease' }}>
-                    {SAMPLES[activeSample].output}
-                  </p>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{
-                      padding: '9px 16px', fontSize: 13, fontWeight: 500, borderRadius: 'var(--r-sm)',
-                      background: 'transparent', color: 'var(--ink-2)', border: '1px solid var(--line)', cursor: 'pointer',
-                    }}>Edit draft</button>
-                    <button style={{
-                      padding: '9px 16px', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r-sm)',
-                      background: 'var(--ink)', color: 'var(--bg)', border: 'none', cursor: 'pointer',
-                    }}>Schedule · Tue 9:14 AM</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </FadeUp>
-        </div>
-      </section>
+      {/* ── Visuals Showcase ── */}
+      <VisualsShowcase />
 
       {/* ── Testimonials ── */}
       <section style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--line)', padding: 'clamp(60px,8vw,100px) var(--pad)' }}>
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
           <FadeUp>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--ink-3)', padding: '6px 12px', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', background: 'var(--surface)' }}>
-              // 04 — What changes
+              // What you get
             </div>
             <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 40 }}>
               What changes when every post {serif('sounds like you.')}
@@ -525,29 +476,23 @@ function HomeContent() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 20 }}>
             {[
-              { quote: 'Show up three times a week in your own voice — without spending more time writing.', name: 'Consistency, handled',     title: 'Your cadence on autopilot',          initial: 'R', c1: '#3257ff', c2: '#0b1a8b' },
-              { quote: 'Drafts that read like you wrote them, not a generic AI assistant.',             name: 'Sounds like you', title: '6-dimension voice fingerprint',   initial: 'M', c1: '#0a1024', c2: '#3a4868' },
-              { quote: 'Pay in INR, get a GST invoice, and post in Hinglish when it fits.', name: 'Built for India', title: 'INR · GST · UPI · Hinglish', initial: 'S', c1: '#2563eb', c2: '#1e3a8a' },
-              { quote: 'See what lands, then double down — analytics on every post.',                 name: 'Know what works',     title: 'Impressions & engagement',           initial: 'J', c1: '#1e40af', c2: '#0a1024' },
+              { desc: 'Show up three times a week in your own voice — without spending more time writing.', name: 'Consistency, handled', tag: 'Your cadence on autopilot' },
+              { desc: 'Drafts that read like you wrote them, not a generic AI assistant.', name: 'Sounds like you', tag: '6-dimension voice fingerprint' },
+              { desc: 'Pay in INR, get a GST invoice, and post in Hinglish when it fits.', name: 'Built for India', tag: 'INR · GST · UPI · Hinglish' },
+              { desc: 'See what lands, then double down — analytics on every post.', name: 'Know what works', tag: 'Impressions & engagement' },
             ].map((t, i) => (
               <FadeUp key={t.name} delay={i * 0.08}>
-                <figure style={{ margin: 0, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '28px', boxShadow: 'var(--sh-1)' }}>
-                  <blockquote style={{ margin: '0 0 24px', fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(16px,1.6vw,19px)', color: 'var(--ink-2)', lineHeight: 1.55 }}>
-                    {t.quote}
-                  </blockquote>
-                  <figcaption style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{
-                      width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                      background: `linear-gradient(135deg, ${t.c1}, ${t.c2})`,
-                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 700, fontSize: 15,
-                    }}>{t.name.charAt(0)}</span>
-                    <div>
-                      <strong style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{t.name}</strong>
-                      <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>{t.title}</span>
-                    </div>
-                  </figcaption>
-                </figure>
+                <div style={{ height: '100%', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '28px', boxShadow: 'var(--sh-1)' }}>
+                  <span style={{ display: 'inline-block', marginBottom: 16, fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', padding: '4px 10px', background: 'var(--pl-accent-soft)', border: '1px solid var(--pl-accent)', borderRadius: 'var(--r-pill)' }}>
+                    {t.tag}
+                  </span>
+                  <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 10, letterSpacing: '-0.01em' }}>
+                    {t.name}
+                  </h3>
+                  <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.65, margin: 0 }}>
+                    {t.desc}
+                  </p>
+                </div>
               </FadeUp>
             ))}
           </div>

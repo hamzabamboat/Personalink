@@ -27,6 +27,7 @@ async function handler(request: NextRequest) {
     .from('users')
     .select('id, email, linkedin_name, subscription_status, trial_posts_used')
     .not('email', 'is', null)
+    .in('subscription_status', ['active', 'trialing'])
 
   if (error) {
     console.error('Weekly digest: failed to fetch users', error)

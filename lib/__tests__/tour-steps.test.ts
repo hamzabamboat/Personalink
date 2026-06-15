@@ -12,10 +12,19 @@ describe('TOUR_STEPS', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('covers the 6 core feature stops between welcome and done', () => {
+  it('is a short, focused first-run tour (welcome → generate → posts → done)', () => {
+    // The cold-start tour deliberately covers only the core path to first value.
+    // Secondary features are surfaced contextually in the app, not in the tour.
+    expect(TOUR_STEPS.length).toBeLessThanOrEqual(5)
     const ids = TOUR_STEPS.map(s => s.id)
-    for (const id of ['generate', 'posts', 'calendar', 'analytics', 'suggestions', 'voice']) {
-      expect(ids).toContain(id)
+    expect(ids).toContain('generate')
+    expect(ids).toContain('posts')
+  })
+
+  it('does not detour through secondary features before first value', () => {
+    const ids = TOUR_STEPS.map(s => s.id)
+    for (const id of ['analytics', 'carousel', 'banner', 'library', 'brandkit', 'suggestions']) {
+      expect(ids).not.toContain(id)
     }
   })
 
@@ -31,13 +40,7 @@ describe('TOUR_STEPS', () => {
     }
   })
 
-  it('analytics is gated to the standard plan and has locked copy', () => {
-    const analytics = TOUR_STEPS.find(s => s.id === 'analytics')!
-    expect(analytics.requiresPlan).toBe('standard')
-    expect(analytics.lockedBody).toBeTruthy()
-  })
-
-  it('the done step provides a call-to-action', () => {
+  it('the done step provides a call-to-action to generate', () => {
     const done = TOUR_STEPS.find(s => s.id === 'done')!
     expect(done.cta?.route).toBe('/dashboard/generate')
   })

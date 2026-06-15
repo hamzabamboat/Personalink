@@ -501,6 +501,10 @@ function GenerateContent() {
   const initIdea = searchParams.get('idea') || ''
   const initPrompt = searchParams.get('prompt') || ''
   const initStoryId = searchParams.get('storyId') || ''
+  // Arriving from the calendar's "add a post on this day" — pre-fill the schedule
+  // date (default 09:00 local) so the post lands on the day the user picked.
+  const initDate = searchParams.get('date') || ''
+  const prefillScheduleLocal = /^\d{4}-\d{2}-\d{2}$/.test(initDate) ? `${initDate}T09:00` : ''
 
   const [tab, setTab] = useState<Tab>(initTab)
   const [topic, setTopic] = useState(initIdea ? decodeURIComponent(initIdea) : initPrompt ? decodeURIComponent(initPrompt) : '')
@@ -511,7 +515,7 @@ function GenerateContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [actionResult, setActionResult] = useState('')
-  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleDate, setScheduleDate] = useState(prefillScheduleLocal)
   const [scheduling, setScheduling] = useState(false)
   const [plan, setPlan] = useState('starter')
   const [postsLimit, setPostsLimit] = useState<number | null>(null)
@@ -704,7 +708,7 @@ function GenerateContent() {
     setSelectedPost(post)
     setEditContent(post.content)
     setActionResult('')
-    setScheduleDate(post.scheduled_at ? utcToLocalInput(post.scheduled_at) : '')
+    setScheduleDate(post.scheduled_at ? utcToLocalInput(post.scheduled_at) : prefillScheduleLocal)
     setImageSuggestions([])
     setAttachedImages(post.image_urls || [])
     originalDraftRef.current = post.content

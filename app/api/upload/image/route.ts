@@ -3,6 +3,7 @@ import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
+import { analyseImageForPost } from '@/lib/anthropic'
 
 export const maxDuration = 30
 
@@ -74,5 +75,41 @@ export async function POST(request: NextRequest) {
   ])
 
   const { data: { publicUrl } } = supabaseAdmin.storage.from('post-images').getPublicUrl(fileName)
+
+  // Also catalogue this upload in the image library (post_images) so it shows up
+  // in the image selector for reuse — mirrors /api/images/upload. Non-fatal: a
+  // failure here must never break the inline attach, which only needs the URL.
+  try {
+    const { data: imageRow } = await supabaseAdmin
+      .from('post_images')
+      .insert({
+        user_id: user.id,
+        storage_path: fileName,
+        public_url: publicUrl,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+      })
+      .select()
+      .single()
+    if (imageRow) {
+      analyseImageForPost(buffer.toString('base64'), file.type)
+        .then(analysis =>
+          supabaseAdmin.from('post_images').update({
+            ai_description: analysis.description,
+            ai_mood: analysis.mood,
+            ai_topics: analysis.topics,
+            ai_text_detected: analysis.text_detected,
+            ai_post_hooks: analysis.post_hooks,
+            ai_content_pillars: analysis.content_pillars,
+            analysed_at: new Date().toISOString(),
+          }).eq('id', imageRow.id)
+        )
+        .catch(err => console.error('[upload/image] analysis failed', imageRow.id, err))
+    }
+  } catch (err) {
+    console.error('[upload/image] library catalogue failed (non-fatal)', err)
+  }
+
   return NextResponse.json({ url: publicUrl, path: fileName })
 }

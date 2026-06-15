@@ -26,6 +26,7 @@ import {
   ChevronDown,
   CalendarDays,
   BookOpen,
+  Layers,
   MoreHorizontal,
   ImageIcon,
   Mail,
@@ -67,6 +68,8 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: '/dashboard/generate',    label: 'Generate',       icon: Sparkles,    badge: 'ai' },
       { href: '/dashboard/posts',       label: 'Posts',          icon: FileText },
       { href: '/dashboard/calendar',    label: 'Calendar',       icon: CalendarDays },
+      { href: '/dashboard/carousel',    label: 'Carousels',      icon: Layers, minPlan: 'standard', badge: 'ai' },
+      { href: '/dashboard/upload',      label: 'Image library',  icon: ImageIcon },
       { href: '/dashboard/story-bank',  label: 'Story bank',     icon: BookOpen },
     ],
   },
@@ -75,14 +78,14 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: '/dashboard/analytics',   label: 'Analytics',      icon: BarChart3, minPlan: 'standard' },
       { href: '/dashboard/suggestions', label: 'Trending ideas', icon: Lightbulb, badge: 5 },
-      { href: '/dashboard/upload',      label: 'Image library',  icon: ImageIcon },
+      { href: '/dashboard/library',     label: 'Inspiration',    icon: Compass, badge: 'new' },
     ],
   },
   {
     label: 'Account',
     items: [
       { href: '/dashboard/profile',         label: 'Voice & profile',    icon: UserIcon },
-      { href: '/dashboard/profile-improve', label: 'Profile Beautifier', icon: Wand2, minPlan: 'standard', badge: 'ai' as const },
+      { href: '/dashboard/profile-improve', label: 'Profile & banner',   icon: Wand2, minPlan: 'standard', badge: 'ai' as const },
       { href: '/dashboard/settings',        label: 'Settings',           icon: Settings },
     ],
   },
@@ -97,11 +100,13 @@ const BOTTOM_NAV_ITEMS = [
 
 const MORE_ITEMS = [
   { href: '/dashboard/posts',           label: 'My Posts',           icon: FileText },
+  { href: '/dashboard/carousel',        label: 'Carousels',          icon: Layers },
   { href: '/dashboard/suggestions',     label: 'Trending Ideas',     icon: Lightbulb },
+  { href: '/dashboard/library',         label: 'Inspiration',        icon: Compass },
   { href: '/dashboard/analytics',       label: 'Analytics',          icon: BarChart3 },
   { href: '/dashboard/upload',          label: 'Image Library',      icon: ImageIcon },
   { href: '/dashboard/profile',         label: 'Voice & Profile',    icon: UserIcon },
-  { href: '/dashboard/profile-improve', label: 'Profile Beautifier', icon: Wand2 },
+  { href: '/dashboard/profile-improve', label: 'Profile & banner',   icon: Wand2 },
   { href: '/dashboard/settings',        label: 'Settings',           icon: Settings },
 ]
 
@@ -112,13 +117,17 @@ const SEARCH_TARGETS: { href: string; label: string }[] = [
   { href: '/dashboard/generate?tab=voice', label: 'Voice note → post' },
   { href: '/dashboard/posts',            label: 'My posts' },
   { href: '/dashboard/calendar',         label: 'Calendar' },
+  { href: '/dashboard/carousel',         label: 'Carousel maker' },
   { href: '/dashboard/story-bank',       label: 'Story bank' },
   { href: '/dashboard/analytics',        label: 'Analytics' },
   { href: '/dashboard/suggestions',      label: 'Trending ideas' },
+  { href: '/dashboard/library',          label: 'Inspiration · post patterns' },
   { href: '/dashboard/upload',           label: 'Image library' },
   { href: '/dashboard/profile',          label: 'Voice & profile' },
   { href: '/dashboard/profile-improve',  label: 'Profile beautifier' },
+  { href: '/dashboard/profile-improve#banner', label: 'Profile banner generator' },
   { href: '/dashboard/settings',         label: 'Settings' },
+  { href: '/dashboard/settings#brand-kit', label: 'Brand kit · colours & logo' },
   { href: '/dashboard/settings?tab=plan', label: 'Plan & billing' },
   { href: '/dashboard/settings?tab=help', label: 'Help & FAQ' },
   { href: '/dashboard/upgrade',          label: 'Upgrade plan' },
@@ -262,7 +271,7 @@ function NotificationsBell() {
               {items.map(p => (
                 <Link key={p.id} href={`/dashboard/posts?edit=${p.id}`} onClick={() => setOpen(false)}
                   className="block px-3 py-2.5 transition-colors hover:bg-surface-3" style={{ borderBottom: '1px solid var(--line)' }}>
-                  <div className="text-[12px] font-medium mb-0.5" style={{ color: 'var(--ink)' }}>Post awaiting your approval</div>
+                  <div className="text-[12px] font-medium mb-0.5" style={{ color: 'var(--ink)' }}>Post ready to review</div>
                   <div className="text-[11px] truncate" style={{ color: 'var(--ink-4)' }}>{p.content?.split('\n')[0]?.slice(0, 60) || 'Untitled draft'}</div>
                 </Link>
               ))}

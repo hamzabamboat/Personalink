@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import sharp from 'sharp'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { analyseImageForPost } from '@/lib/anthropic'
@@ -32,9 +33,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Could not fetch image from storage' }, { status: 500 })
     }
 
-    const buffer = Buffer.from(await fileData.arrayBuffer())
+    const rawBuffer = Buffer.from(await fileData.arrayBuffer())
+    const buffer = await sharp(rawBuffer).resize(512, 512, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer()
     const base64Data = buffer.toString('base64')
-    const mimeType = imageRow.mime_type || 'image/jpeg'
+    const mimeType = 'image/jpeg'
 
     const analysis = await analyseImageForPost(base64Data, mimeType)
 

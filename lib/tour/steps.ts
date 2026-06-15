@@ -8,6 +8,11 @@ export type TourStepId =
   | 'analytics'
   | 'suggestions'
   | 'voice'
+  | 'images'
+  | 'brandkit'
+  | 'carousel'
+  | 'banner'
+  | 'library'
   | 'done'
 
 export interface TourStep {
@@ -26,13 +31,18 @@ export interface TourStep {
   cta?: { label: string; route: string }
 }
 
+// Keep the first-run tour short and focused on the one job a new user came to do:
+// generate a post and get it scheduled. Secondary features (carousels, banners,
+// analytics, brand kit, library, voice) are discoverable in the app and are better
+// surfaced contextually — in the cold-start tour they only delay the user from
+// reaching real value, which is the biggest churn risk for a new account.
 export const TOUR_STEPS: TourStep[] = [
   {
     id: 'welcome',
     route: '/dashboard',
     target: 'center',
     title: 'Welcome to PersonaLink 👋',
-    body: "Here's a 60-second tour of the essentials. You can skip anytime.",
+    body: "Here's a 30-second tour — three steps, then you write your first post. You can skip anytime.",
   },
   {
     id: 'generate',
@@ -45,38 +55,8 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'posts',
     route: '/dashboard/posts',
     target: 'posts-panel',
-    title: 'Review and approve',
-    body: 'Every draft lands here for you to review, edit, and approve before it goes out.',
-  },
-  {
-    id: 'calendar',
-    route: '/dashboard/calendar',
-    target: 'calendar',
-    title: 'Plan your week',
-    body: 'Schedule posts across the week and keep a steady, consistent cadence.',
-  },
-  {
-    id: 'analytics',
-    route: '/dashboard/analytics',
-    target: 'analytics',
-    requiresPlan: 'standard',
-    title: 'See what is working',
-    body: 'Track reach and engagement on every post so you can double down on what lands.',
-    lockedBody: 'Track reach and engagement on every post. Analytics is included on the Standard plan — upgrade anytime to unlock it.',
-  },
-  {
-    id: 'suggestions',
-    route: '/dashboard/suggestions',
-    target: 'suggestions',
-    title: 'Never run out of ideas',
-    body: 'Stuck for something to say? Fresh, trend-based post angles for your industry show up here.',
-  },
-  {
-    id: 'voice',
-    route: '/dashboard/profile',
-    target: 'voice',
-    title: 'Tune your voice',
-    body: 'Adjust your tone, voice, and language anytime — every post is generated to match.',
+    title: 'Review and schedule',
+    body: 'Every draft lands here for you to review, edit, and schedule before it goes out. One click also turns any post into a branded graphic — in your colours and logo.',
   },
   {
     id: 'done',

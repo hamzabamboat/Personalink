@@ -200,46 +200,23 @@ function HumanizerDemo() {
           borderTop: '1px solid var(--line)',
           background: 'var(--surface)',
           display: 'flex',
-          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 10,
+          flexWrap: 'wrap',
         }}
       >
-        {[
-          { label: 'AI detector', score: isOurs ? 6 : 94, good: isOurs },
-          { label: 'Reads as human', score: isOurs ? 96 : 12, good: isOurs },
-        ].map((row) => (
-          <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{
-              fontFamily: 'var(--f-mono)', fontSize: 11,
-              color: 'var(--ink-4)', minWidth: 110,
-            }}>
-              {row.label}
-            </span>
-            <span style={{
-              flex: 1, height: 5, background: 'var(--surface-3)',
-              borderRadius: 'var(--r-pill)', overflow: 'hidden',
-            }}>
-              <motion.span
-                key={`${row.label}-${tab}`}
-                initial={{ width: '0%' }}
-                animate={{ width: `${row.score}%` }}
-                transition={{ duration: 0.55, ease }}
-                style={{
-                  display: 'block', height: '100%',
-                  background: row.good ? '#10b981' : '#ef4444',
-                  borderRadius: 'var(--r-pill)',
-                }}
-              />
-            </span>
-            <span style={{
-              fontFamily: 'var(--f-mono)', fontSize: 11,
-              color: row.good ? '#10b981' : '#ef4444',
-              minWidth: 38, textAlign: 'right',
-            }}>
-              {row.score}%
-            </span>
-          </div>
-        ))}
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 600,
+          color: isOurs ? '#10b981' : '#ef4444',
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: isOurs ? '#10b981' : '#ef4444', flexShrink: 0 }} />
+          {isOurs ? 'Reads like a human wrote it' : 'Classic AI tells — easy to spot'}
+        </span>
+        <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, color: 'var(--ink-4)' }}>
+          illustrative · test any detector yourself
+        </span>
       </div>
     </div>
   )

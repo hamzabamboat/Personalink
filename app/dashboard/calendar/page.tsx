@@ -9,7 +9,6 @@ import { ImageSelector } from '@/components/image-selector'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Sparkles, ChevronLeft, ChevronRight, Plus, X, CalendarDays, Pencil, Clock, ImageIcon, RefreshCw, CheckCircle2, Trash2 } from 'lucide-react'
-import { AiImageButton } from '@/components/ai-image-button'
 
 function utcToLocalInput(utcString: string): string {
   if (!utcString) return ''
@@ -264,6 +263,7 @@ export default function CalendarPage() {
   for (let i = 0; i < firstDayOffset; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
   const addPostDateStr = addPostDay ? `${MONTH_NAMES[month]} ${addPostDay}, ${year}` : ''
+  const addPostDateISO = addPostDay ? `${year}-${String(month + 1).padStart(2, '0')}-${String(addPostDay).padStart(2, '0')}` : ''
 
   return (
     <div className="p-3 sm:p-4 md:p-7 max-w-[960px]">
@@ -286,7 +286,6 @@ export default function CalendarPage() {
           </h1>
         </div>
         <div className="db-screen__actions">
-          <AiImageButton plan={plan} postContent={editingPost?.content || ''} />
           <Link
             href="/dashboard/generate"
             className="btn-dash btn-dash--primary"
@@ -744,7 +743,7 @@ export default function CalendarPage() {
             No posts scheduled for this day. Generate one with AI or browse all posts.
           </p>
           <div className="flex flex-col gap-2">
-            <Link href="/dashboard/generate" onClick={() => setAddPostDay(null)}
+            <Link href={addPostDateISO ? `/dashboard/generate?date=${addPostDateISO}` : '/dashboard/generate'} onClick={() => setAddPostDay(null)}
               className="flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
               style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '10px 16px', fontSize: 14, fontWeight: 600 }}>
               <Sparkles className="w-4 h-4" /> Generate with AI
