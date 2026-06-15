@@ -15,18 +15,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let payload: { subject?: string; body?: string }
-  try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  // Two accepted body formats:
+  //   • application/json            → { subject, body }
+  //   • anything else (text/plain)  → the raw request body IS the digest; the
+  //     subject comes from the X-Digest-Subject header.
+  // The raw-text path exists because the remote routine builds a large digest full
+  // of box-drawing chars, emoji and URLs; JSON-escaping that inside a shell curl is
+  // fragile and was silently failing at run time (→ unwanted Gmail-draft fallback).
+  let body: string
+  let subject: string
+  if ((req.headers.get('content-type') ?? '').includes('application/json')) {
+    let payload: { subject?: string; body?: string }
+    try {
+      payload = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+    body = (payload.body ?? '').trim()
+    subject = (payload.subject ?? 'PersonaLink — weekly off-page SEO digest').slice(0, 200)
+  } else {
+    body = (await req.text()).trim()
+    subject = (req.headers.get('x-digest-subject') ?? 'PersonaLink — weekly off-page SEO digest').slice(0, 200)
   }
 
-  const body = (payload.body ?? '').trim()
   if (!body) {
-    return NextResponse.json({ error: 'Missing "body"' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing digest body' }, { status: 400 })
   }
-  const subject = (payload.subject ?? 'PersonaLink — weekly off-page SEO digest').slice(0, 200)
 
   try {
     await sendAdminAlert({ subject, body })
