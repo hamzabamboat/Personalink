@@ -470,6 +470,13 @@ export function ComparisonPage({ competitor }: Props) {
             >
               Free voice analyser
             </Link>
+            <span>·</span>
+            <Link
+              href="/tools/card-generator"
+              style={{ color: 'rgba(255,255,255,.65)', textDecoration: 'underline', textDecorationStyle: 'dotted' }}
+            >
+              Free card maker
+            </Link>
           </div>
         </div>
       </section>

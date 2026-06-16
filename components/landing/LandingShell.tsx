@@ -8,6 +8,7 @@ import { WordMark } from '@/components/word-mark'
 const NAV: ReadonlyArray<readonly [string, string]> = [
   ['/pricing', 'Pricing'],
   ['/ai-linkedin-automation-tool', 'Product'],
+  ['/tools/card-generator', 'Free tools'],
   ['/blog', 'Blog'],
   ['/faq', 'FAQ'],
 ]
