@@ -12,6 +12,15 @@ export type BlogPost = {
 // always advertised to crawlers. Newest first.
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'taplio-price-in-india',
+    title: 'Taplio price in India: the real INR cost (with GST math)',
+    excerpt:
+      "Taplio bills in USD — no GST invoice, no UPI. Here's what Taplio actually costs Indian buyers once you add forex markup, the lost 18% GST credit, and compare to INR-native alternatives.",
+    tags: ['Taplio', 'LinkedIn Tools', 'India Pricing', 'LinkedIn India'],
+    date: 'June 2026',
+    readTime: '6 min read',
+  },
+  {
     slug: 'taplio-vs-supergrow-vs-personalink',
     title: 'Taplio vs Supergrow vs PersonaLink: the India cut (2026)',
     excerpt:
