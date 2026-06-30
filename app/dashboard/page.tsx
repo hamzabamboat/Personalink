@@ -16,6 +16,7 @@ import {
   Send,
   Calendar,
   Wand2,
+  Palette,
 } from 'lucide-react'
 import { showUpgradeModal } from '@/components/upgrade-limit-modal'
 import { DisplayHeading } from '@/components/display-heading'
@@ -510,6 +511,79 @@ function DashboardContent() {
           )
         })}
       </div>
+
+      {/* ── Brand Kit promo ── */}
+      <Link
+        href="/dashboard/settings#brand-kit"
+        className="brand-promo group block mb-6 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+        style={{
+          background: 'linear-gradient(110deg, var(--surface) 0%, color-mix(in srgb, var(--pl-accent) 7%, var(--surface)) 100%)',
+          border: '1px solid color-mix(in srgb, var(--pl-accent) 22%, var(--line))',
+          boxShadow: 'var(--sh-1)',
+        }}
+      >
+        <div className="brand-promo__inner" style={{ display: 'flex', alignItems: 'center', gap: 18, padding: 18 }}>
+          {/* Mini brand preview */}
+          <div
+            className="brand-promo__art"
+            style={{
+              flexShrink: 0, width: 64, height: 64, borderRadius: 'var(--r-md)',
+              background: 'linear-gradient(135deg, var(--pl-accent), color-mix(in srgb, var(--pl-accent) 55%, #000))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+              boxShadow: '0 4px 14px color-mix(in srgb, var(--pl-accent) 30%, transparent)',
+            }}
+          >
+            <Palette size={26} color="#fff" strokeWidth={1.75} />
+            {/* Aa font chip */}
+            <span style={{
+              position: 'absolute', right: -8, bottom: -8, width: 26, height: 26, borderRadius: 8,
+              background: 'var(--surface)', border: '1px solid var(--line)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--f-display, Georgia, serif)', fontWeight: 600, fontSize: 13, color: 'var(--ink)',
+              boxShadow: 'var(--sh-1)',
+            }}>Aa</span>
+          </div>
+
+          {/* Copy */}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
+              // brand kit
+            </span>
+            <strong style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, margin: '4px 0 4px' }}>
+              Make every graphic yours
+            </strong>
+            <span style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5, display: 'block' }}>
+              Add your logo, brand colour and font — they appear on every branded graphic, carousel and banner. No watermark.
+            </span>
+          </div>
+
+          {/* Colour swatches + CTA */}
+          <div className="brand-promo__cta" style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+            <div className="brand-promo__swatches" style={{ display: 'flex', gap: 6 }}>
+              {['var(--pl-accent)', '#0a66c2', '#111827'].map((c, i) => (
+                <span key={i} style={{ width: 16, height: 16, borderRadius: '50%', background: c, border: '2px solid var(--surface)', boxShadow: 'var(--sh-1)' }} />
+              ))}
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md text-[13px] font-semibold text-white whitespace-nowrap transition-opacity group-hover:opacity-90"
+              style={{ background: 'var(--pl-accent)', fontFamily: 'var(--f-sans)' }}
+            >
+              Set up brand kit <ArrowRight size={14} />
+            </span>
+          </div>
+        </div>
+
+        <style>{`
+          @media (max-width: 720px) {
+            .brand-promo__inner { flex-wrap: wrap; gap: 14px; }
+            .brand-promo__cta { width: 100%; justify-content: space-between; }
+          }
+          @media (max-width: 420px) {
+            .brand-promo__swatches { display: none; }
+            .brand-promo__cta span:last-child { flex: 1; justify-content: center; }
+          }
+        `}</style>
+      </Link>
 
       {/* ── Overview Grid (12-col) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 14 }}>
