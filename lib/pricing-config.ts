@@ -24,6 +24,7 @@ export type FeatureKey =
   | 'batch_runs'
   | 'repurpose_runs'
   | 'ai_image_generations'
+  | 'ai_banner_generations'
   | 'carousels'
   | 'template_graphics'
 
@@ -40,6 +41,8 @@ export interface PerFeatureQuota {
   batch_runs: number
   repurpose_runs: number
   ai_image_generations: number
+  /** AI-rendered profile banners (gpt-image) per month — capped, paid per-image. */
+  ai_banner_generations: number
   /** Carousel (multi-slide PDF) generations per month. */
   carousels: number
   /** Branded template graphics (quote/stat/title/list cards) — near-zero cost, kept generous. */
@@ -92,6 +95,7 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       batch_runs: 0,
       repurpose_runs: 0,
       ai_image_generations: 0,
+      ai_banner_generations: 0,
       carousels: 0,
       template_graphics: 10,
     },
@@ -120,6 +124,7 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       batch_runs: 1,
       repurpose_runs: 0,
       ai_image_generations: 5,
+      ai_banner_generations: 3,
       carousels: 0,
       template_graphics: 50,
     },
@@ -148,6 +153,7 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       batch_runs: 2,
       repurpose_runs: 0,
       ai_image_generations: 25,
+      ai_banner_generations: 3,
       carousels: 10,
       template_graphics: 9999,
     },
@@ -176,6 +182,7 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       batch_runs: 4,
       repurpose_runs: 10,
       ai_image_generations: 50,
+      ai_banner_generations: 7,
       carousels: 25,
       template_graphics: 9999,
     },
@@ -205,6 +212,7 @@ export const TIER_LIMITS: Record<TierID, TierLimits> = {
       batch_runs: 99999,
       repurpose_runs: 99999,
       ai_image_generations: 99999,
+      ai_banner_generations: 99999,
       carousels: 99999,
       template_graphics: 99999,
     },
@@ -360,6 +368,7 @@ export const TIER_FEATURE_BULLETS: Record<TierID, string[]> = {
     'No watermark',
     'Branded graphics · 50/month',
     'AI image generations · 5/month',
+    'AI profile banners · 3/month',
     'Story bank · 10 entries · 5 conversions',
     'Trend refreshes · 5/month',
     'Image uploads · 10/month',
@@ -375,6 +384,7 @@ export const TIER_FEATURE_BULLETS: Record<TierID, string[]> = {
     'Voice notes → post · 8/month',
     'Unlimited branded graphics',
     'AI image generations · 25/month',
+    'AI profile banners · 3/month',
     'Carousels · 10/month',
     'Story bank · 30 entries · 10 conversions',
     'Image uploads · 30/month',
@@ -390,6 +400,7 @@ export const TIER_FEATURE_BULLETS: Record<TierID, string[]> = {
     'Repurpose engine · 10 runs/month',
     'Voice notes · 20/month · 60 min',
     'AI image generations · 50/month',
+    'AI profile banners · 7/month',
     'Carousels · 25/month',
     'Story bank · 60 entries · 20 conversions',
     'Image uploads · 80/month',
@@ -418,6 +429,7 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   batch_runs: 'Batch Generation Runs',
   repurpose_runs: 'Repurpose Runs',
   ai_image_generations: 'AI Image Generations',
+  ai_banner_generations: 'AI Profile Banners',
   carousels: 'Carousels',
   template_graphics: 'Branded Graphics',
 }

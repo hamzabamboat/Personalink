@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
   Sparkles, RefreshCw, Copy, Check, Lock, Wand2,
-  User, AlignLeft, Tags, Camera, ImageIcon, Zap, ChevronRight,
+  User, AlignLeft, Tags, Camera, Zap, ChevronRight,
   ArrowRight, RotateCcw, History,
 } from 'lucide-react'
 import Link from 'next/link'
 import { BannerGenerator } from '@/components/banner-generator'
+import { AiBannerGenerator } from '@/components/ai-banner-generator'
 
 /* ── Types ──────────────────────────────────────────────── */
 type ProfileData = {
@@ -260,21 +261,7 @@ function ResultsSection({ result }: { result: BeautifyResult }) {
           </div>
         )}
         {result.banner_brief && (
-          <div className="rounded-xl p-4 flex flex-col gap-3" style={{ border: '1px solid var(--line)', background: 'var(--surface)' }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ImageIcon size={14} style={{ color: 'var(--pl-accent)' }} strokeWidth={1.75} />
-                <span className="text-[11px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.04em' }}>// banner image</span>
-              </div>
-              <CopyBtn text={result.banner_brief} />
-            </div>
-            <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{result.banner_brief}</p>
-            <Link href="/dashboard/upload"
-              className="text-[12px] font-semibold flex items-center gap-1 mt-auto transition-opacity hover:opacity-70"
-              style={{ color: 'var(--pl-accent)' }}>
-              Generate with AI image tool <ChevronRight size={11} />
-            </Link>
-          </div>
+          <AiBannerGenerator brief={result.banner_brief} />
         )}
       </div>
 
