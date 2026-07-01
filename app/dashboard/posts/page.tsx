@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import type { Post } from '@/lib/supabase'
 import type { PostImage } from '@/lib/supabase'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -14,8 +15,17 @@ import { ImageSelector } from '@/components/image-selector'
 import { BulkGraphicsModal } from '@/components/bulk-graphics-modal'
 import {
   Plus, List, Calendar, FileText, ThumbsUp, Eye, MessageCircle,
-  Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2,
+  Pencil, Trash2, Sparkles, ImageIcon, X, CheckCircle2, Layers,
 } from 'lucide-react'
+
+// Hand a post off to the carousel builder. Content + id go via sessionStorage
+// (posts can be long, and are the user's own content — keep them out of the URL).
+function launchCarousel(router: ReturnType<typeof useRouter>, post: { id: string; content: string }) {
+  try {
+    sessionStorage.setItem('pl_carousel_prefill', JSON.stringify({ postId: post.id, content: post.content }))
+  } catch { /* sessionStorage unavailable — builder will just open empty */ }
+  router.push('/dashboard/carousel?from=post')
+}
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'var(--ink-3)',
@@ -70,6 +80,8 @@ function PostsContent() {
   const [imageSelectorOpen, setImageSelectorOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [plan, setPlan] = useState('starter')
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     let cancelled = false
@@ -93,6 +105,16 @@ function PostsContent() {
     load()
     return () => { cancelled = true }
   }, [])
+
+  // Open the edit/schedule dialog when arriving with ?edit=<id> — e.g. straight
+  // after attaching a carousel in the builder, so the user can schedule it.
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (!editId || editingPost) return
+    const target = posts.find(p => p.id === editId)
+    if (target) openEdit(target)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts, searchParams])
 
   function openEdit(post: Post) {
     setEditingPost(post)
@@ -260,6 +282,14 @@ function PostsContent() {
             className="h-48 resize-none text-[14px]"
             style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--ink)', borderRadius: 'var(--r-md)' }}
           />
+
+          {editingPost && (editingPost.image_urls?.length ?? 0) > 1 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12.5px] font-medium"
+              style={{ background: 'var(--pl-accent-soft)', border: '1px solid color-mix(in srgb, var(--pl-accent) 30%, transparent)', color: 'var(--pl-accent)' }}>
+              <Layers className="w-3.5 h-3.5 shrink-0" />
+              Carousel attached · {editingPost.image_urls!.length} slides — pick a time below and schedule.
+            </div>
+          )}
 
           <div>
             <Label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 6 }}>
@@ -508,6 +538,13 @@ function PostsContent() {
                       </button>
                     )}
                     <button
+                      onClick={() => launchCarousel(router, post)}
+                      className="btn-dash btn-dash--ghost btn-dash--sm"
+                      title="Make a carousel from this post"
+                    >
+                      <Layers />
+                    </button>
+                    <button
                       onClick={() => openEdit(post)}
                       className="btn-dash btn-dash--ghost btn-dash--sm"
                       title="Edit post"
@@ -585,6 +622,13 @@ function PostsContent() {
                           <CheckCircle2 />
                         </button>
                       )}
+                      <button
+                        onClick={() => launchCarousel(router, post)}
+                        className="btn-dash btn-dash--ghost btn-dash--sm"
+                        title="Make a carousel from this post"
+                      >
+                        <Layers />
+                      </button>
                       <button
                         onClick={() => openEdit(post)}
                         className="btn-dash btn-dash--ghost btn-dash--sm"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import posthog from 'posthog-js'
 import { supabase, StoryBank, Post } from '@/lib/supabase'
@@ -13,11 +13,26 @@ import { LOCALE_OPTIONS, type LocaleId } from '@/lib/prompts/locales'
 import {
   Loader2, Mic, MicOff, FolderOpen, Sparkles, CalendarClock, Mail,
   BookOpen, Lock, Zap, Check, Save, ArrowLeft, ImageIcon, Upload, X,
-  CheckCircle2, ArrowRight, Brain, Lightbulb,
+  CheckCircle2, ArrowRight, Brain, Lightbulb, Layers,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { IncompleteProfileBanner } from '@/components/dashboard/IncompleteProfileBanner'
 import { getProfileCompleteness } from '@/lib/profile-completeness'
+import { nextLoadingIndex } from '@/lib/loading-rotation'
+
+// Hand a post off to the carousel builder (content + id via sessionStorage —
+// posts can be long and are the user's own content, so keep them out of the URL).
+function goToCarousel(router: ReturnType<typeof useRouter>, post: { id: string; content: string }) {
+  try {
+    sessionStorage.setItem('pl_carousel_prefill', JSON.stringify({ postId: post.id, content: post.content }))
+  } catch { /* sessionStorage unavailable — builder opens empty */ }
+  router.push('/dashboard/carousel?from=post')
+}
+
+// Plans that include the carousel feature (Starter/Free do not).
+function planHasCarousels(plan: string) {
+  return plan !== 'free' && plan !== 'starter'
+}
 
 function utcToLocalInput(utcString: string): string {
   if (!utcString) return ''
@@ -179,6 +194,47 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
   const [error, setError] = useState('')
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const batchStartRef = useRef<string>('')
+  const router = useRouter()
+
+  // "Carousels for all" — generate a carousel for each batch post and attach the
+  // slides. Sequential (each render can take up to ~3 min), stoppable, and it
+  // bails cleanly the moment monthly carousel credits run out.
+  const [carouseling, setCarouseling] = useState(false)
+  const [carouselDone, setCarouselDone] = useState(0)
+  const [carouselMsg, setCarouselMsg] = useState('')
+  const carouselStopRef = useRef(false)
+
+  async function makeCarouselsForAll() {
+    if (carouseling || batchPosts.length === 0) return
+    carouselStopRef.current = false
+    setCarouseling(true); setCarouselDone(0); setCarouselMsg('')
+    let done = 0
+    let note = ''
+    for (const post of batchPosts) {
+      if (carouselStopRef.current) { note = `Stopped — ${done} carousel${done === 1 ? '' : 's'} attached.`; break }
+      // Already has a carousel (multi-image) — skip, don't burn a credit.
+      if ((post.image_urls?.length ?? 0) > 1) { done++; setCarouselDone(done); continue }
+      try {
+        const res = await fetch('/api/carousels/generate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: post.content, postId: post.id, theme: 'midnight', slideCount: 6 }),
+        })
+        const d = await res.json().catch(() => ({}))
+        if (res.status === 403) { note = `Attached ${done} carousel${done === 1 ? '' : 's'} — you're out of carousel credits this month.`; break }
+        const pngs: string[] | undefined = d.carousel?.png_urls
+        if (!res.ok || !pngs?.length) continue // skip a failed one, keep going
+        await fetch(`/api/posts/${post.id}/update`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_urls: pngs }),
+        })
+        setBatchPosts(prev => prev.map(p => p.id === post.id ? { ...p, image_urls: pngs } : p))
+        done++; setCarouselDone(done)
+      } catch { /* skip this one, keep going */ }
+    }
+    if (!note) note = `Done — ${done} carousel${done === 1 ? '' : 's'} attached to your posts.`
+    setCarouselMsg(note)
+    setCarouseling(false)
+  }
 
   const remaining = postsRemaining ?? postsLimit ?? 12
   const effectiveCount = selectedCount ?? remaining
@@ -324,9 +380,50 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
           ? <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[1,2,3].map(i => <PostCardSkeleton key={i} />)}</div>
           : batchPosts.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 480, overflowY: 'auto' }}>
-              {batchPosts.map(post => <PostCard key={post.id} id={post.id} content={post.content} scheduledAt={post.scheduled_at} status={post.status} />)}
+              {batchPosts.map(post => (
+                <PostCard
+                  key={post.id}
+                  id={post.id}
+                  content={post.content}
+                  scheduledAt={post.scheduled_at}
+                  status={post.status}
+                  imageUrls={post.image_urls}
+                  onMakeCarousel={() => goToCarousel(router, post)}
+                />
+              ))}
             </div>
           )}
+
+        {/* Carousels for all — turn the whole batch into swipeable carousels */}
+        {batchPosts.length > 0 && planHasCarousels(plan) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {!carouseling ? (
+                <button onClick={makeCarouselsForAll} className="btn-dash btn-dash--outline btn-dash--sm">
+                  <Layers size={13} /> Make carousels for all ({batchPosts.length})
+                </button>
+              ) : (
+                <>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-2)', fontWeight: 600 }}>
+                    <Loader2 size={13} className="animate-spin" /> Designing carousel {Math.min(carouselDone + 1, batchPosts.length)} of {batchPosts.length}…
+                  </span>
+                  <button onClick={() => { carouselStopRef.current = true }} className="btn-dash btn-dash--ghost btn-dash--sm">
+                    Stop
+                  </button>
+                </>
+              )}
+              {!carouseling && (
+                <span style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>Each takes ~1–3 min · uses one carousel credit each</span>
+              )}
+            </div>
+            {carouselMsg && (
+              <div style={{ fontSize: 12.5, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Check size={13} style={{ color: '#10b981' }} /> {carouselMsg}
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 8 }}>
           <Link href="/dashboard/calendar" className="btn-dash btn-dash--primary btn-dash--sm">
             View in Calendar <ArrowRight size={12} />
@@ -497,6 +594,7 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName, storyCount }: { 
 /* ── Main generate content ───────────────────────────────── */
 function GenerateContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const initTab = (searchParams.get('tab') as Tab) || 'prompt'
   const initIdea = searchParams.get('idea') || ''
   const initPrompt = searchParams.get('prompt') || ''
@@ -667,8 +765,13 @@ function GenerateContent() {
     setLoading(true); setError(''); setGeneratedPosts([]); setSelectedPost(null); setImageSuggestions([])
     loadingMsgIdx.current = 0; setLoadingMsg(LOADING_MESSAGES[0])
     const interval = setInterval(() => {
-      loadingMsgIdx.current = (loadingMsgIdx.current + 1) % LOADING_MESSAGES.length
-      setLoadingMsg(LOADING_MESSAGES[loadingMsgIdx.current])
+      const next = nextLoadingIndex(loadingMsgIdx.current, LOADING_MESSAGES.length)
+      // Hold on the final message rather than looping back to the first — a
+      // restart-looking loop confuses users mid-generation. Stop ticking once
+      // we're there.
+      if (next === loadingMsgIdx.current) { clearInterval(interval); return }
+      loadingMsgIdx.current = next
+      setLoadingMsg(LOADING_MESSAGES[next])
     }, 2000)
     try {
       const tonePrefix = selectedTone ? `Write in a ${selectedTone.toLowerCase()} tone. ` : ''
@@ -1201,6 +1304,13 @@ function GenerateContent() {
                 </div>
                 <button onClick={sendApproval} className="btn-dash btn-dash--outline" style={{ width: '100%', justifyContent: 'center' }}>
                   <Mail size={13} /> Send Approval Email Now
+                </button>
+                <button
+                  onClick={() => goToCarousel(router, { id: selectedPost.id, content: editContent })}
+                  className="btn-dash btn-dash--ghost"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  <Layers size={13} /> Make a carousel from this post
                 </button>
               </div>
 

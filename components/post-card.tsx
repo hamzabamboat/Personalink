@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Pencil, Send, Trash2, X } from 'lucide-react'
+import { CheckCircle2, Layers, Pencil, Send, Trash2, X } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
   draft: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Draft' },
@@ -24,6 +24,7 @@ export type PostCardProps = {
   onDelete?: () => void
   onPostNow?: () => void
   onApprove?: () => void
+  onMakeCarousel?: () => void
 }
 
 function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
@@ -49,7 +50,7 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
   )
 }
 
-export function PostCard({ content, scheduledAt, status, imageUrls, onEdit, onDelete, onPostNow, onApprove }: PostCardProps) {
+export function PostCard({ content, scheduledAt, status, imageUrls, onEdit, onDelete, onPostNow, onApprove, onMakeCarousel }: PostCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const s = STATUS_CONFIG[status] || STATUS_CONFIG.draft
@@ -107,6 +108,15 @@ export function PostCard({ content, scheduledAt, status, imageUrls, onEdit, onDe
               {s.label}
             </span>
             <div className="flex items-center gap-0.5 ml-1">
+              {onMakeCarousel && (
+                <button
+                  onClick={onMakeCarousel}
+                  title="Make a carousel from this post"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-brand hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                </button>
+              )}
               {onApprove && status === 'pending_approval' && (
                 <button
                   onClick={onApprove}
