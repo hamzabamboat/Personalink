@@ -11,6 +11,8 @@ import { ImageIcon, Sparkles, Loader2, Download, Copy, Check, Lock } from 'lucid
  * (ai_banner_generations) — distinct from the cost-neutral template
  * BannerGenerator below it, which is unchanged.
  */
+type IconStyle = 'outline' | 'filled'
+
 export function AiBannerGenerator({ brief }: { brief: string }) {
   const [remaining, setRemaining] = useState<number | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -18,6 +20,7 @@ export function AiBannerGenerator({ brief }: { brief: string }) {
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [iconStyle, setIconStyle] = useState<IconStyle>('outline')
 
   useEffect(() => {
     fetch('/api/banner/ai')
@@ -38,7 +41,7 @@ export function AiBannerGenerator({ brief }: { brief: string }) {
       const res = await fetch('/api/banner/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief }),
+        body: JSON.stringify({ brief, iconStyle }),
       })
       const d = await res.json()
       if (!res.ok) {
@@ -96,6 +99,20 @@ export function AiBannerGenerator({ brief }: { brief: string }) {
 
       <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{brief}</p>
 
+      {/* Icon style — a few minimalist interest icons, outline or filled. */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--ink-4)' }}>Icons</span>
+        {(['outline', 'filled'] as const).map(s => (
+          <button key={s} type="button" onClick={() => setIconStyle(s)} aria-pressed={iconStyle === s}
+            className="px-2.5 py-1 rounded-full text-[12px] font-semibold capitalize transition-colors"
+            style={iconStyle === s
+              ? { background: 'var(--pl-accent)', color: '#fff' }
+              : { background: 'var(--bg-2)', color: 'var(--ink-3)', border: '1px solid var(--line)' }}>
+            {s}
+          </button>
+        ))}
+      </div>
+
       {error && <div className="text-[12px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</div>}
 
       {url && (
@@ -118,7 +135,7 @@ export function AiBannerGenerator({ brief }: { brief: string }) {
             </button>
           </div>
           <div className="text-[11px]" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-            1584×396 · LinkedIn&apos;s exact banner size{remaining !== null ? ` · ${remaining} left this month` : ''}
+            High-res PNG · LinkedIn 1584×396 ratio · your name &amp; brand baked in{remaining !== null ? ` · ${remaining} left this month` : ''}
           </div>
         </div>
       ) : exhausted ? (
