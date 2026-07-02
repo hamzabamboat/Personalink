@@ -35,6 +35,14 @@
     {
       "path": "/api/cron/growth-report",
       "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/seo-blog",
+      "schedule": "30 3 * * 1"
+    },
+    {
+      "path": "/api/cron/seo-digest-email",
+      "schedule": "45 3 * * 1"
     }
   ]
 }
