@@ -1,11 +1,15 @@
 import { MetadataRoute } from 'next'
 import { COMPETITOR_SLUGS } from '@/lib/competitor-data'
 import { BLOG_POSTS } from '@/lib/blog-posts'
+import { getPublishedDbPosts, mergeBlogPosts } from '@/lib/blog-db'
 
 const BASE = 'https://personalink.in'
+export const revalidate = 3600
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
+  const dbPosts = await getPublishedDbPosts()
+  const allBlog = mergeBlogPosts(BLOG_POSTS, dbPosts)
 
   const vsPages: MetadataRoute.Sitemap = COMPETITOR_SLUGS.map(slug => ({
     url: `${BASE}/vs/${slug}`,
@@ -14,7 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
 
-  const blogPosts: MetadataRoute.Sitemap = BLOG_POSTS.map(post => ({
+  const blogPosts: MetadataRoute.Sitemap = allBlog.map(post => ({
     url: `${BASE}/blog/${post.slug}`,
     lastModified: now,
     changeFrequency: 'monthly',
