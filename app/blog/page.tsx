@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { WordMark } from '@/components/word-mark'
-import { BLOG_POSTS as ARTICLES } from '@/lib/blog-posts'
+import { BLOG_POSTS } from '@/lib/blog-posts'
+import { getPublishedDbPosts, mergeBlogPosts } from '@/lib/blog-db'
+
+export const revalidate = 3600
 
 export const metadata: Metadata = {
   title: 'Blog — LinkedIn Growth Tips | PersonaLink',
@@ -18,7 +21,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const dbPosts = await getPublishedDbPosts()
+  const ARTICLES = mergeBlogPosts(BLOG_POSTS, dbPosts)
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
       <nav style={{ background: 'color-mix(in srgb, var(--surface) 95%, transparent)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 50 }}>
