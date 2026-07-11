@@ -11,6 +11,11 @@ const HOURLY_LIMITS: Record<string, number> = {
   profile_analysis: 1,
   trend_refresh: 2,
   batch_generation: 1,
+  // Claude-backed image helpers (analysis, brief prompts, suggestions). These
+  // are cheap per call but loopable, so cap them independently of post gen.
+  image_analysis: 30,
+  image_brief_prompts: 30,
+  image_suggestions: 30,
 }
 
 function currentHourWindow(): string {

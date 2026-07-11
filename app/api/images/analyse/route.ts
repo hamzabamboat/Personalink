@@ -3,6 +3,7 @@ import sharp from 'sharp'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { analyseImageForPost } from '@/lib/anthropic'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export const maxDuration = 60
 
@@ -12,6 +13,14 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getUserFromRequest(request)
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const rl = await checkRateLimit(user.id, 'image_analysis')
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many image analyses this hour. Try again shortly.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } },
+      )
+    }
 
     const { imageId } = await request.json()
     if (!imageId) return NextResponse.json({ error: 'imageId required' }, { status: 400 })
@@ -39,6 +48,7 @@ export async function POST(request: NextRequest) {
     const mimeType = 'image/jpeg'
 
     const analysis = await analyseImageForPost(base64Data, mimeType)
+    incrementRateLimit(user.id, 'image_analysis')
 
     const { data: updated } = await supabaseAdmin
       .from('post_images')
