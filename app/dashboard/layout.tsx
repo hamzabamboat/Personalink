@@ -40,6 +40,7 @@ import {
   Plus,
   Wand2,
   Compass,
+  Building2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppearanceTrigger } from '@/components/appearance-trigger'
@@ -79,6 +80,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
       { href: '/dashboard/suggestions', label: 'Trending ideas', icon: Lightbulb, badge: 5 },
       { href: '/dashboard/library',     label: 'Inspiration',    icon: Compass, badge: 'new' },
       { href: '/dashboard/upload',      label: 'Image library',  icon: ImageIcon },
+      { href: '/dashboard/brand-stories', label: 'Brand stories', icon: Building2, badge: 'new' },
     ],
   },
   {
@@ -101,6 +103,7 @@ const BOTTOM_NAV_ITEMS = [
 const MORE_ITEMS = [
   { href: '/dashboard/posts',           label: 'My Posts',           icon: FileText },
   { href: '/dashboard/suggestions',     label: 'Trending Ideas',     icon: Lightbulb },
+  { href: '/dashboard/brand-stories',   label: 'Brand Stories',      icon: Building2 },
   { href: '/dashboard/analytics',       label: 'Analytics',          icon: BarChart3 },
   { href: '/dashboard/upload',          label: 'Image Library',      icon: ImageIcon },
   { href: '/dashboard/profile',         label: 'Voice & Profile',    icon: UserIcon },
@@ -118,6 +121,7 @@ const SEARCH_TARGETS: { href: string; label: string }[] = [
   { href: '/dashboard/story-bank',       label: 'Story bank' },
   { href: '/dashboard/analytics',        label: 'Analytics' },
   { href: '/dashboard/suggestions',      label: 'Trending ideas' },
+  { href: '/dashboard/brand-stories',    label: 'Brand stories · case studies' },
   { href: '/dashboard/upload',           label: 'Image library' },
   { href: '/dashboard/profile',          label: 'Voice & profile' },
   { href: '/dashboard/profile-improve',  label: 'Profile beautifier' },
@@ -716,6 +720,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       '/dashboard/posts':        'My Posts — PersonaLink',
       '/dashboard/calendar':     'Calendar — PersonaLink',
       '/dashboard/story-bank':   'Story Bank — PersonaLink',
+      '/dashboard/brand-stories': 'Brand Stories — PersonaLink',
       '/dashboard/analytics':    'Analytics — PersonaLink',
       '/dashboard/suggestions':  'Trending Ideas — PersonaLink',
       '/dashboard/upload':       'Image Library — PersonaLink',

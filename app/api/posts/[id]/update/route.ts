@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { syncPostToCalendar, removePostFromCalendar } from '@/lib/google-calendar'
 import { addVoiceSample } from '@/lib/voice'
+import { releaseLock } from '@/lib/brand-stories'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return PATCH(request, { params })
@@ -124,6 +125,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const { error } = await supabaseAdmin.from('posts').delete().eq('id', id).eq('user_id', user.id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Abandoning a brand-story draft frees its angle immediately (don't make
+    // the user wait out the cooldown for an angle they never posted).
+    releaseLock({ postId: id, userId: user.id }).catch(() => { /* non-fatal */ })
 
     // Fire-and-forget: remove from Google Calendar if event exists
     if (post?.google_calendar_event_id) {

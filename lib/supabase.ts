@@ -340,6 +340,53 @@ export type SwipeSave = {
   created_at: string
 }
 
+/** A cited fact about a brand — every claim traces to a real source URL. */
+export type BrandFact = {
+  claim: string
+  source_url: string
+  fetched_at: string
+}
+
+export type BrandCompany = {
+  id: string
+  slug: string | null
+  name: string
+  sector: string | null
+  summary: string | null
+  facts: BrandFact[]
+  source: 'curated' | 'user'
+  owner_id: string | null
+  logo_url: string | null
+  status: 'draft' | 'live' | 'retired'
+  discovered_via: 'roster' | 'weekly-discovery' | 'user'
+  created_at: string
+  refreshed_at: string
+  /** Joined at read time: angles currently available (not locked) for this company. */
+  available_angles?: BrandAngle[]
+}
+
+/** The lockable unit: a discrete takeaway about a company. */
+export type BrandAngle = {
+  id: string
+  company_id: string
+  title: string
+  summary: string | null
+  source: 'curated' | 'ai'
+  fingerprint: string
+  created_by: string | null
+  created_at: string
+}
+
+export type AngleLock = {
+  id: string
+  angle_id: string
+  user_id: string
+  post_id: string | null
+  locked_at: string
+  cooldown_until: string
+  released_at: string | null
+}
+
 export type LinkedInAccount = {
   id: string
   user_id: string
