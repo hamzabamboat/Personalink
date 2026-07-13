@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, Sparkles, Wand2, Plus, Building2, ExternalLink, HelpCircle, Lock, PenLine } from 'lucide-react'
+import { Loader2, Sparkles, Wand2, Plus, Building2, ExternalLink, HelpCircle, Lock, PenLine, ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BrandCompany, BrandAngle } from '@/lib/supabase'
 
@@ -198,7 +198,8 @@ function HowItWorks({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
     { icon: Building2, title: 'Pick a real brand', body: 'Browse curated companies — each with a factual, source-cited case study. Or add your own private company.' },
     { icon: Sparkles, title: 'Choose an angle', body: 'Claim a ready-made takeaway, or generate a fresh one (up to 3 a day). We write the full post in your voice, grounded in the cited facts.' },
     { icon: Lock, title: 'It\'s yours for a while', body: 'Once you claim an angle it locks to you and disappears for everyone else, so no two people post the same thing. It frees up again after about a month.' },
-    { icon: PenLine, title: 'Review and schedule', body: 'The draft lands in Posts to edit, add a branded graphic, and schedule. Delete it and the angle frees up right away.' },
+    { icon: ImageIcon, title: 'Add an image or branded graphic', body: 'Pair the post with a branded card in your colours and logo, or upload the brand\'s own logo or a photo — your call, right from the composer.' },
+    { icon: PenLine, title: 'Review and schedule', body: 'The draft lands in Posts to edit and schedule. Delete it and the angle frees up right away.' },
   ]
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
