@@ -13,6 +13,7 @@ export type TourStepId =
   | 'carousel'
   | 'banner'
   | 'library'
+  | 'brand-stories'
   | 'done'
 
 export interface TourStep {
@@ -119,6 +120,13 @@ export const TOUR_STEPS: TourStep[] = [
     target: 'library',
     title: 'Never start from a blank page',
     body: 'Browse proven post patterns — the hook, why it works, and a reusable template — then remix any one in your own voice with a click.',
+  },
+  {
+    id: 'brand-stories',
+    route: '/dashboard/brand-stories',
+    target: 'brand-stories-how',
+    title: 'Write about real brands',
+    body: 'Brand Stories turns a real company\'s cited case study into a post in your voice. Claim an angle and it\'s yours for a while, so no two people post the same thing. Tap "See how this works" here anytime.',
   },
   {
     id: 'done',

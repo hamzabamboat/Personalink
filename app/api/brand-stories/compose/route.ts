@@ -7,7 +7,7 @@ import { cleanThroughAIGate } from '@/lib/ai-detector'
 import { analyzeContent } from '@/lib/compliance'
 import { calculateSimilarityScore } from '@/lib/similarity'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
-import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
+import { checkRateLimit, incrementRateLimit, checkDailyRateLimit, incrementDailyRateLimit } from '@/lib/rate-limiter'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { resolveLocale } from '@/lib/resolve-locale'
 import { isLanguageModesEnabled } from '@/lib/flags'
@@ -64,6 +64,14 @@ export async function POST(request: NextRequest) {
     let angle: BrandAngle
     let lockId: string
     if (generateFresh) {
+      // Cap fresh-angle generation at 3/day across all companies.
+      const daily = await checkDailyRateLimit(user.id, 'fresh_angle')
+      if (!daily.allowed) {
+        return NextResponse.json(
+          { error: `You've generated ${daily.limit} fresh angles today. This resets tomorrow — or claim one of the ready-made angles instead.` },
+          { status: 429, headers: { 'Retry-After': String(daily.retryAfterSeconds) } },
+        )
+      }
       const fresh = await createFreshAngle(user.id, typedCompany)
       if (!fresh) return NextResponse.json({ error: 'This company is well-covered right now — try another or check back later.' }, { status: 409 })
       angle = fresh.angle
@@ -117,6 +125,7 @@ export async function POST(request: NextRequest) {
       if (result.error || !result.data) throw new Error(result.error?.message || 'insert failed')
 
       await attachPostToLock(lockId, result.data.id)
+      if (generateFresh) await incrementDailyRateLimit(user.id, 'fresh_angle')
       await Promise.all([
         incrementUsage(user.id, 'posts_generated'),
         incrementRateLimit(user.id, 'claude_calls'),

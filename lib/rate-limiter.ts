@@ -13,9 +13,20 @@ const HOURLY_LIMITS: Record<string, number> = {
   batch_generation: 1,
 }
 
+// Per-user daily limits (reset at local midnight).
+const DAILY_LIMITS: Record<string, number> = {
+  fresh_angle: 3, // AI "generate a fresh angle" in Brand Stories, across all companies
+}
+
 function currentHourWindow(): string {
   const d = new Date()
   d.setMinutes(0, 0, 0)
+  return d.toISOString()
+}
+
+function currentDayWindow(): string {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
   return d.toISOString()
 }
 
@@ -63,6 +74,37 @@ export async function incrementRateLimit(userId: string, feature: string): Promi
       p_user_id: userId,
       p_feature: feature,
       p_window: window,
+    })
+  } catch { /* non-fatal */ }
+}
+
+/** Per-user, per-day cap (window resets at local midnight). Used for `fresh_angle`. */
+export async function checkDailyRateLimit(userId: string, feature: string): Promise<RateLimitResult> {
+  if (await isUserBypassed(userId)) return { allowed: true, count: 0, limit: 9999, retryAfterSeconds: 0 }
+
+  const limit = DAILY_LIMITS[feature] ?? 100
+  const window = currentDayWindow()
+
+  const { data } = await supabaseAdmin
+    .from('rate_limit_tracking')
+    .select('count')
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .eq('window_start', window)
+    .maybeSingle()
+
+  const count = data?.count ?? 0
+  const nextDay = new Date(window)
+  nextDay.setDate(nextDay.getDate() + 1)
+  return { allowed: count < limit, count, limit, retryAfterSeconds: Math.ceil((nextDay.getTime() - Date.now()) / 1000) }
+}
+
+export async function incrementDailyRateLimit(userId: string, feature: string): Promise<void> {
+  try {
+    await supabaseAdmin.rpc('increment_rate_limit', {
+      p_user_id: userId,
+      p_feature: feature,
+      p_window: currentDayWindow(),
     })
   } catch { /* non-fatal */ }
 }

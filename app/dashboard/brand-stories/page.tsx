@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Loader2, Sparkles, Wand2, Plus, Building2, ExternalLink } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Loader2, Sparkles, Wand2, Plus, Building2, ExternalLink, HelpCircle, Lock, PenLine } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BrandCompany, BrandAngle } from '@/lib/supabase'
 
@@ -23,6 +24,7 @@ export default function BrandStoriesPage() {
   const [sector, setSector] = useState<string>('all')
   const [busy, setBusy] = useState<string | null>(null) // company.id currently composing
   const [showUpload, setShowUpload] = useState(false)
+  const [showHow, setShowHow] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,10 +68,17 @@ export default function BrandStoriesPage() {
             yours for a while once you claim it — so no two people post the same thing.
           </p>
         </div>
-        <Button variant="outline" onClick={() => setShowUpload(s => !s)} className="shrink-0">
-          <Plus className="w-4 h-4 mr-1.5" /> Your company
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button data-tour="brand-stories-how" variant="ghost" onClick={() => setShowHow(true)}>
+            <HelpCircle className="w-4 h-4 mr-1.5" /> See how this works
+          </Button>
+          <Button variant="outline" onClick={() => setShowUpload(s => !s)}>
+            <Plus className="w-4 h-4 mr-1.5" /> Your company
+          </Button>
+        </div>
       </div>
+
+      <HowItWorks open={showHow} onOpenChange={setShowHow} />
 
       {showUpload && <UploadForm onDone={() => { setShowUpload(false); load() }} />}
 
@@ -181,5 +190,39 @@ function UploadForm({ onDone }: { onDone: () => void }) {
         <Button variant="ghost" onClick={onDone}>Cancel</Button>
       </div>
     </div>
+  )
+}
+
+function HowItWorks({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const steps = [
+    { icon: Building2, title: 'Pick a real brand', body: 'Browse curated companies — each with a factual, source-cited case study. Or add your own private company.' },
+    { icon: Sparkles, title: 'Choose an angle', body: 'Claim a ready-made takeaway, or generate a fresh one (up to 3 a day). We write the full post in your voice, grounded in the cited facts.' },
+    { icon: Lock, title: 'It\'s yours for a while', body: 'Once you claim an angle it locks to you and disappears for everyone else, so no two people post the same thing. It frees up again after about a month.' },
+    { icon: PenLine, title: 'Review and schedule', body: 'The draft lands in Posts to edit, add a branded graphic, and schedule. Delete it and the angle frees up right away.' },
+  ]
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md mx-4 md:mx-auto w-[calc(100vw-2rem)] md:w-full">
+        <DialogHeader>
+          <DialogTitle className="text-slate-900">How Brand Stories works</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-1">
+          {steps.map((s, i) => (
+            <div key={i} className="flex gap-3">
+              <div className="w-8 h-8 rounded-lg bg-brand-light/50 text-brand flex items-center justify-center shrink-0">
+                <s.icon className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-800">{s.title}</p>
+                <p className="text-[13px] text-slate-500 mt-0.5">{s.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end mt-2">
+          <Button onClick={() => onOpenChange(false)}>Got it</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
