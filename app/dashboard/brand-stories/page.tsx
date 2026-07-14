@@ -60,7 +60,7 @@ export default function BrandStoriesPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-start justify-between gap-4 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Brand stories</h1>
           <p className="text-sm text-slate-500 mt-1 max-w-xl">
@@ -68,7 +68,7 @@ export default function BrandStoriesPage() {
             yours for a while once you claim it — so no two people post the same thing.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <Button data-tour="brand-stories-how" variant="ghost" onClick={() => setShowHow(true)}>
             <HelpCircle className="w-4 h-4 mr-1.5" /> See how this works
           </Button>
