@@ -56,3 +56,22 @@ export async function getClient(clientId: string): Promise<OAuthClient | null> {
 export function redirectUriAllowed(client: OAuthClient, redirectUri: string): boolean {
   return client.redirect_uris.includes(redirectUri)
 }
+
+/**
+ * Central gate for OAuth Bearer access to API routes.
+ * Returns the scope required for this route, or null when Bearer
+ * authentication is not allowed on it (billing/account/admin routes
+ * are deliberately absent — they stay cookie-session only).
+ */
+export function bearerScopeFor(pathname: string, method: string): string | null {
+  const ALLOWED_PREFIXES = [
+    '/api/me', '/api/posts', '/api/usage', '/api/calendar', '/api/trends',
+    '/api/suggestions', '/api/library', '/api/story-bank', '/api/memories',
+    '/api/brand-kit', '/api/images', '/api/carousels', '/api/banner',
+    '/api/profile', '/api/voice', '/api/growth', '/api/scoring', '/api/refinement',
+  ]
+  if (!ALLOWED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))) return null
+  if (/^\/api\/posts\/[^/]+\/(approve|send-approval)$/.test(pathname)) return 'posts:publish'
+  if (method === 'GET' || method === 'HEAD') return 'posts:read'
+  return 'posts:write'
+}

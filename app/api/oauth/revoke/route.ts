@@ -21,11 +21,13 @@ export async function POST(request: NextRequest) {
   }
 
   // RFC 7009 client-driven revoke by raw token value.
-  const form = await request.formData()
-  const token = String(form.get('token') || '')
-  if (token) {
-    const h = sha256(token)
-    await supabaseAdmin.from('oauth_tokens').update({ revoked_at: new Date().toISOString() }).or(`access_token.eq.${h},refresh_token.eq.${h}`)
-  }
+  try {
+    const form = await request.formData()
+    const token = String(form.get('token') || '')
+    if (token) {
+      const h = sha256(token)
+      await supabaseAdmin.from('oauth_tokens').update({ revoked_at: new Date().toISOString() }).or(`access_token.eq.${h},refresh_token.eq.${h}`)
+    }
+  } catch { /* RFC 7009: revocation always answers 200 */ }
   return new NextResponse(null, { status: 200 }) // RFC 7009: always 200
 }

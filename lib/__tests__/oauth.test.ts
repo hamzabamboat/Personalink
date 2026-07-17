@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sha256, pkceChallengeFromVerifier, verifyPkce, generateToken, ACCESS_TTL_MS, REFRESH_TTL_MS, CODE_TTL_MS } from '../oauth'
+import { sha256, pkceChallengeFromVerifier, verifyPkce, generateToken, ACCESS_TTL_MS, REFRESH_TTL_MS, CODE_TTL_MS, bearerScopeFor } from '../oauth'
 
 describe('oauth helpers', () => {
   it('sha256 is stable hex', () => {
@@ -30,5 +30,28 @@ describe('oauth helpers', () => {
   it('TTLs have sane ordering', () => {
     expect(CODE_TTL_MS).toBeLessThan(ACCESS_TTL_MS)
     expect(ACCESS_TTL_MS).toBeLessThan(REFRESH_TTL_MS)
+  })
+})
+
+describe('bearerScopeFor', () => {
+  it('denies Bearer on unlisted routes (billing, account, oauth admin)', () => {
+    expect(bearerScopeFor('/api/dodo/create-subscription', 'POST')).toBeNull()
+    expect(bearerScopeFor('/api/razorpay/verify', 'POST')).toBeNull()
+    expect(bearerScopeFor('/api/oauth/connected', 'GET')).toBeNull()
+    expect(bearerScopeFor('/api/account/delete', 'POST')).toBeNull()
+  })
+  it('requires posts:read for reads and posts:write for writes', () => {
+    expect(bearerScopeFor('/api/posts', 'GET')).toBe('posts:read')
+    expect(bearerScopeFor('/api/me', 'GET')).toBe('posts:read')
+    expect(bearerScopeFor('/api/posts/generate', 'POST')).toBe('posts:write')
+    expect(bearerScopeFor('/api/memories', 'PATCH')).toBe('posts:write')
+  })
+  it('requires posts:publish for approve/send-approval', () => {
+    expect(bearerScopeFor('/api/posts/abc123/approve', 'POST')).toBe('posts:publish')
+    expect(bearerScopeFor('/api/posts/abc123/send-approval', 'POST')).toBe('posts:publish')
+  })
+  it('does not match prefix-lookalike routes', () => {
+    expect(bearerScopeFor('/api/mem', 'GET')).toBeNull()
+    expect(bearerScopeFor('/api/postsfoo', 'GET')).toBeNull()
   })
 })

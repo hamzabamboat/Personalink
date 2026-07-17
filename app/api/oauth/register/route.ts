@@ -10,7 +10,10 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null)
   const redirectUris: unknown = body?.redirect_uris
-  if (!Array.isArray(redirectUris) || redirectUris.length === 0 || !redirectUris.every((u) => typeof u === 'string' && /^https?:\/\//.test(u))) {
+  const uriOk = (u: unknown): u is string =>
+    typeof u === 'string' && u.length <= 2000 &&
+    (/^https:\/\//.test(u) || /^http:\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(u))
+  if (!Array.isArray(redirectUris) || redirectUris.length === 0 || redirectUris.length > 10 || !redirectUris.every(uriOk)) {
     return NextResponse.json({ error: 'invalid_redirect_uri' }, { status: 400 })
   }
 

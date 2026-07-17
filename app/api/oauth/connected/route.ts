@@ -13,8 +13,11 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
 
   const clientIds = [...new Set((data || []).map((t) => t.client_id))]
-  const { data: clients } = await supabaseAdmin.from('oauth_clients').select('client_id, client_name').in('client_id', clientIds.length ? clientIds : ['none'])
-  const nameById = new Map((clients || []).map((c) => [c.client_id, c.client_name]))
+  const nameById = new Map<string, string | null>()
+  if (clientIds.length) {
+    const { data: clients } = await supabaseAdmin.from('oauth_clients').select('client_id, client_name').in('client_id', clientIds)
+    for (const c of clients || []) nameById.set(c.client_id, c.client_name)
+  }
 
   return NextResponse.json({
     tokens: (data || []).map((t) => ({ id: t.id, client_name: nameById.get(t.client_id) ?? null, created_at: t.created_at, last_used_at: t.last_used_at })),

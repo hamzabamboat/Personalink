@@ -4,7 +4,9 @@ const { maybeSingle, eq, select, from } = vi.hoisted(() => {
   const maybeSingle = vi.fn()
   const eq = vi.fn(() => ({ maybeSingle, single: maybeSingle }))
   const select = vi.fn(() => ({ eq }))
-  const from = vi.fn(() => ({ select }))
+  const updateEq = vi.fn(() => ({ then: (resolve: any) => resolve({ data: null, error: null }) }))
+  const update = vi.fn(() => ({ eq: updateEq }))
+  const from = vi.fn(() => ({ select, update }))
   return { maybeSingle, eq, select, from }
 })
 vi.mock('@/lib/supabase-admin', () => ({ supabaseAdmin: { from } }))

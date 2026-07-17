@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { NextRequest } from 'next/server'
 import { User, Agency } from './supabase'
 import { supabaseAdmin } from './supabase-admin'
-import { sha256 } from './oauth'
+import { sha256, bearerScopeFor } from './oauth'
 
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies()
@@ -36,6 +36,12 @@ export async function getUserFromToken(rawToken: string): Promise<(User & { oaut
   if (tokenRow.revoked_at) return null
   if (new Date(tokenRow.access_expires_at as string) < new Date()) return null
 
+  supabaseAdmin
+    .from('oauth_tokens')
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('access_token', sha256(rawToken))
+    .then(() => {}, () => {})
+
   const { data: user } = await supabaseAdmin
     .from('users')
     .select('*')
@@ -49,8 +55,11 @@ export async function getUserFromToken(rawToken: string): Promise<(User & { oaut
 export async function getUserFromRequest(request: NextRequest): Promise<User | null> {
   const authHeader = request.headers.get('authorization')
   if (authHeader?.startsWith('Bearer ')) {
-    const user = await getUserFromToken(authHeader.slice('Bearer '.length).trim())
-    if (user) return user
+    const required = bearerScopeFor(request.nextUrl.pathname, request.method)
+    if (required) {
+      const user = await getUserFromToken(authHeader.slice('Bearer '.length).trim())
+      if (user && (user.oauthScope || '').split(' ').includes(required)) return user
+    }
   }
 
   const userId = request.cookies.get('session_user_id')?.value

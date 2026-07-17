@@ -40,3 +40,9 @@ create index if not exists oauth_tokens_refresh_idx on oauth_tokens (refresh_tok
 create index if not exists oauth_tokens_user_idx    on oauth_tokens (user_id);
 
 alter table magic_link_tokens add column if not exists return_to text;
+
+-- RLS: these tables are only ever accessed via the service role (supabaseAdmin),
+-- which bypasses RLS. Enabling with no policies blocks the public anon key entirely.
+alter table oauth_clients    enable row level security;
+alter table oauth_auth_codes enable row level security;
+alter table oauth_tokens     enable row level security;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getUserFromRequest } from '@/lib/auth'
 import { getClient, redirectUriAllowed, sanitizeScope, generateToken, sha256, CODE_TTL_MS } from '@/lib/oauth'
 
 export async function POST(request: NextRequest) {
@@ -11,8 +12,8 @@ export async function POST(request: NextRequest) {
   const scope = sanitizeScope(String(form.get('scope') || ''))
   const decision = String(form.get('decision') || '')
 
-  const userId = request.cookies.get('session_user_id')?.value
-  if (!userId) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
+  const user = await getUserFromRequest(request)
+  if (!user) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
 
   const client = await getClient(clientId)
   if (!client || !redirectUriAllowed(client, redirectUri) || !codeChallenge) {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
   const { error } = await supabaseAdmin.from('oauth_auth_codes').insert({
     code: sha256(rawCode),
     client_id: clientId,
-    user_id: userId,
+    user_id: user.id,
     redirect_uri: redirectUri,
     scope,
     code_challenge: codeChallenge,
