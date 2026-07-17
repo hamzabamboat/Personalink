@@ -38,3 +38,5 @@ create table if not exists oauth_tokens (
 create index if not exists oauth_tokens_access_idx  on oauth_tokens (access_token);
 create index if not exists oauth_tokens_refresh_idx on oauth_tokens (refresh_token);
 create index if not exists oauth_tokens_user_idx    on oauth_tokens (user_id);
+
+alter table magic_link_tokens add column if not exists return_to text;

@@ -8,7 +8,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 export async function POST(request: NextRequest) {
-  let body: { email?: string; voiceReportToken?: string }
+  let body: { email?: string; voiceReportToken?: string; returnTo?: string }
   try {
     body = await request.json()
   } catch {
@@ -22,11 +22,14 @@ export async function POST(request: NextRequest) {
   }
   const reportToken = UUID_RE.test(voiceReportToken) ? voiceReportToken : null
 
+  const returnToRaw = (body as { returnTo?: string }).returnTo || ''
+  const returnTo = returnToRaw.startsWith('/') && !returnToRaw.startsWith('//') ? returnToRaw : null
+
   if (await isEmailRateLimited(email)) {
     return NextResponse.json({ ok: false, error: 'Too many requests. Try again in a few minutes.' }, { status: 429 })
   }
 
-  const token = await createMagicLinkToken({ email, voiceReportToken: reportToken })
+  const token = await createMagicLinkToken({ email, voiceReportToken: reportToken, returnTo })
   const verifyUrl = `${APP_URL}/api/auth/magic-link/verify?token=${token}`
 
   try {
