@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { NextRequest } from 'next/server'
 import { User, Agency } from './supabase'
 import { supabaseAdmin } from './supabase-admin'
+import { sha256, bearerScopeFor } from './oauth'
 
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies()
@@ -17,7 +18,50 @@ export async function getCurrentUser(): Promise<User | null> {
   return data
 }
 
+/**
+ * Resolve a PersonaLink user from an OAuth Bearer access token.
+ * Returns the user with `oauthScope` attached, or null if the token is
+ * unknown, expired, or revoked.
+ */
+export async function getUserFromToken(rawToken: string): Promise<(User & { oauthScope?: string }) | null> {
+  if (!rawToken) return null
+
+  const { data: tokenRow } = await supabaseAdmin
+    .from('oauth_tokens')
+    .select('user_id, scope, access_expires_at, revoked_at')
+    .eq('access_token', sha256(rawToken))
+    .maybeSingle()
+
+  if (!tokenRow) return null
+  if (tokenRow.revoked_at) return null
+  if (new Date(tokenRow.access_expires_at as string) < new Date()) return null
+
+  supabaseAdmin
+    .from('oauth_tokens')
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('access_token', sha256(rawToken))
+    .then(() => {}, () => {})
+
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('id', tokenRow.user_id)
+    .maybeSingle()
+
+  if (!user) return null
+  return { ...(user as User), oauthScope: tokenRow.scope as string }
+}
+
 export async function getUserFromRequest(request: NextRequest): Promise<User | null> {
+  const authHeader = request.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const required = bearerScopeFor(request.nextUrl.pathname, request.method)
+    if (required) {
+      const user = await getUserFromToken(authHeader.slice('Bearer '.length).trim())
+      if (user && (user.oauthScope || '').split(' ').includes(required)) return user
+    }
+  }
+
   const userId = request.cookies.get('session_user_id')?.value
   if (!userId) return null
 

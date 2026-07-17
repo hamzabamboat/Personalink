@@ -18,6 +18,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { BrandKitSection } from '@/components/brand-kit-section'
+import { ConnectedApps } from './ConnectedApps'
 import {
   Loader2,
   Link2,
@@ -1183,6 +1184,8 @@ context: "Keep it short and punchy"`}</pre>
           </CardContent>
         </Card>
       </section>
+
+      <ConnectedApps />
 
       {/* ── Danger Zone ── */}
       <section>

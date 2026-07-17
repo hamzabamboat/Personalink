@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
     })
   } catch { /* posthog optional */ }
 
-  const response = NextResponse.redirect(`${APP_URL}/welcome`)
+  const dest = verified.returnTo && verified.returnTo.startsWith('/') && !verified.returnTo.startsWith('//')
+    ? `${APP_URL}${verified.returnTo}`
+    : `${APP_URL}/welcome`
+  const response = NextResponse.redirect(dest)
   response.cookies.set('session_user_id', userId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

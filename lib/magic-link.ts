@@ -30,12 +30,14 @@ export async function isEmailRateLimited(email: string): Promise<boolean> {
 export async function createMagicLinkToken(opts: {
   email: string
   voiceReportToken?: string | null
+  returnTo?: string | null
 }): Promise<string> {
   const token = generateToken()
   const { error } = await supabaseAdmin.from('magic_link_tokens').insert({
     token_hash: hashToken(token),
     email: opts.email,
     voice_report_token: opts.voiceReportToken ?? null,
+    return_to: opts.returnTo ?? null,
     expires_at: new Date(Date.now() + TOKEN_TTL_MS).toISOString(),
   })
   if (error) throw new Error(`magic_link insert failed: ${error.message}`)
@@ -45,6 +47,7 @@ export async function createMagicLinkToken(opts: {
 export type VerifiedToken = {
   email: string
   voiceReportToken: string | null
+  returnTo: string | null
 }
 
 /**
@@ -58,7 +61,7 @@ export async function consumeMagicLinkToken(rawToken: string): Promise<VerifiedT
 
   const { data: row } = await supabaseAdmin
     .from('magic_link_tokens')
-    .select('id, email, voice_report_token, expires_at, used_at')
+    .select('id, email, voice_report_token, return_to, expires_at, used_at')
     .eq('token_hash', tokenHash)
     .maybeSingle()
 
@@ -76,5 +79,9 @@ export async function consumeMagicLinkToken(rawToken: string): Promise<VerifiedT
     .maybeSingle()
   if (!updated) return null
 
-  return { email: row.email as string, voiceReportToken: (row.voice_report_token as string | null) ?? null }
+  return {
+    email: row.email as string,
+    voiceReportToken: (row.voice_report_token as string | null) ?? null,
+    returnTo: (row.return_to as string | null) ?? null,
+  }
 }
