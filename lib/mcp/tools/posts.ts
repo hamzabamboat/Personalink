@@ -18,11 +18,14 @@ function truncate(content: string | null | undefined, max: number): string {
 }
 
 function compactPost(post: Post) {
+  // Published posts store their go-live time in published_at; posted_at is a
+  // legacy/unused column. Prefer whichever is populated so live posts show a date.
+  const publishedAt = post.published_at ?? post.posted_at ?? null
   return {
     id: post.id,
     status: post.status,
     scheduled_at: post.scheduled_at ?? null,
-    ...(post.posted_at !== undefined ? { posted_at: post.posted_at } : {}),
+    ...(publishedAt !== null ? { published_at: publishedAt } : {}),
     content: truncate(post.content, 200),
   }
 }
@@ -31,7 +34,7 @@ export function registerPostsTools(server: McpServer): void {
   server.tool(
     'list_posts',
     "List the user's LinkedIn posts and drafts with status and scheduling info. Optionally filter by status.",
-    { status: z.string().optional().describe('Filter by status: draft | scheduled | posted | pending_approval') },
+    { status: z.string().optional().describe('Filter by status: draft | scheduled | published | pending_approval | approved') },
     { readOnlyHint: true },
     async (args, extra) => {
       const authInfo = extra.authInfo as AuthInfo | undefined
@@ -54,7 +57,8 @@ export function registerPostsTools(server: McpServer): void {
       const authInfo = extra.authInfo as AuthInfo | undefined
       const denied = requireScope(authInfo, 'posts:read')
       if (denied) return denied
-      const res = await apiFetch(tokenOf(authInfo), '/api/posts')
+      // High limit so posts beyond the default 200-row page are still findable by id.
+      const res = await apiFetch(tokenOf(authInfo), '/api/posts?limit=2000')
       if (!res.ok) return proxyError(res.status, res.body)
       const posts = ((res.body as { posts?: Post[] } | null)?.posts || []) as Post[]
       const post = posts.find((p) => p.id === args.post_id)

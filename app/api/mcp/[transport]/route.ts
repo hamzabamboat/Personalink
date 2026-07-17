@@ -9,7 +9,10 @@ import { registerGraphicsTools } from '@/lib/mcp/tools/graphics'
 import { registerContextTools } from '@/lib/mcp/tools/context'
 import { registerDiscoveryTools } from '@/lib/mcp/tools/discovery'
 
-export const maxDuration = 60
+// Some tools proxy slow synchronous routes: bulk-generate loops over content
+// pillars for minutes and /api/profile/beautify sets maxDuration=120. Cap at
+// the platform max so those calls return rather than timing out mid-flight.
+export const maxDuration = 300
 
 const handler = createMcpHandler(
   (server) => {
@@ -40,7 +43,7 @@ const handler = createMcpHandler(
   {},
   {
     basePath: '/api/mcp',
-    maxDuration: 60,
+    maxDuration: 300,
     verboseLogs: false,
   },
 )

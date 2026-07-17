@@ -23,7 +23,8 @@ export function registerPublishTools(server: McpServer): void {
       if (denied) return denied
 
       const token = tokenOf(authInfo)
-      const listRes = await apiFetch(token, '/api/posts')
+      // High limit so posts beyond the default 200-row page can still be published by id.
+      const listRes = await apiFetch(token, '/api/posts?limit=2000')
       if (!listRes.ok) return proxyError(listRes.status, listRes.body)
 
       const posts = (listRes.body as { posts?: PostRow[] } | null)?.posts || []
