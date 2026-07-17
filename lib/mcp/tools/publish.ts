@@ -36,7 +36,7 @@ export function registerPublishTools(server: McpServer): void {
         )
       }
 
-      const res = await apiFetch(token, `/api/posts/${args.post_id}/approve`, { method: 'POST' })
+      const res = await apiFetch(token, `/api/posts/${encodeURIComponent(args.post_id)}/approve`, { method: 'POST' })
       if (!res.ok) return proxyError(res.status, res.body)
       return textResult(res.body)
     },
