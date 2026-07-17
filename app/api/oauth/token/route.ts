@@ -11,7 +11,7 @@ async function issueTokens(clientId: string, userId: string, scope: string) {
   const accessRaw = generateToken()
   const refreshRaw = generateToken()
   const now = Date.now()
-  await supabaseAdmin.from('oauth_tokens').insert({
+  const { error } = await supabaseAdmin.from('oauth_tokens').insert({
     access_token: sha256(accessRaw),
     refresh_token: sha256(refreshRaw),
     client_id: clientId,
@@ -20,6 +20,7 @@ async function issueTokens(clientId: string, userId: string, scope: string) {
     access_expires_at: new Date(now + ACCESS_TTL_MS).toISOString(),
     refresh_expires_at: new Date(now + REFRESH_TTL_MS).toISOString(),
   })
+  if (error) return err('server_error', 500)
   return NextResponse.json({
     access_token: accessRaw,
     refresh_token: refreshRaw,
