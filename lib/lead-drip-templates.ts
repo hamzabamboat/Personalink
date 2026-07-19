@@ -1,3 +1,8 @@
+/**
+ * Fixed set of nurture emails for leads who signed up but never signed in.
+ * The lead-drip cron sends one every 10 days via `getLeadDripTemplate`, which
+ * cycles through this list in order and wraps back to the start once exhausted.
+ */
 export type LeadDripTemplate = {
   subject: string
   heading: string
@@ -37,7 +42,7 @@ export const LEAD_DRIP_TEMPLATES: LeadDripTemplate[] = [
   },
   {
     subject: 'Posting daily is not a personality trait',
-    heading: 'Consistency, not hustle.',
+    heading: 'Consistency wins.',
     body: 'Most LinkedIn growth comes from showing up on a schedule, not from a viral hit. Personalink writes the post. You approve it before it goes out.',
     ctaLabel: 'See how it works',
     ctaHref: '/',
