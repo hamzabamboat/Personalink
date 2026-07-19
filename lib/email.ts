@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { TIER_PRICING, TIER_LIMITS, TIER_LABEL, formatPrice, type TierID } from '@/lib/pricing-config'
+import type { LeadDripTemplate } from '@/lib/lead-drip-templates'
 
 let _resend: Resend | null = null
 const resend = () => {
@@ -1249,5 +1250,33 @@ export async function sendGrowthReportEmail({
       '',
       `${body.cta.label}: ${APP_URL}${body.cta.href}`,
     ].filter(Boolean).join('\n\n'),
+  })
+}
+
+export async function sendLeadDripEmail({
+  to,
+  template,
+  unsubscribeUrl,
+}: {
+  to: string
+  template: LeadDripTemplate
+  unsubscribeUrl: string
+}) {
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: template.subject,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+        <h1 style="font-size:20px;margin:0 0 12px">${template.heading}</h1>
+        <p style="font-size:15px;line-height:1.6;color:#334155;margin:0 0 20px">
+          ${template.body}
+        </p>
+        <a href="${APP_URL}${template.ctaHref}" style="display:inline-block;background:#0A66C2;color:#fff;font-weight:600;
+          font-size:15px;padding:12px 20px;border-radius:10px;text-decoration:none">${template.ctaLabel} →</a>
+        <p style="font-size:12px;color:#94a3b8;margin:24px 0 0">
+          <a href="${unsubscribeUrl}" style="color:#94a3b8;text-decoration:underline">Unsubscribe</a>
+        </p>
+      </div>`,
   })
 }

@@ -17,6 +17,10 @@
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/cron/lead-drip",
+      "schedule": "15 9 * * *"
+    },
+    {
       "path": "/api/cron/day7-stats",
       "schedule": "0 9 * * *"
     },
