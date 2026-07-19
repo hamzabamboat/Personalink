@@ -13,3 +13,8 @@ create table if not exists leads (
 
 create index if not exists leads_due_idx on leads(unsubscribed_at, last_sent_at);
 create index if not exists leads_unsubscribe_token_idx on leads(unsubscribe_token);
+
+-- Service role key bypasses RLS, so all API routes (which use supabaseAdmin)
+-- are unaffected. No anon/authenticated policies = blocks any direct client
+-- access to captured emails and unsubscribe tokens via the public anon key.
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
