@@ -44,9 +44,10 @@ async function handler(request: NextRequest) {
     const template = getLeadDripTemplate(lead.template_index as number)
     const unsubscribeUrl = `${APP_URL}/api/leads/unsubscribe?token=${lead.unsubscribe_token}`
     await sendLeadDripEmail({ to: lead.email as string, template, unsubscribeUrl })
-    await supabaseAdmin.from('leads')
+    const { error: advanceError } = await supabaseAdmin.from('leads')
       .update({ template_index: (lead.template_index as number) + 1, last_sent_at: new Date().toISOString() })
       .eq('email', lead.email as string)
+    if (advanceError) console.error('[cron/lead-drip] failed to advance lead cursor', lead.email, advanceError)
     return { email: lead.email, sent: true }
   }))
 
