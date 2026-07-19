@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await supabaseAdmin.from('leads').upsert(
+    const { error: leadError } = await supabaseAdmin.from('leads').upsert(
       {
         email,
         source: 'voice_analyzer_magic_link',
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       },
       { onConflict: 'email', ignoreDuplicates: true },
     )
+    if (leadError) console.error('[magic-link/request] lead upsert failed', leadError)
   } catch (err) {
     console.error('[magic-link/request] lead upsert failed', err)
     // Non-fatal — the magic-link send below is the primary flow.
