@@ -50,7 +50,7 @@ export default function BrandStoriesPage() {
       const d = await res.json()
       if (!res.ok) { toast.error(d.error || 'Could not create the draft.'); return }
       toast.success(`Draft ready — ${company.name}: ${d.angle?.title ?? 'your angle'}`)
-      router.push('/dashboard/posts')
+      router.push(`/dashboard/posts?open=${d.post.id}`)
     } catch {
       toast.error('Something went wrong.')
     } finally {

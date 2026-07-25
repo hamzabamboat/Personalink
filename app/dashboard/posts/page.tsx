@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import type { Post } from '@/lib/supabase'
 import type { PostImage } from '@/lib/supabase'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -61,6 +62,8 @@ type ViewMode = 'list' | 'calendar'
 type FilterStatus = 'all' | 'attention' | 'scheduled' | 'draft' | 'published'
 
 function PostsContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewMode>('list')
@@ -96,6 +99,21 @@ function PostsContent() {
     load()
     return () => { cancelled = true }
   }, [])
+
+  // Deep-link from elsewhere (e.g. Brand stories, after composing a draft):
+  // ?open=<postId> jumps straight into the editor — add an image, approve &
+  // schedule — instead of dumping the user into the plain list.
+  useEffect(() => {
+    if (loading) return
+    const openId = searchParams.get('open')
+    if (!openId) return
+    const post = posts.find(p => p.id === openId)
+    if (post) {
+      openEdit(post)
+      toast('Draft ready — add an image, then approve & schedule', { duration: 5000 })
+    }
+    router.replace('/dashboard/posts', { scroll: false })
+  }, [loading, posts, searchParams, router])
 
   function openEdit(post: Post) {
     setEditingPost(post)
